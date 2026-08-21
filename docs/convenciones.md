@@ -36,7 +36,7 @@ Las reglas del repo están en [`AGENTS.md`](../AGENTS.md), y `.claude/CLAUDE.md`
 ## Formularios y ruteo
 
 - Formularios **reactivos**, no template-driven.
-- **Lazy loading por ruta de feature.** Con 30 módulos previstos, un bundle único es inviable.
+- **Lazy loading por ruta de feature.** Con 26 módulos previstos, un bundle único es inviable.
 
 ## Imágenes
 

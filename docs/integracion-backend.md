@@ -1,17 +1,46 @@
 # Integración con el backend
 
-## Estado real: no existe todavía
+## Estado real: el primer flujo ya corre
 
-Hay que decirlo claro para que nadie busque lo que no está. **Hoy no hay ni una línea de integración con la API.** Verificado en disco, no existe:
+**Actualizado el 2026-08-21.** La integración existe y el ciclo completo —invitación,
+definir contraseña, iniciar sesión, pantalla protegida— funciona de punta a punta contra
+la API real.
 
-- `src/environments/` ni ningún archivo de configuración por ambiente
-- `proxy.conf.json` ni configuración `proxyConfig` en `angular.json`
-- `provideHttpClient()` en `src/app/app.config.ts`
-- interceptores (JWT, refresh, errores, tenant)
-- `src/app/core/api/` ni cliente HTTP generado
-- script `api:sync` en `package.json`
+Lo que ya está en disco:
 
-Todo lo que sigue es el diseño acordado, no código existente.
+| pieza | dónde |
+|---|---|
+| Configuración de ambiente | `src/app/nucleo/configuracion.ts` — un archivo, no `src/environments/` |
+| Cliente HTTP | `src/app/nucleo/api.ts`, con los tipos en `contratos.ts` |
+| `provideHttpClient()` | `src/app/app.config.ts`, con `withInterceptors` |
+| Interceptor de token | `src/app/nucleo/interceptor-token.ts` |
+| Guard de sesión | `src/app/nucleo/guard-sesion.ts` |
+| Estado de sesión | `src/app/nucleo/sesion.ts` — signals + `localStorage` |
+| Pantallas de empresa | `src/app/paginas/{invitacion,entrar,inicio}`, con carga diferida |
+| Pantallas de plataforma | `src/app/paginas/plataforma/{entrar-plataforma,panel}` |
+| Sesión de plataforma | `src/app/nucleo/sesion-plataforma.ts` — **llave de almacenamiento separada** |
+
+### Dos sesiones, separadas a propósito
+
+El token de plataforma y el de empresa se guardan bajo **llaves distintas**, y el
+interceptor elige cuál mandar según la ruta: `/api/plataforma/**` lleva el de plataforma,
+el resto el de empresa.
+
+No es duplicación. Son dos poblaciones con dos audiencias de JWT distintas, y el backend
+las separa a propósito con la policy del claim `ambito`. Guardarlas en la misma llave
+permitiría mandar un token al ámbito equivocado —un 403 desconcertante— y deshacer en el
+cliente la separación que el servidor mantiene. Además, así se pueden tener las dos
+abiertas a la vez: dar de alta una empresa y entrar a ella para revisarla.
+
+Lo que **sigue faltando**:
+
+- **`api:sync`.** Los tipos de `contratos.ts` están escritos a mano. El plan sigue siendo
+  generarlos desde `/openapi/v1.json` y commitear el resultado, para que un cambio de
+  contrato salga como diff en la revisión y no como error en tiempo de ejecución.
+- **Interceptor de refresco.** El login ya devuelve un token de refresco y la API lo
+  guarda en `sesion_refresh`, pero el front todavía no lo usa: cuando el token de 15
+  minutos caduca, hay que volver a entrar.
+- **Pruebas.** No hay ni una del front. `vitest` está instalado y sin usar.
 
 ## Puertos y documento OpenAPI
 
@@ -30,11 +59,23 @@ Para levantar la API en local, desde el repo del backend:
 dotnet run --project src/Maquinaria.Api --launch-profile https
 ```
 
-## CORS o proxy: decisión abierta
+## CORS: decidido
 
-`maquinaria-backend/src/Maquinaria.Api/Program.cs` hoy **no configura CORS** — solo tiene `AddOpenApi()`, `MapOpenApi()` y `UseHttpsRedirection()`. Así que `:4200 → :5123` sería cross-origin y falla.
+**CORS explícito en la API**, no proxy en el dev server. `Program.cs` llama `AddCors()` con
+una política por omisión cuyos orígenes salen de configuración:
 
-Las dos salidas son un `proxy.conf.json` en el dev server de Angular, o CORS explícito en la API. Hay que decidirlo antes de la primera llamada real.
+```json
+// appsettings.Development.json
+"Cors": { "Origenes": ["http://localhost:4200"] }
+```
+
+En `appsettings.json` la lista va **vacía**: en producción el origen es el dominio real y
+se configura por ambiente. Una lista vacía no permite nada, que es el valor por omisión
+correcto.
+
+Se eligió sobre el proxy porque el frontend en producción vive en otro dominio
+—Cloudflare Pages contra Railway— así que CORS hay que resolverlo de todas formas. Un
+proxy solo lo habría escondido en desarrollo y lo habría dejado aparecer al desplegar.
 
 ## Contrato: cliente generado y commiteado
 

@@ -47,6 +47,10 @@ Ordenados de "rompe algo" a "hay que decidirlo".
 
 ### Integración con la API
 
+> **Actualizado el 2026-08-21:** el primer flujo ya corre. Ver
+> [`integracion-backend.md`](integracion-backend.md). Lo que queda de esta sección es lo
+> que sigue faltando: `api:sync`, el interceptor de refresco y las pruebas.
+
 11. Falta todo lo de [integración con el backend](integracion-backend.md): `provideHttpClient()`, `src/environments/`, los cuatro interceptores, el script `api:sync` y el cliente generado.
 12. **Falta decidir CORS o proxy.** La API hoy no configura CORS, así que `:4200 → :5123` sería cross-origin. Ver [integración con el backend](integracion-backend.md#cors-o-proxy-decisión-abierta).
 13. **La herramienta generadora del cliente OpenAPI no está elegida** en ningún documento. No solo falta el script: falta decidir con qué se genera.
@@ -67,7 +71,7 @@ Se trabaja en **rebanadas verticales**: cada módulo se termina de punta a punta
 Entidad → Migración → Caso de uso → Endpoint → Pruebas → Pantalla Angular → Funciona
 ```
 
-No "todo el backend y luego todo el frontend": con 30 módulos, esa separación son seis meses sin nada demostrable.
+No "todo el backend y luego todo el frontend": con 26 módulos, esa separación son seis meses sin nada demostrable.
 
 | Fase | Alcance | Lo que aporta el front |
 |---|---|---|
