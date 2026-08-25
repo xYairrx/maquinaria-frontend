@@ -2,111 +2,35 @@ import { ChangeDetectionStrategy, Component, effect, inject, input, signal } fro
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { Api } from '../../nucleo/api';
-import type { InvitacionVigente } from '../../nucleo/contratos';
-import { mensajeDeError } from '../../nucleo/mensaje-error';
+import { Api } from '../../../nucleo/api/api';
+import type { InvitacionVigente } from '../../../nucleo/api/contratos';
+import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
+import { tenantActual } from '../../../nucleo/ambiente/tenant';
+import { CampoContrasena } from '../../acceso/campo-contrasena';
 
 /** Mínimo que exige la API. Repetirlo aquí evita un viaje para decir lo obvio. */
 const LARGO_MINIMO = 12;
 
 @Component({
-  selector: 'app-invitacion',
-  imports: [ReactiveFormsModule],
+  selector: 'app-aceptar-invitacion',
+  imports: [CampoContrasena, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <main class="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6">
-      <header>
-        <h1 class="text-2xl font-semibold text-slate-900">Define tu contraseña</h1>
-
-        @if (invitacion(); as inv) {
-          <p class="mt-2 text-sm text-slate-600">
-            Estás activando el acceso de <strong>{{ inv.nombre }}</strong>
-            ({{ inv.correo }}) a <strong>{{ inv.empresa }}</strong>.
-          </p>
-        }
-      </header>
-
-      @switch (estado()) {
-        @case ('cargando') {
-          <p class="text-sm text-slate-600" role="status">Verificando la liga…</p>
-        }
-
-        @case ('invalida') {
-          <div class="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
-            <p class="text-sm text-red-800">{{ error() }}</p>
-            <p class="mt-2 text-sm text-red-700">
-              Pide una invitación nueva a quien administra el sistema.
-            </p>
-          </div>
-        }
-
-        @case ('lista') {
-          <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4">
-            <div class="flex flex-col gap-1">
-              <label for="contrasena" class="text-sm font-medium text-slate-700">
-                Contraseña
-              </label>
-              <input
-                id="contrasena"
-                type="password"
-                formControlName="contrasena"
-                autocomplete="new-password"
-                [attr.aria-invalid]="contrasenaCorta()"
-                aria-describedby="ayuda-contrasena"
-                class="rounded-md border border-slate-300 px-3 py-2 focus:border-slate-900
-                       focus:outline-none focus:ring-2 focus:ring-slate-900/20"
-              />
-              <p id="ayuda-contrasena" class="text-xs text-slate-500">
-                Al menos {{ largoMinimo }} caracteres. No se exigen mayúsculas ni símbolos:
-                lo que cuenta es la longitud.
-              </p>
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <label for="confirmacion" class="text-sm font-medium text-slate-700">
-                Repítela
-              </label>
-              <input
-                id="confirmacion"
-                type="password"
-                formControlName="confirmacion"
-                autocomplete="new-password"
-                [attr.aria-invalid]="noCoinciden()"
-                class="rounded-md border border-slate-300 px-3 py-2 focus:border-slate-900
-                       focus:outline-none focus:ring-2 focus:ring-slate-900/20"
-              />
-              @if (noCoinciden()) {
-                <p class="text-xs text-red-700" role="alert">Las dos contraseñas no coinciden.</p>
-              }
-            </div>
-
-            @if (error()) {
-              <p class="rounded-md bg-red-50 p-3 text-sm text-red-800" role="alert">
-                {{ error() }}
-              </p>
-            }
-
-            <button
-              type="submit"
-              [disabled]="!puedeEnviar()"
-              class="rounded-md bg-slate-900 px-4 py-2 text-white
-                     disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              {{ enviando() ? 'Activando…' : 'Activar mi cuenta' }}
-            </button>
-          </form>
-        }
-      }
-    </main>
-  `,
+  templateUrl: './aceptar-invitacion.html',
 })
-export class Invitacion {
+export class AceptarInvitacion {
   /**
    * Vienen del query string por `withComponentInputBinding()`. La liga que manda el
    * correo trae el slug prellenado a propósito: así nadie tiene que recordarlo la
    * primera vez.
    */
-  readonly empresa = input('');
+  /**
+   * La empresa sale del SUBDOMINIO, no de la liga.
+   *
+   * La liga de invitacion apunta a `bajio.<dominio>/invitacion?token=...`: el slug ya
+   * viene en el host, asi que no hace falta repetirlo en la cadena de consulta.
+   */
+  protected readonly empresa = tenantActual() ?? '';
+
   readonly token = input('');
 
   private readonly api = inject(Api);
@@ -129,7 +53,7 @@ export class Invitacion {
     // Se consulta la liga en cuanto los inputs de ruta están disponibles. La API dice
     // a quién va dirigida sin exigir sesión, que es lo que permite pintar la pantalla.
     effect(() => {
-      const empresa = this.empresa();
+      const empresa = this.empresa;
       const token = this.token();
 
       if (empresa === '' || token === '') {
@@ -177,12 +101,12 @@ export class Invitacion {
 
     const { contrasena } = this.formulario.getRawValue();
 
-    this.api.aceptarInvitacion(this.empresa(), this.token(), contrasena).subscribe({
+    this.api.aceptarInvitacion(this.empresa, this.token(), contrasena).subscribe({
       // No se inicia sesión automáticamente: que la persona escriba sus credenciales
       // una vez confirma que las recuerda, y de paso ejercita el login de verdad.
       next: () =>
         void this.router.navigate(['/entrar'], {
-          queryParams: { empresa: this.empresa(), activada: '1' },
+          queryParams: { activada: '1' },
         }),
       error: (e: unknown) => {
         this.error.set(mensajeDeError(e));

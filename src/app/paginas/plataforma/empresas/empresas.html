@@ -1,0 +1,208 @@
+<!--
+  Sin <header> ni <main> propios: los aporta DisposicionPlataforma, que es la ruta
+  padre. Anidar un <main> dentro de otro es HTML inválido y lo marca AXE, y repetir
+  la cabecera duplicaría el botón de salir.
+-->
+<div class="mx-auto flex max-w-5xl flex-col gap-6">
+  <h1 class="font-titulo text-lg font-semibold text-texto">Empresas</h1>
+
+  <div class="flex flex-col gap-6">
+    @if (error()) {
+      <p
+        class="rounded-md border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ error() }}
+      </p>
+    }
+
+    @if (reciente(); as r) {
+      <!--
+        Confirmación. La paleta es monocroma + amarillo y no tiene verde, así que el
+        aviso positivo se marca como el de 'entrar': filete negro a la izquierda sobre
+        superficie blanca, en vez de un bloque de color.
+      -->
+      <section
+        class="rounded-md border border-borde border-l-4 border-l-negro-acento bg-superficie p-4"
+        role="status"
+      >
+        <h2 class="text-sm font-semibold text-texto">{{ r.slug }} aprovisionada</h2>
+        <p class="mt-1 text-sm text-texto-secundario">
+          Base <code>{{ r.nombreBd }}</code
+          >, esquema <code>{{ r.versionEsquema }}</code
+          >.
+          @if (r.invitacionEnviada) {
+            Invitación enviada.
+          } @else {
+            <strong class="text-alerta-texto">La invitación NO se envió</strong> — hay que
+            reenviarla.
+          }
+        </p>
+
+        @if (r.ligaInvitacion) {
+          <p class="mt-2 break-all text-xs text-texto-secundario">
+            Liga (solo en desarrollo):
+            <a
+              [href]="r.ligaInvitacion"
+              class="text-texto underline focus:outline-none focus:ring-2 focus:ring-negro-acento"
+              >{{ r.ligaInvitacion }}</a
+            >
+          </p>
+        }
+      </section>
+    }
+
+    <section class="rounded-md border border-borde bg-superficie">
+      <h2 class="border-b border-borde px-4 py-3 text-sm font-semibold text-texto">
+        {{ empresas().length }} empresas
+      </h2>
+
+      @if (cargando()) {
+        <p class="p-4 text-sm text-texto-secundario" role="status">Cargando…</p>
+      } @else if (empresas().length === 0) {
+        <p class="p-4 text-sm text-texto-secundario">Todavía no hay ninguna.</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead
+              class="border-b border-borde bg-superficie-sutil text-xs uppercase text-texto-apagado"
+            >
+              <tr>
+                <th scope="col" class="px-4 py-2">Empresa</th>
+                <th scope="col" class="px-4 py-2">Razón social</th>
+                <th scope="col" class="px-4 py-2">Estado</th>
+                <th scope="col" class="px-4 py-2">Base</th>
+                <th scope="col" class="px-4 py-2">Plan</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of empresas(); track e.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td class="px-4 py-2 font-medium text-texto">{{ e.slug }}</td>
+                  <td class="px-4 py-2 text-texto-secundario">{{ e.razonSocial }}</td>
+                  <td class="px-4 py-2 text-texto-secundario">
+                    {{ nombreEstado(e.estado) }}
+                  </td>
+                  <td class="px-4 py-2">
+                    <!--
+                      El color solo refuerza: la celda ya dice "Lista", "Fallida" o
+                      "Pendiente". Sin verde ni rojo en la paleta, el fallo va con el
+                      marrón de aviso y lo que sigue en curso, en neutro.
+                    -->
+                    <span
+                      class="font-medium"
+                      [class.text-texto]="e.aprovisionamiento === lista"
+                      [class.text-alerta-texto]="e.aprovisionamiento === fallida"
+                      [class.text-estado-neutro-texto]="enProceso(e)"
+                    >
+                      {{ nombreAprovisionamiento(e.aprovisionamiento) }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-2 text-texto-secundario">
+                    {{ e.codigoPlan ?? '— sin suscripción' }} ({{ e.modulos }} módulos)
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="rounded-md border border-borde bg-superficie p-4">
+      <h2 class="text-sm font-semibold text-texto">Dar de alta una empresa</h2>
+      <p class="mt-1 text-xs text-texto-apagado">
+        Crea y migra su base de datos, siembra sus roles y permisos, y manda la invitación a su
+        primer administrador.
+      </p>
+
+      <form
+        [formGroup]="formulario"
+        (ngSubmit)="enviar()"
+        class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"
+      >
+        <div class="flex flex-col gap-1">
+          <label for="slug" class="text-sm font-medium text-texto-secundario">
+            Identificador
+          </label>
+          <input
+            id="slug"
+            formControlName="slug"
+            aria-describedby="ayuda-slug"
+            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
+          />
+          <p id="ayuda-slug" class="text-xs text-texto-apagado">
+            Minúsculas, dígitos y guiones. Es su subdominio: su gente entrará por
+            <code>identificador.{{ dominioBase }}</code
+            >.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="razonSocial" class="text-sm font-medium text-texto-secundario">
+            Razón social
+          </label>
+          <input
+            id="razonSocial"
+            formControlName="razonSocial"
+            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="rfc" class="text-sm font-medium text-texto-secundario">RFC</label>
+          <input
+            id="rfc"
+            formControlName="rfc"
+            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="telefono" class="text-sm font-medium text-texto-secundario"> Teléfono </label>
+          <input
+            id="telefono"
+            formControlName="telefono"
+            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="nombreAdministrador" class="text-sm font-medium text-texto-secundario">
+            Nombre del administrador
+          </label>
+          <input
+            id="nombreAdministrador"
+            formControlName="nombreAdministrador"
+            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="correoAdministrador" class="text-sm font-medium text-texto-secundario">
+            Correo del administrador
+          </label>
+          <input
+            id="correoAdministrador"
+            type="email"
+            formControlName="correoAdministrador"
+            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
+          />
+        </div>
+
+        <div class="sm:col-span-2">
+          <button
+            type="submit"
+            [disabled]="formulario.invalid || enviando()"
+            class="rounded-md bg-amarillo px-4 py-2 font-medium text-sobre-amarillo hover:bg-amarillo-hover focus:outline-none focus:ring-2 focus:ring-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+          >
+            {{ enviando() ? 'Aprovisionando…' : 'Dar de alta' }}
+          </button>
+          <p class="mt-2 text-xs text-texto-apagado">
+            Tarda unos segundos: crea la base y le corre todas las migraciones.
+          </p>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>

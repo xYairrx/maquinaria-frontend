@@ -1,0 +1,52 @@
+<!--
+  Mismo marco de dos columnas que el resto de los accesos, en
+  `paginas/acceso/marco-acceso.html`. Aquí no hay enlace de contraseña olvidada: la
+  cuenta de superadministrador se restablece por consola, no por correo. La tabla
+  `token_acceso` vive en la base de cada empresa y la base central no la tiene.
+-->
+<app-marco-acceso
+  titulo="Panel administrativo"
+  apoyo="Controla y gestiona las empresas del sistema."
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4">
+    <div>
+      <!--
+        Etiqueta oculta a la vista pero presente en el marcado: el placeholder solo no
+        sirve como nombre de campo (WCAG 3.3.2). Ver el acceso de empresa.
+      -->
+      <label for="correo" class="sr-only">Correo electrónico</label>
+      <input
+        id="correo"
+        type="email"
+        formControlName="correo"
+        autocomplete="username"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder="Tu correo electrónico"
+        class="campo-acceso"
+      />
+    </div>
+
+    <app-campo-contrasena [control]="formulario.controls.contrasena" />
+
+    @if (error()) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo px-3 py-2.5 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ error() }}
+      </p>
+    }
+
+    <!--
+      El botón solo se deshabilita MIENTRAS se envía, para evitar el doble clic. NUNCA
+      por formulario inválido: el navegador autocompleta el DOM sin que Angular se
+      entere, así que el control seguía vacío, el botón salía gris y con las credenciales
+      guardadas a la vista era imposible entrar. Además un botón deshabilitado no explica
+      qué falta; ahora se pulsa y el formulario lo dice.
+    -->
+    <button type="submit" [disabled]="enviando()" class="boton-acceso">
+      {{ enviando() ? 'Entrando…' : 'Entrar' }}
+    </button>
+  </form>
+</app-marco-acceso>

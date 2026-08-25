@@ -1,0 +1,61 @@
+<div>
+  <!--
+    Etiqueta oculta a la vista pero presente en el marcado: el campo tiene que conservar
+    su nombre accesible aunque el texto viva en el `placeholder` (WCAG 3.3.2).
+  -->
+  <label [for]="campoId()" class="sr-only">{{ etiqueta() }}</label>
+
+  <div class="relative">
+    <!--
+      `pr-11` deja el hueco del botón: sin él, una contraseña larga se leería por debajo
+      del icono. El resto del aspecto lo pone la utilidad `campo-acceso`.
+    -->
+    <input
+      [id]="campoId()"
+      [type]="tipo()"
+      [formControl]="control()"
+      [autocomplete]="autocompletado()"
+      [attr.aria-describedby]="descritoPor() || null"
+      [attr.placeholder]="marcador()"
+      [attr.aria-invalid]="invalido() ? 'true' : null"
+      class="campo-acceso pr-11"
+    />
+
+    <!--
+      `type="button"` es obligatorio: dentro de un formulario, un botón sin type es
+      `submit`, así que mostrar la contraseña intentaría iniciar sesión.
+
+      `aria-pressed` comunica el estado y `aria-controls` dice sobre qué campo actúa.
+    -->
+    <button
+      type="button"
+      (click)="alternar()"
+      [attr.aria-label]="etiquetaBoton()"
+      [attr.aria-pressed]="visible()"
+      [attr.aria-controls]="campoId()"
+      class="absolute inset-y-0 right-0 flex items-center rounded-r-lg px-3 text-texto-apagado hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-negro-acento"
+    >
+      <svg
+        class="size-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        @if (visible()) {
+          <!-- Ojo tachado: la contraseña está a la vista y el botón la oculta. -->
+          <path d="M10.7 5.1A9.8 9.8 0 0 1 12 5c5 0 9 4.5 9 7a12 12 0 0 1-2.2 3.2" />
+          <path d="M6.6 6.6A12.5 12.5 0 0 0 3 12c0 2.5 4 7 9 7a9.7 9.7 0 0 0 4.4-1.1" />
+          <path d="m9.9 9.9a3 3 0 0 0 4.2 4.2" />
+          <path d="m3 3 18 18" />
+        } @else {
+          <path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        }
+      </svg>
+    </button>
+  </div>
+</div>

@@ -1,0 +1,88 @@
+<main class="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 bg-fondo-app p-6">
+  <header>
+    <h1 class="font-titulo text-2xl font-semibold text-texto">Define tu contraseña</h1>
+
+    @if (invitacion(); as inv) {
+      <p class="mt-2 text-sm text-texto-secundario">
+        Estás activando el acceso de <strong>{{ inv.nombre }}</strong> ({{ inv.correo }}) a
+        <strong>{{ inv.empresa }}</strong
+        >.
+      </p>
+    }
+  </header>
+
+  @switch (estado()) {
+    @case ('cargando') {
+      <p class="text-sm text-texto-secundario" role="status">Verificando la liga…</p>
+    }
+
+    @case ('invalida') {
+      <div class="rounded-md border border-amarillo bg-alerta-fondo p-4" role="alert">
+        <p class="text-sm text-alerta-texto">{{ error() }}</p>
+        <p class="mt-2 text-sm text-alerta-texto">
+          Pide una invitación nueva a quien administra el sistema.
+        </p>
+      </div>
+    }
+
+    @case ('lista') {
+      <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4">
+        <!--
+          Los dos campos usan `app-campo-contrasena`, que trae el botón de mostrar/ocultar
+          y la etiqueta en `sr-only`: el placeholder solo no sirve como nombre de campo
+          (WCAG 3.3.2). Aquí hace más falta que al entrar, porque se escribe una
+          contraseña nueva y larga, dos veces y a ciegas.
+
+          `campoId` distinto en cada uno: dos `id` iguales dejarían el `<label for>` de la
+          confirmación apuntando al primer campo.
+        -->
+        <div class="flex flex-col gap-1">
+          <app-campo-contrasena
+            [control]="formulario.controls.contrasena"
+            etiqueta="Contraseña"
+            campoId="contrasena"
+            [invalido]="contrasenaCorta()"
+            autocompletado="new-password"
+            descritoPor="ayuda-contrasena"
+            marcador="Tu contraseña nueva"
+          />
+          <!--
+            Esto NO es la etiqueta: es la instrucción que dice qué se espera, y es el
+            destino de `aria-describedby`. Se queda a la vista.
+          -->
+          <p id="ayuda-contrasena" class="text-xs text-texto-apagado">
+            Al menos {{ largoMinimo }} caracteres. No se exigen mayúsculas ni símbolos: lo que
+            cuenta es la longitud.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <app-campo-contrasena
+            [control]="formulario.controls.confirmacion"
+            etiqueta="Repítela"
+            campoId="confirmacion"
+            [invalido]="noCoinciden()"
+            autocompletado="new-password"
+            marcador="Repite la contraseña"
+          />
+          @if (noCoinciden()) {
+            <p class="text-xs text-alerta-texto" role="alert">Las dos contraseñas no coinciden.</p>
+          }
+        </div>
+
+        @if (error()) {
+          <p
+            class="rounded-md border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+            role="alert"
+          >
+            {{ error() }}
+          </p>
+        }
+
+        <button type="submit" [disabled]="!puedeEnviar()" class="boton-acceso">
+          {{ enviando() ? 'Activando…' : 'Activar mi cuenta' }}
+        </button>
+      </form>
+    }
+  }
+</main>

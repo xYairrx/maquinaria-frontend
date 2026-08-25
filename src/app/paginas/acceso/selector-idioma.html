@@ -1,0 +1,49 @@
+<div class="relative">
+  <button
+    type="button"
+    (click)="alternar()"
+    aria-haspopup="listbox"
+    [attr.aria-expanded]="abierto()"
+    [attr.aria-label]="'Idioma: ' + actual().nombre"
+    class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+  >
+    <app-bandera [codigo]="actual().codigo" />
+
+    {{ actual().corto }}
+
+    <!-- La flecha gira al abrir: dice que el desplegable está desplegado sin más texto. -->
+    <svg
+      class="size-3.5 transition-transform"
+      [class.rotate-180]="abierto()"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  </button>
+
+  @if (abierto()) {
+    <ul
+      role="listbox"
+      class="absolute right-0 z-10 mt-1 min-w-40 rounded-lg border border-borde bg-superficie py-1 shadow-sm"
+    >
+      @for (idioma of idiomas; track idioma.codigo) {
+        <li role="option" [attr.aria-selected]="idioma.codigo === codigoActual()">
+          <button
+            type="button"
+            (click)="elegir(idioma.codigo)"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-negro-acento"
+          >
+            <app-bandera [codigo]="idioma.codigo" />
+            {{ idioma.nombre }}
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

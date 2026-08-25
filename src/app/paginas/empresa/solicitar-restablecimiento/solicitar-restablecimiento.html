@@ -1,0 +1,89 @@
+<!--
+  Mismo marco de dos columnas que el resto de los accesos, en
+  `paginas/acceso/marco-acceso.html`. El `<main>` y el `<h1>` los pone el marco: aquí no
+  se añade ninguno de los dos.
+-->
+<app-marco-acceso
+  titulo="Recuperar tu contraseña"
+  apoyo="Recuperando el acceso a"
+  [apoyoDestacado]="empresa"
+>
+  @if (enviado(); as mensaje) {
+    <!--
+      El texto viene TAL CUAL de la API. Es condicional a propósito —«si el correo
+      corresponde a una cuenta…»— y no debe reescribirse como una confirmación de envío:
+      el backend responde lo mismo exista o no la cuenta, y traducirlo aquí a «te
+      mandamos el correo» convertiría este formulario en una forma de averiguar qué
+      correos están registrados en la empresa.
+
+      Por la misma razón no hay nada más en este bloque: ni la carpeta de correo no
+      deseado, ni un contador, ni un reintento automático. Cualquier añadido que suene a
+      «ya salió» dice más de lo que el servidor quiso decir.
+    -->
+    <div
+      role="status"
+      class="rounded-lg border border-borde border-l-4 border-l-negro-acento bg-superficie px-4 py-3.5 text-sm leading-relaxed text-texto"
+    >
+      {{ mensaje }}
+    </div>
+  } @else {
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4">
+      <div class="flex flex-col gap-1.5">
+        <!--
+          Etiqueta oculta a la vista pero presente en el marcado: el placeholder solo no
+          sirve como nombre de campo (WCAG 3.3.2). Ver el acceso de empresa.
+        -->
+        <label for="correo" class="sr-only">Correo</label>
+        <input
+          id="correo"
+          type="email"
+          formControlName="correo"
+          autocomplete="username"
+          autocapitalize="off"
+          spellcheck="false"
+          aria-describedby="ayuda-correo"
+          placeholder="Tu correo"
+          class="campo-acceso"
+        />
+        <!--
+          Esto NO es la etiqueta: es una instrucción —y avisa de que la liga caduca—, así
+          que sigue a la vista. Además es el destino de `aria-describedby`.
+        -->
+        <p id="ayuda-correo" class="text-xs text-texto-apagado">
+          El correo con el que entras a esta empresa. La liga caduca en una hora.
+        </p>
+      </div>
+
+      <!--
+        Solo errores de transporte: el 429 del limitador y el servidor caído. Ninguno
+        depende de si la cuenta existe, así que ninguno delata nada.
+      -->
+      @if (error()) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo px-3 py-2.5 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ error() }}
+        </p>
+      }
+
+      <button type="submit" [disabled]="formulario.invalid || enviando()" class="boton-acceso">
+        {{ enviando() ? 'Enviando…' : 'Enviarme la liga' }}
+      </button>
+    </form>
+  }
+
+  <!--
+    El único enlace secundario que cabe aquí: volver al acceso. No hay «regístrate»
+    —las cuentas las crea un superadministrador—, ni soporte, ni avisos legales: esas
+    páginas no existen.
+  -->
+  <p class="mt-5 text-center">
+    <a
+      routerLink="/entrar"
+      class="text-[13px] text-texto-secundario underline underline-offset-2 hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      Volver a entrar
+    </a>
+  </p>
+</app-marco-acceso>

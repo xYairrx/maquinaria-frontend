@@ -2,70 +2,19 @@ import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angu
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { ApiPlataforma } from '../../nucleo/api-plataforma';
-import { mensajeDeError } from '../../nucleo/mensaje-error';
-import { SesionPlataformaStore } from '../../nucleo/sesion-plataforma';
+import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
+import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
+import { SesionPlataformaStore } from '../../../nucleo/sesion/sesion-plataforma';
+import { CampoContrasena } from '../../acceso/campo-contrasena';
+import { MarcoAcceso } from '../../acceso/marco-acceso';
 
 @Component({
-  selector: 'app-entrar-plataforma',
-  imports: [ReactiveFormsModule],
+  selector: 'app-iniciar-sesion-plataforma',
+  imports: [CampoContrasena, ReactiveFormsModule, MarcoAcceso],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <main class="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6">
-      <header>
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Plataforma</p>
-        <h1 class="mt-1 text-2xl font-semibold text-slate-900">Superadministración</h1>
-        <p class="mt-2 text-sm text-slate-600">
-          Acceso de la plataforma. Aquí se dan de alta las empresas.
-        </p>
-      </header>
-
-      <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4">
-        <div class="flex flex-col gap-1">
-          <label for="correo" class="text-sm font-medium text-slate-700">Correo</label>
-          <input
-            id="correo"
-            type="email"
-            formControlName="correo"
-            autocomplete="username"
-            aria-describedby="ayuda-correo"
-            class="rounded-md border border-slate-300 px-3 py-2 focus:border-slate-900
-                   focus:outline-none focus:ring-2 focus:ring-slate-900/20"
-          />
-          <p id="ayuda-correo" class="text-xs text-slate-500">
-            Sin empresa: los superadministradores viven en la base central.
-          </p>
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <label for="contrasena" class="text-sm font-medium text-slate-700">Contraseña</label>
-          <input
-            id="contrasena"
-            type="password"
-            formControlName="contrasena"
-            autocomplete="current-password"
-            class="rounded-md border border-slate-300 px-3 py-2 focus:border-slate-900
-                   focus:outline-none focus:ring-2 focus:ring-slate-900/20"
-          />
-        </div>
-
-        @if (error()) {
-          <p class="rounded-md bg-red-50 p-3 text-sm text-red-800" role="alert">{{ error() }}</p>
-        }
-
-        <button
-          type="submit"
-          [disabled]="formulario.invalid || enviando()"
-          class="rounded-md bg-slate-900 px-4 py-2 text-white
-                 disabled:cursor-not-allowed disabled:bg-slate-400"
-        >
-          {{ enviando() ? 'Entrando…' : 'Entrar' }}
-        </button>
-      </form>
-    </main>
-  `,
+  templateUrl: './iniciar-sesion.html',
 })
-export class EntrarPlataforma {
+export class IniciarSesionPlataforma {
   readonly destino = input('');
 
   private readonly api = inject(ApiPlataforma);
@@ -82,7 +31,16 @@ export class EntrarPlataforma {
   });
 
   protected enviar(): void {
-    if (this.formulario.invalid || this.enviando()) {
+    if (this.enviando()) {
+      return;
+    }
+
+    // Un formulario invalido no se ignora en silencio: se marca para que el
+    // navegador muestre los campos en falta y se dice que pasa. Antes el clic
+    // no producia ningun efecto visible.
+    if (this.formulario.invalid) {
+      this.formulario.markAllAsTouched();
+      this.error.set('Escribe tu correo y tu contraseña.');
       return;
     }
 
@@ -94,7 +52,7 @@ export class EntrarPlataforma {
     this.api.iniciarSesion(correo, contrasena).subscribe({
       next: (sesion) => {
         this.sesion.abrir(sesion);
-        void this.router.navigateByUrl(this.destino() || '/plataforma');
+        void this.router.navigateByUrl(this.destino() || '/');
       },
       error: (e: unknown) => {
         this.error.set(mensajeDeError(e));

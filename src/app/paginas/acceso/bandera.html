@@ -1,0 +1,29 @@
+<!--
+  Va como `<img>` y NO incrustada en la plantilla, aunque para dos archivos de 2 KB lo
+  segundo sonara mejor: los dos SVG traen `clipPath` con `id`, y la misma bandera se
+  dibuja dos veces —en el botón y en la lista del desplegable—. Incrustarlas duplicaría
+  esos `id` en el documento, que es HTML inválido. Como archivo no hay colisión y el
+  navegador las cachea.
+
+  El redondeo lo pone AQUÍ el CSS, no el SVG.
+
+  Los dos archivos traen su propio `rx`, pero es proporcional al lienzo: 2 unidades de 28
+  son un 7 %, y a 20 px de ancho eso son 1.4 px de radio, que no se ve. Redondear desde el
+  CSS da un radio en píxeles reales, que sí se aprecia.
+
+  Para que eso funcione hizo falta ajustar el `viewBox` de los dos archivos —venían con la
+  bandera centrada en un lienzo cuadrado, con relleno transparente arriba y abajo—, porque
+  redondear la caja no toca las esquinas de un dibujo que no la llena. Los originales están
+  al lado con extensión `.original`.
+
+  `object-cover` y no `contain`: las dos proporciones internas no coinciden entre sí
+  (28x20 y 36x22), así que `contain` dejaría a una con franjas y las esquinas redondeadas
+  volverían a caer fuera del dibujo. `cover` recorta un píxel, que en una bandera no se
+  nota, y garantiza que el redondeo se vea en las cuatro esquinas.
+
+  `alt` vacío: quien usa este componente ya pone el nombre del idioma en su etiqueta, y
+  anunciar además «bandera de México» sería ruido.
+-->
+@if (archivo(); as ruta) {
+  <img [src]="ruta" alt="" class="h-3.5 w-5 shrink-0 rounded-[3px] object-cover" />
+}

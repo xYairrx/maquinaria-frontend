@@ -1,0 +1,96 @@
+<!--
+  Mismo marco de dos columnas que el resto de los accesos, en
+  `paginas/acceso/marco-acceso.html`. El `<main>` y el `<h1>` los pone el marco: aquí no
+  se añade ninguno de los dos.
+
+  La línea de apoyo invita a la acción, pero TERMINA en el nombre de la empresa
+  (`apoyoDestacado`) y eso no es adorno: el nombre es lo único que le dice a la persona a
+  qué empresa está entrando, ahora que ya no lo escribe —sale del subdominio—. Sin él,
+  quien llega desde una liga vieja hacia el subdominio equivocado no tendría cómo notarlo.
+-->
+<app-marco-acceso
+  titulo="Iniciar sesión"
+  apoyo="Ingresa tus datos para gestionar los activos de"
+  [apoyoDestacado]="empresa"
+>
+  @if (activada() === '1') {
+    <p
+      class="mb-4 rounded-lg border border-borde border-l-4 border-l-negro-acento bg-superficie px-3 py-2.5 text-sm text-texto"
+      role="status"
+    >
+      Tu cuenta quedó activada. Entra con tu correo y tu contraseña nueva.
+    </p>
+  }
+
+  @if (restablecida() === '1') {
+    <p
+      class="mb-4 rounded-lg border border-borde border-l-4 border-l-negro-acento bg-superficie px-3 py-2.5 text-sm leading-relaxed text-texto"
+      role="status"
+    >
+      Tu contraseña quedó cambiada y se cerraron las demás sesiones. Entra con la nueva.
+    </p>
+  }
+
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4">
+    <div>
+      <!--
+        La etiqueta va oculta a la vista pero PRESENTE en el marcado. El estilo de la
+        referencia deja el texto solo en el `placeholder`, y eso falla WCAG 3.3.2: el
+        placeholder desaparece al escribir y muchos lectores de pantalla no lo anuncian
+        como nombre del campo. Con `sr-only` el aspecto es idéntico y el campo conserva
+        su nombre accesible.
+      -->
+      <label for="correo" class="sr-only">Correo electrónico</label>
+      <input
+        id="correo"
+        type="email"
+        formControlName="correo"
+        autocomplete="username"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder="Tu correo electrónico"
+        class="campo-acceso"
+      />
+    </div>
+
+    <app-campo-contrasena [control]="formulario.controls.contrasena" />
+
+    <!--
+      El único enlace secundario que esta pantalla puede tener. No hay «regístrate»
+      —las cuentas las crea un superadministrador por invitación—, ni «recordarme»
+      —la sesión ya persiste—, ni avisos legales, porque esas páginas no existen.
+
+      Va pegado al campo al que se refiere, no al final de la pantalla: quien llega aquí
+      es porque la contraseña no le funcionó, y es donde lo va a buscar.
+
+      En `texto-secundario` y no en el amarillo de marca: sobre blanco el amarillo da
+      1.61:1 y sería ilegible.
+    -->
+    <a
+      routerLink="/recuperar"
+      class="-mt-1 self-start text-[13px] text-texto-secundario underline underline-offset-2 hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      ¿Olvidaste tu contraseña?
+    </a>
+
+    @if (error()) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo px-3 py-2.5 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ error() }}
+      </p>
+    }
+
+    <!--
+      El botón solo se deshabilita MIENTRAS se envía, para evitar el doble clic. NUNCA
+      por formulario inválido: el navegador autocompleta el DOM sin que Angular se
+      entere, así que el control seguía vacío, el botón salía gris y con las credenciales
+      guardadas a la vista era imposible entrar. Además un botón deshabilitado no explica
+      qué falta; ahora se pulsa y el formulario lo dice.
+    -->
+    <button type="submit" [disabled]="enviando()" class="boton-acceso">
+      {{ enviando() ? 'Entrando…' : 'Entrar' }}
+    </button>
+  </form>
+</app-marco-acceso>

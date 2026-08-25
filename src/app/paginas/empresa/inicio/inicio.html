@@ -1,0 +1,82 @@
+<!--
+  Sin <header> ni <main> propios: los aporta DisposicionEmpresa, que es la ruta
+  padre. Anidar un <main> dentro de otro es HTML inválido y lo marca AXE, y repetir
+  la cabecera duplicaría el botón de salir.
+-->
+<div class="mx-auto flex max-w-5xl flex-col gap-4">
+  <div>
+    <h1 class="font-titulo text-lg font-semibold text-texto">
+      {{ identidad()?.razonSocial ?? '…' }}
+    </h1>
+    <p class="text-xs text-texto-apagado">{{ identidad()?.empresa }}</p>
+  </div>
+
+  <div>
+    @if (identidad(); as id) {
+      <section class="mb-6 rounded-md border border-borde bg-superficie p-4">
+        <h2 class="text-sm font-semibold text-texto">Tu acceso</h2>
+
+        <dl class="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+          <div>
+            <dt class="text-texto-apagado">Autorización</dt>
+            <dd class="font-medium text-texto">
+              {{
+                id.accesoTotal ? 'Acceso total (rol de sistema)' : id.permisos.length + ' permisos'
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-texto-apagado">Módulos contratados</dt>
+            <dd class="font-medium text-texto">{{ id.modulos.length }} de 26</dd>
+          </div>
+          <div>
+            <dt class="text-texto-apagado">Implementados</dt>
+            <dd class="font-medium text-texto">{{ implementados() }}</dd>
+          </div>
+        </dl>
+
+        @if (id.accesoTotal) {
+          <p class="mt-3 text-xs text-texto-apagado">
+            Tu rol salta la verificación de permisos. No se puede editar ni borrar, y no se asigna
+            desde la interfaz.
+          </p>
+        }
+      </section>
+
+      <h2 class="mb-3 text-sm font-semibold text-texto">Módulos</h2>
+
+      <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        @for (modulo of modulos(); track modulo.clave) {
+          <!--
+            El módulo por construir se apaga con el par de tokens de estado neutro y NO
+            con opacidad: el opacity-60 anterior dejaba su texto de apoyo en 2.43:1
+            contra el blanco. estado-neutro-texto sobre estado-neutro-fondo da 5.83:1.
+          -->
+          <li
+            class="rounded-md border border-borde p-3"
+            [class.bg-superficie]="modulo.listo"
+            [class.border-dashed]="!modulo.listo"
+            [class.bg-estado-neutro-fondo]="!modulo.listo"
+          >
+            <p
+              class="text-sm font-medium"
+              [class.text-texto]="modulo.listo"
+              [class.text-estado-neutro-texto]="!modulo.listo"
+            >
+              {{ modulo.nombre }}
+            </p>
+            <p
+              class="text-xs"
+              [class.text-texto-apagado]="modulo.listo"
+              [class.text-estado-neutro-texto]="!modulo.listo"
+            >
+              {{ modulo.listo ? 'Disponible' : 'Por construir' }}
+            </p>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="text-sm text-texto-secundario" role="status">Cargando tu sesión…</p>
+    }
+  </div>
+</div>

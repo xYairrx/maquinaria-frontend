@@ -1,0 +1,99 @@
+<!--
+  Dos columnas a pantalla completa: formulario a la izquierda, panel de marca a la
+  derecha. Sin menú, porque todavía no hay sesión ni empresa que mostrar.
+-->
+<main class="flex min-h-dvh bg-superficie">
+  <!--
+    Columna del formulario. Ocupa TODO el ancho por debajo de `lg` —donde el panel de
+    marca desaparece— y a partir de ahí se queda en ~38 % sin bajar de 380 px, que es
+    el ancho por debajo del cual los campos empiezan a apretarse.
+  -->
+  <div class="flex w-full flex-col px-8 py-8 lg:w-[38%] lg:min-w-95 lg:shrink-0">
+    <!--
+      Barra superior de la columna: marca a la izquierda, idioma a la derecha.
+
+      Va pegada arriba y NO centrada con el formulario, por eso la columna dejó de ser
+      `justify-center`: lo que se centra ahora es el bloque del formulario, más abajo.
+    -->
+    <div class="flex items-center justify-between">
+      <!--
+        El nombre en dos colores. El amarillo sobre blanco da 1.61:1, muy por debajo del
+        4.5:1 que exige WCAG 1.4.3 — pero la norma EXIME expresamente los logotipos y
+        nombres de marca del requisito de contraste, y esto es el logotipo.
+
+        Se anota porque AXE lo va a marcar igual y alguien intentará «arreglarlo»: no hay
+        que hacerlo. Esa exención cubre la marca y solo la marca; en cualquier otro texto
+        el amarillo sigue prohibido sobre fondo claro.
+
+        Las dos partes salen de `sitio.marca` y no están escritas aquí, para que el nombre
+        siga cambiándose en un solo archivo. El `aria-label` hace que un lector de pantalla
+        lo lea como una palabra y no deletree «RETRO, MAQ».
+      -->
+      <p
+        class="text-[19px] font-titulo font-extrabold leading-none"
+        [attr.aria-label]="sitio.nombre"
+      >
+        <span aria-hidden="true" class="text-texto">{{ sitio.marca.inicio }}</span
+        ><span aria-hidden="true" class="text-amarillo">{{ sitio.marca.fin }}</span>
+      </p>
+
+      <app-selector-idioma />
+    </div>
+
+    <div class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
+      <header>
+        <h1 class="text-center font-titulo text-[22px] font-semibold leading-tight text-texto">
+          {{ titulo() }}
+        </h1>
+        @if (apoyo()) {
+          <p class="mt-2 text-center text-[13px] text-texto-apagado">
+            {{ apoyo() }}
+            @if (apoyoDestacado()) {
+              <span class="font-medium text-texto">{{ apoyoDestacado() }}</span>
+            }
+          </p>
+        }
+      </header>
+
+      <!-- El formulario de cada pantalla, con sus avisos. -->
+      <div class="mt-7">
+        <ng-content />
+      </div>
+    </div>
+  </div>
+
+  <!--
+    Panel de marca. `hidden lg:flex`: en un teléfono, media pantalla decorativa es media
+    pantalla perdida, así que por debajo de `lg` desaparece y el formulario se queda con
+    todo el ancho.
+
+    Va `aria-hidden` porque es decoración pura: el nombre del producto no aporta nada a
+    quien usa un lector de pantalla —lo que necesita es llegar al primer campo— y no hay
+    nada enfocable aquí dentro.
+
+    La fotografía es DECORACIÓN, y por eso puede estar aquí: no afirma ningún dato. Lo
+    que sigue vetado son las métricas de ejemplo: un número inventado se ve igual que uno
+    real y haría creer que el sistema ya lo calcula.
+  -->
+  <div
+    class="relative hidden flex-1 flex-col justify-center overflow-hidden bg-negro-lateral px-14 py-12 lg:flex"
+    aria-hidden="true"
+  >
+    <!--
+      Un solo bloque centrado. Antes la marca iba arriba del todo y la ilustración
+      flotaba abajo, con un hueco muerto en medio que hacía que ninguna de las dos
+      pareciera intencionada.
+
+      La ilustración va primero: es lo que se mira, y el nombre debajo funciona como su
+      pie. Y va en su propio componente porque son doscientas líneas de trazado que
+      estorban para leer la estructura de la pantalla; EN LÍNEA y no como `<img>`,
+      porque solo así hereda los tokens de color.
+    -->
+    <!--
+      Fotografía de fondo, como fondo de CSS y no como `<img>`. El porqué —la advertencia
+      NG02955 de NgOptimizedImage y el ahorro de la descarga en móvil— está en la utilidad
+      `foto-marca` de `styles.css`, junto a los dos tratamientos: gris y opacidad.
+    -->
+    <div class="foto-marca pointer-events-none absolute inset-0"></div>
+  </div>
+</main>
