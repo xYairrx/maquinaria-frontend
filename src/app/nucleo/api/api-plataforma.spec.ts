@@ -20,18 +20,29 @@ const LLAVE = 'maquinaria.plataforma.token';
 const URL = 'http://localhost:5123/api/plataforma/empresas';
 const URL_PLANES = 'http://localhost:5123/api/plataforma/planes';
 const URL_MODULOS = 'http://localhost:5123/api/plataforma/modulos';
+const URL_SALUD = 'http://localhost:5123/api/plataforma/salud/esquemas';
+
+/** Un reporte de salud vacio, para los casos que no van de esquemas. */
+const SALUD_VACIA = {
+  versionDisponible: '20260824232637_EmpresaCatalogosOrganizacion',
+  totalEmpresas: 0,
+  desfasadas: 0,
+  empresas: [],
+};
 
 /**
- * Con sesion, el servicio dispara TRES recursos a la vez: empresas, planes y modulos. Los
- * dos ultimos se despachan aqui para que `verify()` siga significando «no quedo nada
- * inesperado» en lugar de «no quedo nada».
+ * Con sesion, el servicio dispara CUATRO recursos a la vez: empresas, planes, modulos y la
+ * salud de esquemas. Los tres ultimos se despachan aqui para que `verify()` siga
+ * significando «no quedo nada inesperado» en lugar de «no quedo nada».
  *
- * Que sean tres peticiones al abrir el panel es deliberado: las tres se comparten entre
- * pantallas y se cachean para el resto de la sesion, asi que el coste es una vez.
+ * Que sean cuatro peticiones al abrir el panel es deliberado: las cuatro se comparten entre
+ * pantallas y se cachean para el resto de la sesion, asi que el coste es una vez. La de
+ * salud la leen el dashboard y la pantalla de esquemas.
  */
 function despacharCatalogo(http: HttpTestingController) {
   http.expectOne(URL_PLANES).flush([]);
   http.expectOne(URL_MODULOS).flush([]);
+  http.expectOne(URL_SALUD).flush(SALUD_VACIA);
 }
 
 /**
@@ -73,9 +84,11 @@ describe('ApiPlataforma: el recurso de empresas', () => {
     expect(api.empresas()).toEqual([]);
     expect(api.planes()).toEqual([]);
     expect(api.modulos()).toEqual([]);
+    expect(api.saludEsquemas()).toBeNull();
     http.expectNone(URL);
     http.expectNone(URL_PLANES);
     http.expectNone(URL_MODULOS);
+    http.expectNone(URL_SALUD);
   });
 
   it('con sesion pide una vez y entrega la lista', async () => {
@@ -109,6 +122,7 @@ describe('ApiPlataforma: el recurso de empresas', () => {
         { detail: 'No tienes permiso para ver las empresas.' },
         { status: 403, statusText: 'Forbidden' },
       );
+    despacharCatalogo(http);
     await asentar();
 
     expect(api.empresasError()).toBe('No tienes permiso para ver las empresas.');
@@ -172,6 +186,7 @@ describe('ApiPlataforma: el catalogo de planes', () => {
     http.expectOne(URL).flush([]);
     http.expectOne(URL_PLANES).flush(planes);
     http.expectOne(URL_MODULOS).flush([{ clave: 'equipos', numero: 2, orden: 1 }]);
+    http.expectOne(URL_SALUD).flush(SALUD_VACIA);
     await asentar();
   }
 
@@ -253,5 +268,66 @@ describe('ApiPlataforma: el catalogo de planes', () => {
     expect(api.modulos()).toEqual([]);
     http.expectNone(URL_PLANES);
     http.expectNone(URL_MODULOS);
+  });
+});
+
+/**
+ * El reporte de salud de esquemas, que es COMPARTIDO igual que las empresas: lo leen el
+ * dashboard —para su aviso de desfase— y la pantalla de esquemas.
+ *
+ * Lo que se fija aqui es lo que se puede romper en silencio: que se pida UNA vez para las
+ * dos pantallas, y que un fallo no reviente al que lo lea.
+ */
+describe('ApiPlataforma: el reporte de salud de esquemas', () => {
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    localStorage.clear();
+    localStorage.setItem(LLAVE, 'token-de-prueba');
+  });
+
+  afterEach(() => localStorage.clear());
+
+  it('con sesion pide una vez y entrega el reporte', async () => {
+    const { api, http } = crear();
+
+    await asentar();
+
+    http.expectOne(URL).flush([]);
+    http.expectOne(URL_PLANES).flush([]);
+    http.expectOne(URL_MODULOS).flush([]);
+    http.expectOne(URL_SALUD).flush({
+      versionDisponible: '20260824232637_EmpresaCatalogosOrganizacion',
+      totalEmpresas: 2,
+      desfasadas: 2,
+      empresas: [{ slug: 'bajio', desfasada: true, versionReconocida: true }],
+    });
+    await asentar();
+
+    expect(api.saludEsquemas()?.desfasadas).toBe(2);
+    expect(api.saludEsquemasCargando()).toBe(false);
+    expect(api.saludEsquemasError()).toBeNull();
+    // Una sola peticion: si alguien mueve el recurso a un componente, aqui saldrian dos.
+    http.verify();
+  });
+
+  it('un fallo deja el reporte en null y NO lanza', async () => {
+    // GUARDIA DE REGRESION, la misma que la de empresas: leer `value()` con el recurso en
+    // estado de error LANZA un `ResourceValueError`, y el dashboard lee esta señal dentro de
+    // un `effect` sin condicion para poner el contexto de su barra. Sin el `hasValue()` del
+    // servicio, un 403 reventaria el efecto en vez de pintar el aviso.
+    const { api, http } = crear();
+
+    await asentar();
+
+    http.expectOne(URL).flush([]);
+    http.expectOne(URL_PLANES).flush([]);
+    http.expectOne(URL_MODULOS).flush([]);
+    http
+      .expectOne(URL_SALUD)
+      .flush({ detail: 'No tienes permiso.' }, { status: 403, statusText: 'Forbidden' });
+    await asentar();
+
+    expect(api.saludEsquemas()).toBeNull();
+    expect(api.saludEsquemasError()).toBe('No tienes permiso.');
   });
 });

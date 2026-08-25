@@ -1,0 +1,116 @@
+<!--
+  Espejo de `salud-esquemas.html`: misma rejilla de tarjetas —la de la versión ocupando dos
+  columnas—, la misma tabla y la misma leyenda del pie.
+
+  ACCESIBILIDAD: el esqueleto es DECORACIÓN y todo el bloque va `aria-hidden`. Lo que
+  sustituye al texto de «Cargando…» es el `role="status"` con el texto en `sr-only`, y
+  `aria-busy` dice que lo de dentro está a medias.
+
+  POR QUÉ DIVS Y NO UNA `<table>`: una copia con `<td>` huecos anunciaría una tabla de seis
+  columnas sin datos a quien use un lector de pantalla.
+-->
+<div class="mx-auto flex flex-col gap-5" aria-busy="true">
+  <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+
+  <div aria-hidden="true" class="flex flex-col gap-5">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <!-- La tarjeta de la versión: etiqueta, nombre de la migración, fecha y apoyo. -->
+      <section class="tarjeta-indicador sm:col-span-2">
+        <div class="esqueleto h-4 w-24"></div>
+        <div class="esqueleto mt-2 h-5 w-56 max-w-full"></div>
+        <div class="esqueleto mt-1 h-4 w-36"></div>
+        <div class="esqueleto mt-2 h-4 w-full"></div>
+      </section>
+
+      <section class="tarjeta-indicador">
+        <div class="esqueleto h-4 w-20"></div>
+        <!-- `h-7.5`: los 30 px que ocupa la cifra de verdad. -->
+        <div class="esqueleto mt-2 h-7.5 w-14"></div>
+        <div class="esqueleto mt-2 h-4 w-32"></div>
+      </section>
+
+      <!-- La destacada va en negro, así que sus bloques son `esqueleto-inverso`. -->
+      <section class="tarjeta-indicador tarjeta-indicador-destacada">
+        <div class="esqueleto esqueleto-inverso h-4 w-24"></div>
+        <div class="esqueleto esqueleto-inverso mt-2 h-7.5 w-14"></div>
+        <div class="esqueleto esqueleto-inverso mt-2 h-4 w-32"></div>
+      </section>
+    </div>
+
+    <!--
+      El aviso de «nada que reportar» NO tiene esqueleto, y no es un olvido: solo se pinta
+      con cero desfasadas, y hasta que llegue el reporte no se sabe si va a estar. Una
+      silueta ahí prometería un bloque que en la mitad de los casos no aparece.
+    -->
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div
+        class="flex flex-col gap-3 border-b border-borde px-4 py-3 md:flex-row md:items-center md:justify-between md:px-5"
+      >
+        <div class="esqueleto h-4 w-48 max-w-full"></div>
+        <div class="esqueleto h-4 w-40 max-w-full"></div>
+      </div>
+
+      <!--
+        `overflow-x-auto` con un `min-w-200` dentro, igual que la tabla de verdad: sin eso
+        las seis columnas se aplastan en un teléfono y la silueta no tiene la forma de lo
+        que viene, que es su único trabajo.
+      -->
+      <div class="overflow-x-auto">
+        <div class="min-w-200">
+          <!-- La cabecera de la tabla: `py-2.5` más la caja de línea de un texto de 11 px. -->
+          <div class="flex items-center border-b border-borde bg-superficie-sutil">
+            <div class="min-w-0 flex-1 px-4 py-2.5 md:px-5">
+              <div class="esqueleto h-4 w-20"></div>
+            </div>
+            <div class="min-w-0 flex-1 px-4 py-2.5"><div class="esqueleto h-4 w-24"></div></div>
+            <div class="min-w-0 flex-1 px-4 py-2.5"><div class="esqueleto h-4 w-14"></div></div>
+            <div class="min-w-0 flex-1 px-4 py-2.5"><div class="esqueleto h-4 w-24"></div></div>
+            <div class="min-w-0 flex-1 px-4 py-2.5"><div class="esqueleto h-4 w-16"></div></div>
+            <div class="min-w-0 flex-1 px-4 py-2.5 md:px-5">
+              <div class="esqueleto h-4 w-16"></div>
+            </div>
+          </div>
+
+          <!--
+            Dos bloques en la celda de la versión, igual que la fila de verdad: nombre
+            arriba y marca de tiempo debajo. Con uno solo, cada fila quedaba 20 px más baja
+            y la tabla saltaba al llegar el reporte.
+          -->
+          @for (fila of filas; track fila) {
+            <div class="flex items-start border-b border-borde-fila last:border-0">
+              <div class="min-w-0 flex-1 px-4 py-3 md:px-5">
+                <div class="esqueleto h-5 w-20 max-w-full"></div>
+              </div>
+              <div class="min-w-0 flex-1 px-4 py-3">
+                <div class="esqueleto h-5 w-40 max-w-full"></div>
+              </div>
+              <div class="min-w-0 flex-1 px-4 py-3">
+                <div class="esqueleto h-5 w-16 max-w-full"></div>
+              </div>
+              <div class="min-w-0 flex-1 px-4 py-3">
+                <div class="esqueleto h-5 w-36 max-w-full"></div>
+                <div class="esqueleto mt-0.5 h-4 w-28 max-w-full"></div>
+              </div>
+              <div class="min-w-0 flex-1 px-4 py-3">
+                <div class="esqueleto ml-auto h-5 w-6"></div>
+              </div>
+              <div class="min-w-0 flex-1 px-4 py-3 md:px-5">
+                <div class="esqueleto h-6 w-24 max-w-full rounded-full"></div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="border-t border-borde px-4 py-4 md:px-5">
+        <div class="flex flex-col gap-2">
+          @for (leyenda of leyendas; track leyenda) {
+            <div class="esqueleto h-4 w-full"></div>
+          }
+        </div>
+
+        <div class="esqueleto mt-3 h-4 w-full"></div>
+      </div>
+    </section>
+  </div>
+</div>

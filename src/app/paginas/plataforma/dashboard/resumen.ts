@@ -2,25 +2,40 @@ import {
   EstadoAprovisionamiento,
   EstadoTenant,
   type ResumenEmpresa,
+  type SaludEsquemas,
 } from '../../../nucleo/api/contratos-plataforma';
+import { estadoDeEsquema } from '../salud-esquemas/esquema';
 
 /**
- * Lo que el panel de superadministración puede decir a partir de `GET /empresas`.
+ * Lo que el panel de superadministración puede decir de las empresas.
  *
- * TODO SALE DE ESA LISTA, sin endpoint nuevo y sin un solo número inventado. Es la regla
- * del sistema de diseño y aquí pesa más que en ninguna otra pantalla: un dashboard es
- * exactamente el sitio donde una cifra de ejemplo se confunde con una real, porque el
- * formato es el mismo y nadie va a comprobarla.
+ * TODO SALE DE LA API y no hay un solo número inventado. Es la regla del sistema de diseño
+ * y aquí pesa más que en ninguna otra pantalla: un dashboard es exactamente el sitio donde
+ * una cifra de ejemplo se confunde con una real, porque el formato es el mismo y nadie va a
+ * comprobarla.
  *
- * Por eso NO hay altas por mes, ni ingresos, ni usuarios activos, ni retención: la API no
- * los da y calcularlos aquí sería inventarlos. Lo que sí hay son las tres cosas que la
- * lista permite deducir y que un superadministrador tiene que ver de inmediato.
+ * Por eso NO hay ingresos, ni usuarios activos, ni retención: la API no los da y calcularlos
+ * aquí sería inventarlos. Lo que sí hay son los conteos y avisos que `GET /empresas`
+ * permite deducir y que un superadministrador tiene que ver de inmediato.
  *
  * Es una función pura, con la lista por parámetro, para poder probarla sin navegador.
+ *
+ * LO DEL ESQUEMA ES LA EXCEPCIÓN, y por eso entra por parámetro: aquí no se puede deducir.
+ * Antes se comparaba la versión de cada empresa contra la MÁS AVANZADA DE LA LISTA, y eso
+ * daba cero desfase justo cuando todas iban una migración atrás —que es el estado normal
+ * del sistema— porque la más avanzada era una de las atrasadas. La referencia de verdad es
+ * la del binario que responde, y esa la trae `GET /salud/esquemas`.
  */
 
-/** Por qué una empresa aparece en la lista de avisos. */
-export type MotivoAtencion = 'fallida' | 'sin-suscripcion' | 'esquema-desfasado';
+/**
+ * Por qué una empresa aparece en la lista de avisos.
+ *
+ * `esquema-sin-comparar` es un motivo aparte y no un `esquema-desfasado` más: el reporte
+ * dice que NO SE PUDO comparar, y una base que puede ir por delante del código desplegado
+ * pide desplegar, no migrar. Son dos acciones distintas.
+ */
+export type MotivoAtencion =
+  'fallida' | 'sin-suscripcion' | 'esquema-desfasado' | 'esquema-sin-comparar';
 
 export interface Atencion {
   readonly empresa: ResumenEmpresa;
@@ -40,8 +55,11 @@ export interface ResumenPlataforma {
   readonly enPrueba: number;
   /** `Pendiente` o `Creando`: el alta todavía está en curso. */
   readonly enProceso: number;
-  /** La migración más avanzada que se ha visto, o `null` si ninguna base está lista. */
-  readonly esquemaReferencia: string | null;
+  /**
+   * La migración más avanzada DEL BINARIO, tal como la manda el reporte, o `null` sin
+   * reporte. No se deduce de la lista: ver la nota de arriba.
+   */
+  readonly versionDisponible: string | null;
   /** Lo que hay que atender, lo más grave primero. Una empresa puede salir dos veces. */
   readonly atencion: readonly Atencion[];
   /** Las últimas altas, de la más reciente a la más vieja. */
@@ -53,39 +71,19 @@ export interface ResumenPlataforma {
 /** Cuántas altas recientes se enseñan. Caben en una tarjeta sin hacer scroll. */
 const RECIENTES = 5;
 
-/** Lo más grave primero: un alta fallida bloquea a un cliente entero. */
+/**
+ * Lo más grave primero: un alta fallida bloquea a un cliente entero.
+ *
+ * `esquema-sin-comparar` va por delante de `esquema-desfasado` a propósito: una base
+ * desfasada se arregla corriendo el comando de migración, mientras que una que no se puede
+ * comparar puede ir POR DELANTE del código desplegado, y eso no se arregla migrando.
+ */
 const GRAVEDAD: Readonly<Record<MotivoAtencion, number>> = {
   fallida: 0,
-  'esquema-desfasado': 1,
-  'sin-suscripcion': 2,
+  'esquema-sin-comparar': 1,
+  'esquema-desfasado': 2,
+  'sin-suscripcion': 3,
 };
-
-/**
- * La migración más avanzada entre las bases que YA están listas.
- *
- * Se compara como cadena, y eso es correcto porque un identificador de migración de EF
- * empieza por su marca de tiempo (`20260824232637_EmpresaCatalogos...`): el orden
- * lexicográfico y el cronológico coinciden. Si alguna vez se renombraran las migraciones
- * sin ese prefijo, esta comparación deja de valer.
- *
- * Solo cuentan las `Lista`: una empresa cuyo alta está en curso todavía no tiene esquema,
- * y tomarla como referencia dejaría a todas las demás «desfasadas».
- */
-export function esquemaReferencia(empresas: readonly ResumenEmpresa[]): string | null {
-  let mayor: string | null = null;
-
-  for (const e of empresas) {
-    if (e.aprovisionamiento !== EstadoAprovisionamiento.Lista || e.versionEsquema === null) {
-      continue;
-    }
-
-    if (mayor === null || e.versionEsquema > mayor) {
-      mayor = e.versionEsquema;
-    }
-  }
-
-  return mayor;
-}
 
 /** Cuántos meses enseña la gráfica. Seis caben sin apretar en un teléfono. */
 export const MESES_GRAFICA = 6;
@@ -126,8 +124,20 @@ export function altasPorMes(
   return meses;
 }
 
-export function resumir(empresas: readonly ResumenEmpresa[], ahora: Date): ResumenPlataforma {
-  const referencia = esquemaReferencia(empresas);
+/**
+ * `salud` es OPCIONAL, y sin ella no se dice nada del esquema de nadie.
+ *
+ * Es lo correcto y no una comodidad: sin reporte este lado no tiene con qué comparar, y
+ * callarse es mejor que deducir una referencia falsa. Antes de que existiera el endpoint el
+ * dashboard afirmaba «cero desfasadas» con todas las bases atrasadas.
+ */
+export function resumir(
+  empresas: readonly ResumenEmpresa[],
+  ahora: Date,
+  salud: SaludEsquemas | null = null,
+): ResumenPlataforma {
+  // Por id y no por slug: el id es la llave del reporte y el slug se puede reusar.
+  const esquemas = new Map((salud?.empresas ?? []).map((e) => [e.id, e]));
   const atencion: Atencion[] = [];
 
   for (const empresa of empresas) {
@@ -145,14 +155,22 @@ export function resumir(empresas: readonly ResumenEmpresa[], ahora: Date): Resum
       atencion.push({ empresa, motivo: 'sin-suscripcion' });
     }
 
-    // El desfase solo tiene sentido contra una referencia y entre bases ya creadas.
-    if (
-      referencia !== null &&
-      empresa.aprovisionamiento === EstadoAprovisionamiento.Lista &&
-      empresa.versionEsquema !== null &&
-      empresa.versionEsquema < referencia
-    ) {
-      atencion.push({ empresa, motivo: 'esquema-desfasado' });
+    // El estado del esquema NO se calcula aquí: lo dice el reporte, empresa por empresa, y
+    // `estadoDeEsquema` solo elige cuál de los tres es. Una empresa que no venga en el
+    // reporte no genera aviso: se acaba de dar de alta y el reporte es de hace un momento.
+    const enReporte = esquemas.get(empresa.id);
+
+    if (enReporte !== undefined) {
+      switch (estadoDeEsquema(enReporte)) {
+        case 'desfasada':
+          atencion.push({ empresa, motivo: 'esquema-desfasado' });
+          break;
+        case 'sin-comparar':
+          atencion.push({ empresa, motivo: 'esquema-sin-comparar' });
+          break;
+        case 'al-dia':
+          break;
+      }
     }
   }
 
@@ -165,7 +183,7 @@ export function resumir(empresas: readonly ResumenEmpresa[], ahora: Date): Resum
         e.aprovisionamiento === EstadoAprovisionamiento.Pendiente ||
         e.aprovisionamiento === EstadoAprovisionamiento.Creando,
     ).length,
-    esquemaReferencia: referencia,
+    versionDisponible: salud?.versionDisponible ?? null,
     atencion: atencion.sort((a, b) => GRAVEDAD[a.motivo] - GRAVEDAD[b.motivo]),
     // `slice` antes de ordenar: `sort` muta, y la lista que llega es la del servicio.
     recientes: [...empresas]

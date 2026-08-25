@@ -46,6 +46,16 @@ export const rutasPlataforma: Routes = [
           import('./paginas/plataforma/empresas/empresas').then((m) => m.Empresas),
       },
 
+      // La salud de los esquemas de las bases de empresa. Va en su propia ruta y no como
+      // una banda del dashboard porque es una tabla por empresa con su leyenda: en el
+      // resumen solo cabe el aviso, y de ahi se llega aqui.
+      {
+        path: 'esquemas',
+        title: () => t().titulos.saludEsquemas,
+        loadComponent: () =>
+          import('./paginas/plataforma/salud-esquemas/salud-esquemas').then((m) => m.SaludEsquemas),
+      },
+
       // El resumen es la pantalla de entrada del panel: quien acaba de iniciar sesión
       // quiere saber si hay algo que atender antes de ir a la lista completa.
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },

@@ -183,11 +183,27 @@
           }
         </div>
 
+        @if (errorSalud(); as mensaje) {
+          <!--
+            El reporte de esquemas falló. Se dice AQUÍ y no en el hueco de error de arriba
+            porque el resto del panel sigue siendo correcto; lo que no se puede hacer es
+            callarlo, porque sin reporte no hay avisos de esquema y su ausencia se leería
+            como «no hay nada desfasado».
+          -->
+          <p
+            class="mt-3 rounded-lg border border-amarillo bg-alerta-fondo p-2.5 text-xs text-alerta-texto"
+            role="alert"
+          >
+            {{ mensaje }}
+          </p>
+        }
+
         @if (resumen().atencion.length === 0) {
           <!--
             Sin avisos se dice en texto y en neutro. NADA de una marca verde de «todo
             bien»: la paleta no tiene verde, y un adorno de éxito sugiere una comprobación
-            que esta pantalla no hace —solo mira lo que trae la lista de empresas—.
+            que esta pantalla no hace —solo mira lo que traen la lista de empresas y el
+            reporte de esquemas—.
           -->
           <p class="mt-4 text-sm text-texto-secundario">{{ t().panel.sinAvisos }}</p>
         } @else {
@@ -216,13 +232,28 @@
           </ul>
         }
 
-        <!-- `mt-auto` lo pega al fondo de la tarjeta, alineado con la gráfica de al lado. -->
-        <a
-          routerLink="/empresas"
-          class="mt-auto pt-4 text-sm text-texto underline underline-offset-2 hover:text-texto-secundario focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
-        >
-          {{ t().panel.verEmpresas }} →
-        </a>
+        <!-- `mt-auto` los pega al fondo de la tarjeta, alineados con la gráfica de al lado. -->
+        <div class="mt-auto flex flex-col gap-1.5 pt-4">
+          <!--
+            El aviso de esquema tiene que poder LLEVAR a su pantalla: aquí solo cabe el
+            titular, y el detalle —versión aplicada, migraciones pendientes y qué significa
+            «sin comparar»— está allá. Se dibuja siempre, como el otro: un enlace que
+            aparece y desaparece según los datos se busca donde no está.
+          -->
+          <a
+            routerLink="/esquemas"
+            class="text-sm text-texto underline underline-offset-2 hover:text-texto-secundario focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+          >
+            {{ t().panel.verSalud }} →
+          </a>
+
+          <a
+            routerLink="/empresas"
+            class="text-sm text-texto underline underline-offset-2 hover:text-texto-secundario focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+          >
+            {{ t().panel.verEmpresas }} →
+          </a>
+        </div>
       </section>
     </div>
 
@@ -316,19 +347,21 @@
                     <p class="text-xs text-texto-apagado">{{ e.slug }}</p>
                   </td>
 
-                  <td class="px-4 py-3 text-xs text-texto-apagado">
+                  <td class="px-4 py-3 text-xs">
                     <!--
-                      El esquema se corta al identificador de la migración: el nombre
-                      completo mide 50 caracteres y aquí solo interesa si va al día.
+                      Los TRES estados salen del reporte, no de comparar identificadores
+                      aquí. En esta columna solo cabe el titular; la versión aplicada y las
+                      migraciones pendientes están en la pantalla de esquemas.
                     -->
-                    @if (e.versionEsquema; as version) {
-                      @if (version === resumen().esquemaReferencia) {
-                        <span class="text-texto-secundario">{{ t().panel.alDia }}</span>
-                      } @else {
-                        <span class="text-alerta-texto">{{ version.slice(0, 8) }}</span>
-                      }
+                    @if (esquemaDe(e.id); as esquema) {
+                      <span
+                        [class.text-texto-secundario]="!esquema.aviso"
+                        [class.text-alerta-texto]="esquema.aviso"
+                      >
+                        {{ esquema.texto }}
+                      </span>
                     } @else {
-                      —
+                      <span class="text-texto-apagado">—</span>
                     }
                   </td>
 

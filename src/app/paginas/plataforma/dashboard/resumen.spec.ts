@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   EstadoAprovisionamiento,
   EstadoTenant,
+  type EmpresaEnSalud,
   type ResumenEmpresa,
+  type SaludEsquemas,
 } from '../../../nucleo/api/contratos-plataforma';
-import { MESES_GRAFICA, altasPorMes, esquemaReferencia, resumir } from './resumen';
+import { MESES_GRAFICA, altasPorMes, resumir } from './resumen';
 
 /**
  * Un instante FIJO. `resumir` recibe el reloj por parámetro justo para esto: con
@@ -14,8 +16,12 @@ import { MESES_GRAFICA, altasPorMes, esquemaReferencia, resumir } from './resume
  */
 const AHORA = new Date('2026-08-25T12:00:00Z');
 
+/** La migración del binario que responde. Es la referencia, y no sale de la lista. */
+const DISPONIBLE = '20260824232637_EmpresaCatalogosOrganizacion';
+
 const empresa = (parcial: Partial<ResumenEmpresa> = {}): ResumenEmpresa => ({
-  id: parcial.slug ?? 'id',
+  // El id sale del slug, y ahora importa: el reporte de esquemas se cruza POR ID.
+  id: parcial.slug ?? 'bajio',
   slug: 'bajio',
   razonSocial: 'Maquinaria del Bajío SA de CV',
   rfc: null,
@@ -28,33 +34,45 @@ const empresa = (parcial: Partial<ResumenEmpresa> = {}): ResumenEmpresa => ({
   ...parcial,
 });
 
-describe('esquemaReferencia', () => {
-  it('sin empresas listas no hay referencia', () => {
-    const enCurso = empresa({ aprovisionamiento: EstadoAprovisionamiento.Creando });
+/**
+ * SE BORRÓ `describe('esquemaReferencia')`, con sus tres casos, y no por estorbar.
+ *
+ * Esa función deducía la referencia de desfase tomando la migración más avanzada DE LA
+ * LISTA, y tenía un fallo que sus pruebas no podían ver porque describían exactamente ese
+ * comportamiento: **si todas las empresas van una migración atrás, la más avanzada es una de
+ * ellas y no hay desfase que reportar**. Es el estado en el que suele estar el sistema. La
+ * referencia de verdad —la migración del binario que responde— la manda ahora
+ * `GET /salud/esquemas`, así que la función se fue con sus pruebas. El caso que probaban de
+ * verdad, que una base en curso no cuente, ya no aplica: el reporte no lo deduce, lo dice.
+ *
+ * Lo que ocupa su sitio es «con TODAS una migración atrás las avisa a todas», más abajo, que
+ * es el caso que la deducción no podía ver.
+ */
 
-    expect(esquemaReferencia([enCurso])).toBeNull();
-  });
+/** Una empresa del reporte de esquemas. Al día por omisión. */
+const enSalud = (parcial: Partial<EmpresaEnSalud> = {}): EmpresaEnSalud => ({
+  id: parcial.slug ?? parcial.id ?? 'bajio',
+  slug: 'bajio',
+  razonSocial: 'Maquinaria del Bajío SA de CV',
+  estado: EstadoTenant.Activo,
+  aprovisionamiento: EstadoAprovisionamiento.Lista,
+  versionAplicada: DISPONIBLE,
+  migracionesPendientes: 0,
+  desfasada: false,
+  versionReconocida: true,
+  ...parcial,
+});
 
-  it('toma la migración más avanzada de las bases listas', () => {
-    // El orden lexicográfico es el cronológico porque el identificador empieza por su
-    // marca de tiempo. Es la suposición que sostiene toda la detección de desfase.
-    const atras = empresa({ slug: 'demo', versionEsquema: '20260821205930_EmpresaPermisos' });
-    const alDia = empresa({ slug: 'norte', versionEsquema: '20260824232637_EmpresaCatalogos' });
-
-    expect(esquemaReferencia([atras, alDia])).toBe('20260824232637_EmpresaCatalogos');
-  });
-
-  it('una base en curso no puede ser la referencia', () => {
-    // Si contara, dejaría a todas las demás marcadas como desfasadas.
-    const lista = empresa({ slug: 'norte', versionEsquema: '20260821205930_A' });
-    const enCurso = empresa({
-      slug: 'nueva',
-      aprovisionamiento: EstadoAprovisionamiento.Creando,
-      versionEsquema: '20269999999999_Z',
-    });
-
-    expect(esquemaReferencia([lista, enCurso])).toBe('20260821205930_A');
-  });
+/** El reporte. `desfasadas` lo manda el backend, así que aquí se pasa tal cual. */
+const reporte = (
+  empresas: readonly EmpresaEnSalud[],
+  parcial: Partial<SaludEsquemas> = {},
+): SaludEsquemas => ({
+  versionDisponible: DISPONIBLE,
+  totalEmpresas: empresas.length,
+  desfasadas: empresas.filter((e) => e.desfasada).length,
+  empresas,
+  ...parcial,
 });
 
 describe('resumir: conteos', () => {
@@ -81,7 +99,7 @@ describe('resumir: conteos', () => {
     const r = resumir([], AHORA);
 
     expect(r.total).toBe(0);
-    expect(r.esquemaReferencia).toBeNull();
+    expect(r.versionDisponible).toBeNull();
     expect(r.atencion).toEqual([]);
     expect(r.recientes).toEqual([]);
   });
@@ -116,14 +134,16 @@ describe('resumir: avisos', () => {
     expect(r.atencion).toEqual([]);
   });
 
-  it('detecta la base que va una migración atrás', () => {
-    // Es el caso real del 2026-08-25: demo y bajio quedaron atrás de la plantilla.
+  it('avisa la base que el REPORTE marca desfasada', () => {
+    // Antes este caso se deducía comparando versiones aquí. Ahora la marca el backend y
+    // este lado solo la pinta: `versionEsquema` de la lista ni se mira.
     const r = resumir(
-      [
-        empresa({ slug: 'demo', versionEsquema: '20260821205930_EmpresaPermisos' }),
-        empresa({ slug: 'norte', versionEsquema: '20260824232637_EmpresaCatalogos' }),
-      ],
+      [empresa({ slug: 'demo' }), empresa({ slug: 'norte' })],
       AHORA,
+      reporte([
+        enSalud({ slug: 'demo', desfasada: true, migracionesPendientes: 1 }),
+        enSalud({ slug: 'norte' }),
+      ]),
     );
 
     expect(r.atencion).toHaveLength(1);
@@ -131,21 +151,86 @@ describe('resumir: avisos', () => {
     expect(r.atencion[0].empresa.slug).toBe('demo');
   });
 
-  it('con todas al día no hay aviso de desfase', () => {
+  it('con TODAS las bases una migración atrás las avisa a todas', () => {
+    // ES EL FALLO QUE MOTIVÓ EL ENDPOINT, y el estado real del sistema el 2026-08-25: con
+    // la referencia deducida de la lista, la más avanzada era una de las atrasadas y el
+    // panel reportaba cero desfase. Con la del binario, las dos salen.
+    const r = resumir(
+      [empresa({ slug: 'demo' }), empresa({ slug: 'bajio' })],
+      AHORA,
+      reporte([
+        enSalud({ slug: 'demo', desfasada: true, migracionesPendientes: 1 }),
+        enSalud({ slug: 'bajio', desfasada: true, migracionesPendientes: 1 }),
+      ]),
+    );
+
+    expect(r.atencion.map((a) => a.motivo)).toEqual(['esquema-desfasado', 'esquema-desfasado']);
+  });
+
+  it('una versión que no se pudo comparar es su propio aviso, no un desfase', () => {
+    // El caso peligroso: la base va POR DELANTE del código desplegado. Con `desfasada` en
+    // false, colapsarlo a dos estados lo dejaría sin aviso ninguno.
+    const r = resumir(
+      [empresa({ slug: 'adelantada' })],
+      AHORA,
+      reporte([
+        enSalud({
+          slug: 'adelantada',
+          versionAplicada: '20270101000000_QueEsteBinarioNoConoce',
+          versionReconocida: false,
+          desfasada: false,
+        }),
+      ]),
+    );
+
+    expect(r.atencion.map((a) => a.motivo)).toEqual(['esquema-sin-comparar']);
+  });
+
+  it('con todas al día no hay aviso de esquema', () => {
+    const r = resumir(
+      [empresa({ slug: 'a' }), empresa({ slug: 'b' })],
+      AHORA,
+      reporte([enSalud({ slug: 'a' }), enSalud({ slug: 'b' })]),
+    );
+
+    expect(r.atencion).toEqual([]);
+  });
+
+  it('sin reporte no se afirma nada del esquema', () => {
+    // Callarse es lo correcto: sin la referencia del binario este lado no tiene con qué
+    // comparar, y deducirla de la lista es justo lo que mentía.
     const r = resumir([empresa({ slug: 'a' }), empresa({ slug: 'b' })], AHORA);
 
     expect(r.atencion).toEqual([]);
+    expect(r.versionDisponible).toBeNull();
+  });
+
+  it('una empresa que no viene en el reporte no genera aviso de esquema', () => {
+    // Se acaba de dar de alta y el reporte es de antes. Inventarle un estado sería peor.
+    const r = resumir([empresa({ slug: 'nueva' })], AHORA, reporte([]));
+
+    expect(r.atencion).toEqual([]);
+  });
+
+  it('la versión disponible sale del reporte, no de las empresas', () => {
+    const r = resumir([empresa({ slug: 'a' })], AHORA, reporte([enSalud({ slug: 'a' })]));
+
+    expect(r.versionDisponible).toBe(DISPONIBLE);
   });
 
   it('una empresa con dos problemas sale dos veces, y lo grave primero', () => {
     // Cada motivo es una acción distinta, así que se cuentan aparte a propósito.
     const r = resumir(
       [
-        empresa({ slug: 'norte', versionEsquema: '20260824232637_Z' }),
-        empresa({ slug: 'demo', codigoPlan: null, versionEsquema: '20260821205930_A' }),
+        empresa({ slug: 'norte' }),
+        empresa({ slug: 'demo', codigoPlan: null }),
         empresa({ slug: 'roto', aprovisionamiento: EstadoAprovisionamiento.Fallida }),
       ],
       AHORA,
+      reporte([
+        enSalud({ slug: 'norte' }),
+        enSalud({ slug: 'demo', desfasada: true, migracionesPendientes: 2 }),
+      ]),
     );
 
     expect(r.atencion.map((a) => a.motivo)).toEqual([

@@ -12,6 +12,7 @@ import type {
   ResumenEmpresa,
   ResumenModulo,
   ResumenPlan,
+  SaludEsquemas,
   SesionPlataforma,
 } from './contratos-plataforma';
 import { mensajeDeErrorDeRecurso } from './mensaje-error';
@@ -118,6 +119,35 @@ export class ApiPlataforma {
   );
 
   readonly modulosCargando = this.recursoModulos.isLoading;
+
+  /**
+   * El reporte de salud de esquemas. COMPARTIDO, y por la misma razón que las empresas: lo
+   * leen el dashboard —para su aviso de desfase— y la pantalla de salud de esquemas, así
+   * que entre las dos hacen UNA petición. Un recurso en cada pantalla serían dos.
+   *
+   * Sin `defaultValue`: aquí el vacío no es `[]` sino «todavía no hay reporte», y eso se
+   * dice con `null`. Un reporte de relleno con `versionDisponible: ''` y cero empresas se
+   * pintaría como un reporte de verdad que dice que no hay nada que atender.
+   */
+  private readonly recursoSalud = httpResource<SaludEsquemas>(() =>
+    this.sesion.activa() ? `${this.base}/salud/esquemas` : undefined,
+  );
+
+  /**
+   * El reporte, o `null` mientras carga y si falla. **Nunca lanza.**
+   *
+   * Misma trampa que en `empresas`: `value()` LANZA con el recurso en estado de error, y el
+   * dashboard lee esta señal dentro de un `effect` sin condición para poner el contexto de
+   * la barra. Sin este `hasValue()` un 403 reventaría el efecto en lugar de pintar el
+   * aviso. No lo simplifiques.
+   */
+  readonly saludEsquemas = computed<SaludEsquemas | null>(() =>
+    this.recursoSalud.hasValue() ? this.recursoSalud.value() : null,
+  );
+
+  readonly saludEsquemasCargando = this.recursoSalud.isLoading;
+
+  readonly saludEsquemasError = computed(() => mensajeDeErrorDeRecurso(this.recursoSalud.error()));
 
   iniciarSesion(correo: string, contrasena: string) {
     return this.http.post<SesionPlataforma>(`${this.base}/sesion`, { correo, contrasena });

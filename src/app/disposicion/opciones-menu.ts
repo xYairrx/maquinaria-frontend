@@ -51,6 +51,7 @@ const ICONOS = {
   tablero: 'M3 3h7v7H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 14h7v7H3z',
   etiqueta:
     'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6M7.5 7.5h.01',
+  base: 'M21 5c0 1.66-4.03 3-9 3S3 6.66 3 5s4.03-3 9-3 9 1.34 9 3M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3',
 } as const;
 
 /**
@@ -98,6 +99,9 @@ export function menuPlataforma(): readonly GrupoMenu[] {
         { titulo: t().menu.dashboard, ruta: '/dashboard', icono: ICONOS.tablero },
         { titulo: t().menu.planes, ruta: '/planes', icono: ICONOS.etiqueta },
         { titulo: t().menu.empresas, ruta: '/empresas', icono: ICONOS.edificios },
+        // La entrada y su ruta se agregan JUNTAS: `rutas-plataforma.ts` registra
+        // `esquemas`. Ver el comentario de `menuEmpresa()`.
+        { titulo: t().menu.esquemas, ruta: '/esquemas', icono: ICONOS.base },
       ],
     },
   ];

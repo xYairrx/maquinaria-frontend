@@ -108,3 +108,50 @@ export interface AltaDePlan {
   readonly orden: number;
   readonly modulos: readonly string[];
 }
+
+/**
+ * Una empresa en el reporte de salud de esquemas.
+ *
+ * OJO CON `versionReconocida`, que es el punto entero de este contrato: cuando es `false`
+ * significa «no se pudo comparar» —`versionAplicada` nula, o una migración que el binario
+ * que respondió no conoce, que es el caso de una base POR DELANTE del código desplegado—
+ * y entonces `migracionesPendientes` y `desfasada` NO dicen nada útil. No es un «sí» ni un
+ * «no»: es un tercer estado, y colapsarlo a dos esconde justo el caso peligroso. La regla
+ * está escrita una sola vez, en `estadoDeEsquema()`.
+ */
+export interface EmpresaEnSalud {
+  readonly id: string;
+  readonly slug: string;
+  readonly razonSocial: string;
+  readonly estado: EstadoTenant;
+  readonly aprovisionamiento: EstadoAprovisionamiento;
+  /** Nula = nunca se migró. Y sí cuenta como desfasada. */
+  readonly versionAplicada: string | null;
+  readonly migracionesPendientes: number;
+  readonly desfasada: boolean;
+  readonly versionReconocida: boolean;
+}
+
+/**
+ * `GET /api/plataforma/salud/esquemas`.
+ *
+ * `versionDisponible` es la migración más avanzada DEL BINARIO QUE RESPONDE, no la de la
+ * empresa más adelantada. Esa distinción es la razón de ser del endpoint: deducir la
+ * referencia de la lista de empresas da cero desfase cuando TODAS van una migración atrás,
+ * que es exactamente el estado en el que suele estar el sistema.
+ *
+ * `totalEmpresas` y `desfasadas` vienen calculados a propósito: la regla de qué es estar
+ * atrasado vive en el backend y este lado no la vuelve a calcular.
+ */
+export interface SaludEsquemas {
+  /**
+   * NULA es posible, y el tipo tiene que decirlo: en el backend es `string?`, y sale nula
+   * cuando el ensamblado no trae ninguna migracion —`disponibles.Count > 0 ? [^1] : null`—.
+   * No deberia pasar en produccion, pero estaba tipado `string` y eso es justo la clase de
+   * mentira que un cliente escrito A MANO cuela y que `api:sync` atraparia como diff.
+   */
+  readonly versionDisponible: string | null;
+  readonly totalEmpresas: number;
+  readonly desfasadas: number;
+  readonly empresas: readonly EmpresaEnSalud[];
+}

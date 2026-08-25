@@ -74,6 +74,7 @@ const ES_MX = {
     clientes: 'Clientes',
     rentas: 'Rentas',
     empresas: 'Empresas',
+    esquemas: 'Esquemas',
     navegacionPrincipal: 'Navegación principal',
     navegacionEmpresa: 'Navegación de la empresa',
     navegacionPlataforma: 'Navegación de la plataforma',
@@ -200,14 +201,21 @@ const ES_MX = {
     detalleSinSuscripcion:
       'Su base existe pero no tiene plan, así que su gente no ve ningún módulo.',
     motivoEsquemaDesfasado: 'Esquema desfasado',
-    detalleEsquemaDesfasado: (suyo: string, referencia: string) =>
-      `Su base está en ${suyo} y la más avanzada va en ${referencia}. Le faltan migraciones.`,
+    /** El conteo lo manda el reporte; este lado no lo calcula. */
+    detalleEsquemaDesfasado: (pendientes: number) =>
+      pendientes === 1
+        ? 'Le falta una migración para llegar a la del binario que responde.'
+        : `Le faltan ${pendientes} migraciones para llegar a la del binario que responde.`,
+    motivoEsquemaSinComparar: 'Esquema sin comparar',
+    detalleEsquemaSinComparar:
+      'No se pudo comparar su versión con la del binario: o nunca se migró, o va por delante del código desplegado. No se sabe si le faltan migraciones.',
 
     recientes: 'Últimas altas',
     esquemaReferencia: (version: string) => `Esquema más avanzado: ${version}`,
     sinEsquema: 'Ninguna base está lista todavía.',
 
     verEmpresas: 'Ver todas las empresas',
+    verSalud: 'Ver la salud de los esquemas',
 
     // --- Barra de la pantalla ---
     contexto: (n: number) => (n === 1 ? 'Una empresa' : `${n} empresas`),
@@ -232,7 +240,55 @@ const ES_MX = {
     colModulos: 'Módulos',
     sinCoincidencias: 'Ninguna empresa coincide con lo que buscas.',
     modulosDe: (n: number, total: number) => `${n} de ${total} módulos`,
-    alDia: 'Al día',
+  },
+
+  /** La pantalla de salud de esquemas, y el vocabulario de los TRES estados de esquema. */
+  salud: {
+    titulo: 'Salud de esquemas',
+    contexto: (n: number) => (n === 1 ? 'Una empresa' : `${n} empresas`),
+    contextoDesfasadas: (n: number) => (n === 1 ? 'una desfasada' : `${n} desfasadas`),
+
+    versionDisponible: 'Versión disponible',
+    versionDisponibleApoyo:
+      'La migración más avanzada del binario que respondió, no la de la empresa más adelantada.',
+    totalEmpresas: 'Empresas',
+    pieTotal: 'En el reporte',
+    desfasadas: 'Desfasadas',
+    pieDesfasadas: (n: number) =>
+      n === 0 ? 'Ninguna' : n === 1 ? 'Una base por migrar' : `${n} bases por migrar`,
+
+    nadaQueReportar: 'No hay ninguna empresa desfasada.',
+    nadaQueReportarApoyo: (n: number) =>
+      n === 1
+        ? 'La única base del reporte va en la versión disponible.'
+        : `Las ${n} bases del reporte van en la versión disponible.`,
+    peroSinComparar: (n: number) =>
+      n === 1
+        ? 'Ninguna aparece desfasada, pero hay una que no se pudo comparar. Revísala en la tabla.'
+        : `Ninguna aparece desfasada, pero hay ${n} que no se pudieron comparar. Revísalas en la tabla.`,
+
+    tabla: 'Esquema de cada empresa',
+    verEmpresas: 'Ver todas las empresas',
+    sinEmpresas: 'El reporte no trae ninguna empresa.',
+    sinReporte: 'Todavía no hay reporte de esquemas.',
+
+    colEmpresa: 'Identificador',
+    colVersionAplicada: 'Versión aplicada',
+    colPendientes: 'Pendientes',
+    colEsquema: 'Esquema',
+    nuncaMigrada: 'Nunca se migró',
+    noAplica: 'No se pudo comparar',
+
+    estadoAlDia: 'Al día',
+    estadoDesfasada: 'Desfasada',
+    estadoSinComparar: 'Sin comparar',
+    leyendaAlDia: 'Su base va en la versión disponible.',
+    leyendaDesfasada:
+      'Le faltan migraciones para llegar a la versión disponible. Las aplica el comando migrar-empresas.',
+    leyendaSinComparar:
+      'No se pudo comparar: o nunca se migró, o su versión no la conoce el binario que respondió, que es lo que pasa cuando la base va POR DELANTE del código desplegado. Aquí no se afirma si le faltan migraciones ni cuántas.',
+    limitacion:
+      'El reporte lee la versión que la base central tiene registrada para cada empresa; no se conecta a las bases. Si alguien migró una a mano, aquí seguirá apareciendo la versión vieja hasta la siguiente corrida de migrar-empresas.',
   },
 
   hoja: {
@@ -361,6 +417,7 @@ const ES_MX = {
     inicio: 'Inicio',
     superadministracion: 'Superadministración',
     empresas: 'Empresas',
+    saludEsquemas: 'Salud de esquemas',
     portal: 'Entrar a tu empresa',
   },
 
@@ -443,6 +500,7 @@ const EN_US: Textos = {
     clientes: 'Customers',
     rentas: 'Rentals',
     empresas: 'Companies',
+    esquemas: 'Schemas',
     navegacionPrincipal: 'Main navigation',
     navegacionEmpresa: 'Company navigation',
     navegacionPlataforma: 'Platform navigation',
@@ -566,14 +624,20 @@ const EN_US: Textos = {
     detalleSinSuscripcion:
       'Its database exists but has no plan, so its people see no modules at all.',
     motivoEsquemaDesfasado: 'Schema behind',
-    detalleEsquemaDesfasado: (suyo: string, referencia: string) =>
-      `Its database is on ${suyo} while the furthest along is on ${referencia}. It is missing migrations.`,
+    detalleEsquemaDesfasado: (pendientes: number) =>
+      pendientes === 1
+        ? 'It is one migration behind the binary that answered.'
+        : `It is ${pendientes} migrations behind the binary that answered.`,
+    motivoEsquemaSinComparar: 'Schema not comparable',
+    detalleEsquemaSinComparar:
+      'Its version could not be compared with the binary: either it was never migrated, or it is ahead of the deployed code. Whether it is missing migrations is unknown.',
 
     recientes: 'Latest additions',
     esquemaReferencia: (version: string) => `Furthest schema: ${version}`,
     sinEsquema: 'No database is ready yet.',
 
     verEmpresas: 'See every company',
+    verSalud: 'See schema health',
 
     // --- Barra de la pantalla ---
     contexto: (n: number) => (n === 1 ? 'One company' : `${n} companies`),
@@ -598,7 +662,54 @@ const EN_US: Textos = {
     colModulos: 'Modules',
     sinCoincidencias: 'No company matches your search.',
     modulosDe: (n: number, total: number) => `${n} of ${total} modules`,
-    alDia: 'Up to date',
+  },
+
+  salud: {
+    titulo: 'Schema health',
+    contexto: (n: number) => (n === 1 ? 'One company' : `${n} companies`),
+    contextoDesfasadas: (n: number) => (n === 1 ? 'one behind' : `${n} behind`),
+
+    versionDisponible: 'Available version',
+    versionDisponibleApoyo:
+      'The furthest migration of the binary that answered, not that of the most advanced company.',
+    totalEmpresas: 'Companies',
+    pieTotal: 'In the report',
+    desfasadas: 'Behind',
+    pieDesfasadas: (n: number) =>
+      n === 0 ? 'None' : n === 1 ? 'One database to migrate' : `${n} databases to migrate`,
+
+    nadaQueReportar: 'No company is behind.',
+    nadaQueReportarApoyo: (n: number) =>
+      n === 1
+        ? 'The only database in the report is on the available version.'
+        : `All ${n} databases in the report are on the available version.`,
+    peroSinComparar: (n: number) =>
+      n === 1
+        ? 'None shows as behind, but one could not be compared. Check it in the table.'
+        : `None shows as behind, but ${n} could not be compared. Check them in the table.`,
+
+    tabla: 'Schema of each company',
+    verEmpresas: 'See every company',
+    sinEmpresas: 'The report has no companies in it.',
+    sinReporte: 'There is no schema report yet.',
+
+    colEmpresa: 'Identifier',
+    colVersionAplicada: 'Applied version',
+    colPendientes: 'Pending',
+    colEsquema: 'Schema',
+    nuncaMigrada: 'Never migrated',
+    noAplica: 'Could not be compared',
+
+    estadoAlDia: 'Up to date',
+    estadoDesfasada: 'Behind',
+    estadoSinComparar: 'Not comparable',
+    leyendaAlDia: 'Its database is on the available version.',
+    leyendaDesfasada:
+      'It is missing migrations to reach the available version. The migrar-empresas command applies them.',
+    leyendaSinComparar:
+      'It could not be compared: either it was never migrated, or the binary that answered does not know its version, which is what happens when the database is AHEAD of the deployed code. Nothing is claimed here about whether or how many migrations it is missing.',
+    limitacion:
+      'The report reads the version the central database has on record for each company; it does not connect to the databases themselves. If someone migrated one by hand, the old version will keep showing here until the next migrar-empresas run.',
   },
 
   hoja: {
@@ -725,6 +836,7 @@ const EN_US: Textos = {
     inicio: 'Home',
     superadministracion: 'Platform admin',
     empresas: 'Companies',
+    saludEsquemas: 'Schema health',
     portal: 'Sign in to your company',
   },
 

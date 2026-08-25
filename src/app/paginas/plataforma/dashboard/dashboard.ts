@@ -13,6 +13,7 @@ import { Barra } from '../../../disposicion/barra';
 import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
 import { EstadoTenant, type ResumenEmpresa } from '../../../nucleo/api/contratos-plataforma';
 import { idioma, t } from '../../../nucleo/i18n/i18n';
+import { estadoDeEsquema } from '../salud-esquemas/esquema';
 import { DashboardEsqueleto } from './esqueleto';
 import { resumir, type MotivoAtencion } from './resumen';
 
@@ -48,9 +49,11 @@ const MODULOS_DEL_CATALOGO = 26;
  * «utilización semanal» va **altas por mes**, que es la única serie temporal que la lista
  * de empresas permite calcular.
  *
- * Reusa `listarEmpresas()` en lugar de pedir un endpoint de estadísticas. Eso duplica la
- * petición si se navega de aquí a Empresas, y es un precio que se paga con gusto por no
- * montar una caché compartida para dos pantallas.
+ * EL AVISO DE ESQUEMA SALE DEL ENDPOINT, no de una deducción. Antes se comparaba la versión
+ * de cada empresa contra la más avanzada de la lista, y eso reportaba cero desfase cuando
+ * TODAS iban una migración atrás —la más avanzada era una de las atrasadas—, que es el
+ * estado normal del sistema. La referencia buena es la del binario que responde y la trae
+ * `GET /salud/esquemas`, del mismo recurso compartido que lee la pantalla de esquemas.
  */
 @Component({
   selector: 'app-dashboard',
@@ -90,13 +93,48 @@ export class Dashboard {
    * navegacion; ahora es una entre las dos.
    */
   protected readonly empresas = this.api.empresas;
-  protected readonly cargando = this.api.empresasCargando;
+
+  /**
+   * El reporte de esquemas, del MISMO recurso compartido que lee la pantalla de esquemas:
+   * entre las dos hay una sola petición.
+   */
+  private readonly salud = this.api.saludEsquemas;
+
+  /**
+   * Se espera también al reporte, no solo a las empresas.
+   *
+   * Las dos peticiones salen juntas —dependen de la misma señal de sesión— así que esperar
+   * a las dos no retrasa nada, y evita que la tabla enseñe un guion en la columna de
+   * esquema y la lista de avisos aparezca incompleta durante un instante. Un aviso que
+   * aparece tarde se lee como un aviso que no estaba.
+   */
+  protected readonly cargando = computed(
+    () => this.api.empresasCargando() || this.api.saludEsquemasCargando(),
+  );
+
   protected readonly error = this.api.empresasError;
+
+  /**
+   * El error del REPORTE, que no tumba la pantalla.
+   *
+   * Va como aviso dentro de la tarjeta de avisos y no en el hueco de error de arriba: si
+   * `/empresas` respondió, el resto del panel es correcto y taparlo entero sería peor. Pero
+   * callarlo también: sin reporte no hay avisos de esquema, y su ausencia se leería como
+   * «todo en orden», que es exactamente la mentira que este cambio viene a quitar.
+   */
+  protected readonly errorSalud = this.api.saludEsquemasError;
+
+  /** El reporte indexado por id, para la columna de la tabla y el detalle del aviso. */
+  private readonly esquemas = computed(
+    () => new Map((this.salud()?.empresas ?? []).map((e) => [e.id, e])),
+  );
 
   protected readonly busqueda = signal('');
   protected readonly filtro = signal<Filtro>('todas');
 
-  protected readonly resumen = computed(() => resumir(this.empresas(), this.cargadoEn));
+  protected readonly resumen = computed(() =>
+    resumir(this.empresas(), this.cargadoEn, this.salud()),
+  );
 
   /**
    * La hora de la carga, en el idioma activo.
@@ -248,6 +286,8 @@ export class Dashboard {
         return p.motivoSinSuscripcion;
       case 'esquema-desfasado':
         return p.motivoEsquemaDesfasado;
+      case 'esquema-sin-comparar':
+        return p.motivoEsquemaSinComparar;
     }
   }
 
@@ -260,12 +300,41 @@ export class Dashboard {
       case 'sin-suscripcion':
         return p.detalleSinSuscripcion;
       case 'esquema-desfasado':
-        // Los dos valores están garantizados por `resumir`: solo mete este motivo cuando
-        // hay referencia y la empresa tiene versión.
+        // El `?? 0` no llega a pasar: `resumir` solo mete este motivo para una empresa que
+        // viene en el reporte. Está para no tener que aseverar el tipo.
         return p.detalleEsquemaDesfasado(
-          empresa.versionEsquema ?? '',
-          this.resumen().esquemaReferencia ?? '',
+          this.esquemas().get(empresa.id)?.migracionesPendientes ?? 0,
         );
+      case 'esquema-sin-comparar':
+        return p.detalleEsquemaSinComparar;
+    }
+  }
+
+  /**
+   * El estado de esquema de una empresa para la columna de la tabla, o `null` si no viene
+   * en el reporte.
+   *
+   * Los TRES estados se resuelven con `estadoDeEsquema`, la misma función que usa la
+   * pantalla de esquemas: la regla está escrita una vez. Antes esta celda comparaba la
+   * versión contra la más avanzada de la lista y por eso decía «Al día» a todas cuando
+   * todas iban atrás.
+   */
+  protected esquemaDe(id: string): { readonly texto: string; readonly aviso: boolean } | null {
+    const entrada = this.esquemas().get(id);
+
+    if (entrada === undefined) {
+      return null;
+    }
+
+    const s = t().salud;
+
+    switch (estadoDeEsquema(entrada)) {
+      case 'al-dia':
+        return { texto: s.estadoAlDia, aviso: false };
+      case 'desfasada':
+        return { texto: s.estadoDesfasada, aviso: true };
+      case 'sin-comparar':
+        return { texto: s.estadoSinComparar, aviso: true };
     }
   }
 

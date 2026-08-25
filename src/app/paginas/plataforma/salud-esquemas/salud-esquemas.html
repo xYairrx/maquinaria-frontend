@@ -1,0 +1,285 @@
+<!--
+  Sin <header> ni <main> propios: los aporta DisposicionPlataforma, que es la ruta padre, y
+  el <h1> lo pinta su barra. Una pantalla, un solo <h1>.
+
+  RESPONSIVO desde el principio: cada banda declara su forma de una columna y después lo
+  que hace al ensanchar. La tabla se desplaza dentro de su caja, nunca el documento.
+-->
+<div class="mx-auto flex flex-col gap-5">
+  <!--
+    Los cuatro estados son EXCLUYENTES y el orden importa: el error va antes del reporte
+    vacío. Sin eso, un fallo de la petición dejaría la pantalla afirmando que no hay ninguna
+    empresa desfasada, cuando lo único que sabe es que no pudo preguntar.
+  -->
+  @if (cargando()) {
+    <app-salud-esquemas-esqueleto />
+  } @else if (error(); as mensaje) {
+    <p
+      class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+      role="alert"
+    >
+      {{ mensaje }}
+    </p>
+  } @else if (reporte(); as r) {
+    <!--
+      Los tres datos de arriba VIENEN CALCULADOS del reporte. No se recalculan aquí: la
+      regla de qué es estar atrasado vive en el backend, y la referencia que la hace
+      correcta —la migración del binario que respondió— este lado no la conoce.
+
+      La tarjeta de la versión ocupa dos columnas porque su dato es un identificador largo,
+      no una cifra de dos dígitos.
+    -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section class="tarjeta-indicador sm:col-span-2">
+        <p class="text-[11px] font-medium uppercase tracking-wide text-texto-apagado">
+          {{ t().salud.versionDisponible }}
+        </p>
+
+        @if (disponible(); as v) {
+          <!--
+            El identificador se enseña partido en nombre y marca de tiempo, y así NO SE
+            PIERDE NADA: reagrupar las catorce cifras es reversible y el nombre va tal cual,
+            así que no hace falta ningún globo con el valor crudo al lado. El porqué de no
+            pasarlo por `| date` está en `esquema.ts`.
+          -->
+          <p class="mt-2 break-all text-[17px] font-semibold leading-tight text-texto">
+            {{ v.nombre }}
+          </p>
+
+          @if (v.fecha) {
+            <p class="mt-1 text-xs tabular-nums text-texto-apagado">{{ v.fecha }}</p>
+          }
+        }
+
+        <p class="mt-2 text-xs text-texto-apagado">{{ t().salud.versionDisponibleApoyo }}</p>
+      </section>
+
+      <section class="tarjeta-indicador">
+        <p class="text-[11px] font-medium uppercase tracking-wide text-texto-apagado">
+          {{ t().salud.totalEmpresas }}
+        </p>
+        <p class="mt-2 text-[30px] font-bold leading-none tabular-nums text-texto">
+          {{ r.totalEmpresas }}
+        </p>
+        <p class="mt-2 text-xs text-texto-apagado">{{ t().salud.pieTotal }}</p>
+      </section>
+
+      <!--
+        La destacada es esta, y es la única de la pantalla: el sistema de diseño permite una
+        por pantalla y esta es la que dice si hay que hacer algo ahora.
+      -->
+      <section class="tarjeta-indicador tarjeta-indicador-destacada">
+        <p class="text-[11px] font-medium uppercase tracking-wide text-texto-inverso-micro">
+          {{ t().salud.desfasadas }}
+        </p>
+        <p class="mt-2 text-[30px] font-bold leading-none tabular-nums text-amarillo">
+          {{ r.desfasadas }}
+        </p>
+        <p class="mt-2 text-xs text-texto-inverso-tenue">
+          {{ t().salud.pieDesfasadas(r.desfasadas) }}
+        </p>
+      </section>
+    </div>
+
+    @if (r.desfasadas === 0) {
+      <!--
+        Cero desfasadas SE DICE, no se deja adivinar de una tabla en la que todas las filas
+        ponen lo mismo. Va con filete negro a la izquierda y no con una marca verde: la
+        paleta no tiene verde, y un adorno de éxito prometería una comprobación más fuerte
+        de la que el reporte hace — ver la nota del pie de la tabla.
+
+        Y si alguna no se pudo comparar, el texto de apoyo CAMBIA: «todas al día» con dos
+        bases sin comparar es falso, y es la frase que se lee.
+      -->
+      <section
+        class="rounded-xl border border-borde border-l-4 border-l-negro-acento bg-superficie p-5"
+        role="status"
+      >
+        <h2 class="text-sm font-semibold text-texto">{{ t().salud.nadaQueReportar }}</h2>
+        <p class="mt-1 text-sm text-texto-secundario">{{ apoyoNadaQueReportar() }}</p>
+      </section>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div
+        class="flex flex-col gap-3 border-b border-borde px-4 py-3 md:flex-row md:items-center md:justify-between md:px-5"
+      >
+        <h2 class="text-[15px] font-semibold text-texto">{{ t().salud.tabla }}</h2>
+
+        <a
+          routerLink="/empresas"
+          class="shrink-0 self-start text-sm text-texto underline underline-offset-2 hover:text-texto-secundario focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento md:self-auto"
+        >
+          {{ t().salud.verEmpresas }}
+        </a>
+      </div>
+
+      @if (filas().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5" role="status">
+          {{ t().salud.sinEmpresas }}
+        </p>
+      } @else {
+        <!--
+          `overflow-x-auto` en la tabla y NO en la página: seis columnas no caben en un
+          teléfono, y convertirlas en tarjetas duplicaría el marcado y las dos copias se
+          desincronizarían.
+        -->
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-200 text-left text-sm">
+            <thead
+              class="border-b border-borde bg-superficie-sutil text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().salud.colEmpresa }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().empresas.colRazonSocial }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().empresas.colEstado }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().salud.colVersionAplicada }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                  {{ t().salud.colPendientes }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().salud.colEsquema }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (f of filas(); track f.empresa.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <th scope="row" class="px-4 py-3 text-left font-medium text-texto md:px-5">
+                    {{ f.empresa.slug }}
+                  </th>
+
+                  <td class="px-4 py-3 text-texto-secundario">{{ f.empresa.razonSocial }}</td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ nombreEstado(f.empresa.estado) }}
+
+                    <!--
+                      El aprovisionamiento solo se enseña cuando NO está lista: es lo que
+                      explica una versión aplicada nula. Sin él, un alta a medias parecería
+                      un olvido de mantenimiento.
+                    -->
+                    @if (enCurso(f.empresa); as aprovisionamiento) {
+                      <span class="mt-0.5 block text-xs text-alerta-texto">
+                        {{ aprovisionamiento }}
+                      </span>
+                    }
+                  </td>
+
+                  <td class="px-4 py-3">
+                    @if (f.version; as v) {
+                      <p class="text-texto-secundario">{{ v.nombre }}</p>
+
+                      @if (v.fecha) {
+                        <p class="mt-0.5 text-xs tabular-nums text-texto-apagado">{{ v.fecha }}</p>
+                      }
+                    } @else {
+                      <span class="text-alerta-texto">{{ t().salud.nuncaMigrada }}</span>
+                    }
+                  </td>
+
+                  <!--
+                    AQUÍ ESTÁ EL PUNTO DE LA PANTALLA: con la versión sin reconocer, la
+                    respuesta trae un número de migraciones pendientes que NO significa
+                    nada, así que se pinta un guion. Una cifra sin significado se ve igual
+                    que una de verdad.
+                  -->
+                  <td class="px-4 py-3 text-right tabular-nums">
+                    @if (f.estado === 'sin-comparar') {
+                      <span class="text-texto-apagado" aria-hidden="true">—</span>
+                      <!-- Un guion suelto no se lee: quien no ve la celda necesita el por qué. -->
+                      <span class="sr-only">{{ t().salud.noAplica }}</span>
+                    } @else {
+                      <span
+                        [class.text-texto-apagado]="f.empresa.migracionesPendientes === 0"
+                        [class.text-alerta-texto]="f.empresa.migracionesPendientes > 0"
+                      >
+                        {{ f.empresa.migracionesPendientes }}
+                      </span>
+                    }
+                  </td>
+
+                  <td class="px-4 py-3 md:px-5">
+                    <!--
+                      TRES estados, y el color no es el único indicio: cada uno lleva su
+                      nombre escrito (WCAG 1.4.1). Al día en texto normal; los otros dos en
+                      píldora de aviso, con texto distinto, porque los dos piden hacer algo
+                      —migrar en un caso, desplegar en el otro—.
+                    -->
+                    @switch (f.estado) {
+                      @case ('al-dia') {
+                        <span class="text-texto-secundario">{{ t().salud.estadoAlDia }}</span>
+                      }
+                      @case ('desfasada') {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full bg-alerta-fondo px-2.5 py-1 text-[11px] font-medium text-alerta-texto"
+                        >
+                          {{ t().salud.estadoDesfasada }}
+                        </span>
+                      }
+                      @case ('sin-comparar') {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full bg-alerta-fondo px-2.5 py-1 text-[11px] font-medium text-alerta-texto"
+                        >
+                          {{ t().salud.estadoSinComparar }}
+                        </span>
+                      }
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!--
+          La leyenda va UNA vez debajo de la tabla y no repetida en cada fila: la
+          explicación de «sin comparar» es la parte que hay que leer una vez, y en la celda
+          desplazaría las seis columnas.
+        -->
+        <div class="border-t border-borde px-4 py-4 md:px-5">
+          <dl class="flex flex-col gap-2 text-xs text-texto-apagado">
+            <div class="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+              <dt class="shrink-0 font-medium text-texto-secundario">
+                {{ t().salud.estadoAlDia }}
+              </dt>
+              <dd>{{ t().salud.leyendaAlDia }}</dd>
+            </div>
+
+            <div class="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+              <dt class="shrink-0 font-medium text-texto-secundario">
+                {{ t().salud.estadoDesfasada }}
+              </dt>
+              <dd>{{ t().salud.leyendaDesfasada }}</dd>
+            </div>
+
+            <div class="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+              <dt class="shrink-0 font-medium text-texto-secundario">
+                {{ t().salud.estadoSinComparar }}
+              </dt>
+              <dd>{{ t().salud.leyendaSinComparar }}</dd>
+            </div>
+          </dl>
+
+          <!--
+            Lo que el reporte NO puede saber, dicho aquí y no en la documentación: el
+            endpoint lee `version_esquema` de la base central y no se conecta a las bases de
+            empresa. Prometer más precisión de la que hay es peor que no dar el dato.
+          -->
+          <p class="mt-3 text-xs text-texto-apagado">{{ t().salud.limitacion }}</p>
+        </div>
+      }
+    </section>
+  } @else {
+    <p class="rounded-xl border border-borde bg-superficie p-6 text-sm text-texto-secundario">
+      {{ t().salud.sinReporte }}
+    </p>
+  }
+</div>
