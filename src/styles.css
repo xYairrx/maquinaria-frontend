@@ -237,12 +237,6 @@ input:-webkit-autofill:focus {
  * cambia, la textura la sigue.
  */
 
-/* Halo detrás de la ilustración: la asienta en el panel en vez de dejarla flotando en
- * un negro plano. El centro está al 45 % de la altura, no al 50 %, porque el bloque
- * lleva el texto debajo y el peso óptico queda por encima del centro geométrico. */
-@utility halo-marca {
-  background: radial-gradient(58% 58% at 50% 45%, var(--color-negro-caja) 0%, transparent 72%);
-}
 
 
 

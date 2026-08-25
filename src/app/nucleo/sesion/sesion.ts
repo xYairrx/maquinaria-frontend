@@ -27,13 +27,6 @@ export class Sesion {
 
   readonly activa = computed(() => this._token() !== null);
 
-  /**
-   * El último slug usado, para prellenar el campo "Empresa".
-   *
-   * Resuelve la fricción de que la persona tenga que recordar el identificador de su
-   * empresa cada vez. La liga de invitación lo trae, y de ahí en adelante se recuerda.
-   */
-  readonly empresaRecordada = signal<string>(localStorage.getItem(LLAVE_EMPRESA) ?? '');
 
   abrir(sesion: SesionEmpresa): void {
     localStorage.setItem(LLAVE_TOKEN, sesion.token);
@@ -41,7 +34,6 @@ export class Sesion {
     localStorage.setItem(LLAVE_EMPRESA, sesion.empresa);
 
     this._token.set(sesion.token);
-    this.empresaRecordada.set(sesion.empresa);
   }
 
   establecerIdentidad(identidad: IdentidadEmpresa): void {
@@ -49,7 +41,7 @@ export class Sesion {
   }
 
   cerrar(): void {
-    // El slug NO se borra: no es un secreto y recordarlo es la comodidad que se buscaba.
+    // El slug NO se borra: lo usa el subdominio, no una preferencia del usuario.
     localStorage.removeItem(LLAVE_TOKEN);
     localStorage.removeItem(LLAVE_REFRESCO);
 
