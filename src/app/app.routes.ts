@@ -1,49 +1,38 @@
 import type { Routes } from '@angular/router';
 
-import { guardPlataforma } from './nucleo/guard-plataforma';
-import { guardSesion } from './nucleo/guard-sesion';
+import { ambitoActual } from './nucleo/ambiente/tenant';
+import { rutasEmpresa } from './rutas-empresa';
+import { rutasPlataforma } from './rutas-plataforma';
+import { rutasPortal } from './rutas-portal';
 
 /**
- * Carga diferida por ruta de feature. Con 26 módulos previstos, un bundle único es
- * inviable, así que la regla se aplica desde la primera pantalla y no cuando ya duela.
+ * Qué árbol de rutas se registra, según el subdominio.
  *
- * Dos árboles separados a propósito: `/plataforma/**` es el panel de superadministración
- * y el resto es la aplicación de las empresas. Son dos poblaciones distintas, con dos
- * ámbitos de JWT distintos, y cada una tiene su propio guard.
+ * | Anfitrión                | Aplicación           |
+ * |--------------------------|----------------------|
+ * | `admin.<dominio>`        | Superadministración  |
+ * | `<slug>.<dominio>`       | La empresa `<slug>`  |
+ * | `<dominio>`, `login.…`   | Portal de entrada    |
+ *
+ * POR QUÉ SE ELIGE EL ÁRBOL Y NO SE REGISTRAN LOS TRES: en `bajio.<dominio>` las rutas
+ * de plataforma sencillamente NO EXISTEN. No hay un `/plataforma` que devuelva 403 ni
+ * un guard que las tape; no están. Es la misma idea que el aislamiento por base de
+ * datos del backend: lo que no existe no se puede alcanzar por descuido.
+ *
+ * Se resuelve UNA VEZ al arrancar, no por navegación, porque el anfitrión no cambia sin
+ * recargar la página. Cambiar de empresa es cambiar de origen.
  */
-export const routes: Routes = [
-  // ------------------------------------------------------------ plataforma --
-  {
-    path: 'plataforma/entrar',
-    title: 'Superadministración',
-    loadComponent: () =>
-      import('./paginas/plataforma/entrar-plataforma').then((m) => m.EntrarPlataforma),
-  },
-  {
-    path: 'plataforma',
-    title: 'Empresas',
-    canActivate: [guardPlataforma],
-    loadComponent: () => import('./paginas/plataforma/panel').then((m) => m.Panel),
-  },
+export function rutasDelAnfitrion(): Routes {
+  const ambito = ambitoActual();
 
-  // --------------------------------------------------------------- empresa --
-  {
-    path: 'invitacion',
-    title: 'Define tu contraseña',
-    loadComponent: () => import('./paginas/invitacion/invitacion').then((m) => m.Invitacion),
-  },
-  {
-    path: 'entrar',
-    title: 'Entrar',
-    loadComponent: () => import('./paginas/entrar/entrar').then((m) => m.Entrar),
-  },
-  {
-    path: 'inicio',
-    title: 'Inicio',
-    canActivate: [guardSesion],
-    loadComponent: () => import('./paginas/inicio/inicio').then((m) => m.Inicio),
-  },
+  switch (ambito.tipo) {
+    case 'plataforma':
+      return rutasPlataforma;
 
-  { path: '', pathMatch: 'full', redirectTo: 'inicio' },
-  { path: '**', redirectTo: 'inicio' },
-];
+    case 'empresa':
+      return rutasEmpresa;
+
+    case 'portal':
+      return rutasPortal;
+  }
+}

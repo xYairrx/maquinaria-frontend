@@ -1,11 +1,42 @@
 <!doctype html>
-<html lang="en">
+<!--
+  `lang` y `title` son los DOS únicos sitios donde la identidad del producto se escribe
+  a mano: este archivo es HTML estático y no puede leer `nucleo/ambiente/sitio.ts`. Si
+  cambia el nombre o el idioma allí, hay que cambiarlo aquí. Está anotado en sitio.ts.
+
+  El idioma tiene que estar en el documento y no ponerse desde Angular: los lectores de
+  pantalla eligen la voz antes de que arranque la aplicación, y con `en` leerían todo el
+  español con fonética inglesa (WCAG 3.1.1).
+
+  El `<title>` de aquí solo se ve el primer instante: en cuanto el router navega, lo
+  sustituye `TituloPagina` por «<pantalla> · Maquinaria».
+-->
+<html lang="es-MX">
 <head>
   <meta charset="utf-8">
-  <title>MaquinariaFrontend</title>
+  <title>Maquinaria</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!--
+    Las tipografías (Lato y Merriweather) se piden con un `@import` desde
+    `src/styles.css`. El navegador no descubre esa petición hasta que ha descargado y
+    empezado a leer la hoja de estilos, y solo entonces arranca el DNS y el TLS de dos
+    dominios nuevos: son varios cientos de milisegundos de espera antes de que el
+    primer byte de la fuente se pida siquiera.
+
+    Estos `preconnect` adelantan ese saludo al principio del documento, en paralelo con
+    el resto de la carga, para que la conexión ya esté abierta cuando la hoja de estilos
+    la necesite.
+
+    Son DOS dominios porque Google usa dos: `fonts.googleapis.com` sirve el CSS y
+    `fonts.gstatic.com` los archivos de fuente. El segundo lleva `crossorigin` porque
+    las fuentes se piden en modo CORS anónimo; sin ese atributo el navegador abriría una
+    conexión distinta a la que luego usa y el preconnect no serviría de nada.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
   <app-root></app-root>
