@@ -10,8 +10,12 @@
   El anclaje se expresa como TOPE de alto, no como alto fijo. Dos razones: un alto fijo deja
   hueco vacío cuando el contenido es más corto que el anclaje, y un `<dialog>` modal trae su
   propio `max-height` del navegador que capaba el alto pedido sin dar ningún error. Con el
-  tope, la hoja mide lo que mide su contenido hasta donde el anclaje la deje, y de ahí
-  desplaza.
+  tope, la hoja mide lo que mide su contenido hasta donde el anclaje la deje.
+
+  EL GESTO ES ASIMÉTRICO, y no por capricho: la hoja está clavada al fondo, así que subir es
+  CRECER —va al tope de alto— y bajar es DESPLAZARSE —va al `translate`—. Un `translate`
+  negativo la despegaría del borde inferior dejando ver el velo debajo, que es el fallo que
+  esto arregla. El porqué completo está en `hoja.ts`.
 
   El tope y el desplazamiento van en `style` y no en clases porque son valores continuos: una
   clase por cada píxel de arrastre no existe.
@@ -22,7 +26,7 @@
   (click)="alPulsar($event)"
   class="hoja-inferior"
   [class.hoja-en-gesto]="arrastrando()"
-  [style.maxHeight.dvh]="alturaVh()"
+  [style.maxHeight]="topeAltura()"
   [style.translate]="'0 ' + desplazamiento() + 'px'"
   [attr.aria-label]="titulo()"
 >

@@ -106,11 +106,10 @@ export class Hoja {
   private readonly indice = signal(0);
 
   /**
-   * Desplazamiento del dedo, en px, mientras se arrastra. Cero cuando no hay gesto.
+   * Recorrido del dedo, en px, mientras se arrastra. Negativo hacia arriba. Cero sin gesto.
    *
-   * Se aplica como `translate` en lugar de cambiar el alto: mover una transformacion no
-   * dispara reflujo, y cambiar el alto en cada `pointermove` haria trabajar al motor de
-   * maquetacion sesenta veces por segundo con un formulario dentro.
+   * NO se aplica igual en las dos direcciones, y esa asimetria es el corazon del gesto:
+   * ver `desplazamiento` y `topeAltura`.
    */
   private readonly arrastre = signal(0);
 
@@ -129,7 +128,39 @@ export class Hoja {
     return lista[Math.min(this.indice(), lista.length - 1)];
   });
 
-  protected readonly desplazamiento = computed(() => this.arrastre());
+  /**
+   * El `translate`, y SOLO admite valores hacia abajo.
+   *
+   * ESTE ERA EL FALLO, y se veia: la hoja esta clavada al fondo con `inset: auto 0 0`, asi
+   * que un `translate` NEGATIVO la despega del borde inferior y deja ver el velo debajo —con
+   * el pie y su accion principal subiendo con ella—. Al soltar, el desplazamiento volvia a
+   * cero y el tope saltaba al anclaje nuevo: de ahi el «se sube todo y al soltarlo se
+   * acomoda».
+   *
+   * Una hoja inferior no se MUEVE hacia arriba, CRECE hacia arriba: su borde de abajo no se
+   * separa del de la pantalla nunca. Subir es cosa de `topeAltura`; aqui solo baja, que si es
+   * un desplazamiento de verdad —la hoja se va por debajo del borde, que es exactamente lo
+   * que tiene que parecer cuando se la descarta.
+   */
+  protected readonly desplazamiento = computed(() => Math.max(0, this.arrastre()));
+
+  /**
+   * El tope de alto: el anclaje, mas lo que se haya arrastrado HACIA ARRIBA.
+   *
+   * El `min()` es el freno, y va en CSS y no en JavaScript porque mezcla unidades: `dvh` del
+   * anclaje con `px` del dedo, y solo el navegador sabe cuanto mide un `dvh` en este momento.
+   * Sin el, un arrastre largo pediria una hoja mas alta que la pantalla.
+   *
+   * Sigue siendo TOPE y no alto fijo, por lo mismo que antes: un alto fijo deja hueco vacio
+   * cuando el contenido es mas corto que el anclaje. La consecuencia honesta es que si el
+   * contenido ya cabe entero, arrastrar hacia arriba no mueve nada — porque no hay nada mas
+   * que descubrir.
+   */
+  protected readonly topeAltura = computed(() => {
+    const subida = Math.max(0, -this.arrastre());
+
+    return `min(98dvh, calc(${this.alturaVh()}dvh + ${subida}px))`;
+  });
 
   /**
    * El asa dice a donde lleva pulsarla, que es lo que un teclado necesita saber.
@@ -252,11 +283,14 @@ export class Hoja {
       this.ultimoTiempo = evento.timeStamp;
     }
 
-    // En el anclaje mas alto, seguir tirando hacia arriba se frena con resistencia en lugar de
-    // bloquearse: un tope duro se siente roto. Es el efecto de goma de las hojas de movil.
+    // En el anclaje mas alto, tirar hacia arriba no hace nada. Antes se amortiguaba a un
+    // cuarto para dar el efecto de goma de las hojas de movil, pero eso se conseguia
+    // levantando la hoja del fondo —el mismo fallo que arregla `desplazamiento`, en pequeno—.
+    // Ahora subir es crecer, y por encima del anclaje mas alto no hay nada que crecer: la
+    // hoja ya no cabe mas en la pantalla. Se ignora en lugar de fingir movimiento.
     const enElTope = this.indice() >= this.anclajesNormalizados().length - 1;
 
-    this.arrastre.set(delta < 0 && enElTope ? delta / 4 : delta);
+    this.arrastre.set(delta < 0 && enElTope ? 0 : delta);
   }
 
   protected terminarArrastre(): void {
