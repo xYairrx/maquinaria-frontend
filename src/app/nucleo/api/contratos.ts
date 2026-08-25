@@ -13,6 +13,25 @@ export interface InvitacionVigente {
   readonly empresa: string;
 }
 
+/**
+ * La respuesta 202 de pedir un restablecimiento.
+ *
+ * `mensaje` es SIEMPRE el mismo texto, exista o no la cuenta: el backend lo construye
+ * una sola vez para que las dos respuestas sean idénticas byte a byte. La pantalla lo
+ * muestra tal cual y no lo interpreta; si lo tradujera a «te mandamos el correo», el
+ * formulario pasaría a decir qué correos están registrados.
+ */
+export interface RestablecimientoSolicitado {
+  readonly mensaje: string;
+}
+
+/** Lo que devuelve definir la contraseña nueva. */
+export interface RestablecimientoAplicado {
+  readonly correo: string;
+  /** El slug. */
+  readonly empresa: string;
+}
+
 export interface SesionEmpresa {
   readonly token: string;
   readonly expiraEn: string;

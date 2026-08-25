@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 
-import { configuracion } from './configuracion';
+import { configuracion } from '../ambiente/configuracion';
 import type {
   AltaDeEmpresa,
   EmpresaAprovisionada,

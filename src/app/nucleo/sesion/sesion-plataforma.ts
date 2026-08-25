@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-import type { IdentidadPlataforma, SesionPlataforma } from './contratos-plataforma';
+import type { IdentidadPlataforma, SesionPlataforma } from '../api/contratos-plataforma';
 
 const LLAVE_TOKEN = 'maquinaria.plataforma.token';
 

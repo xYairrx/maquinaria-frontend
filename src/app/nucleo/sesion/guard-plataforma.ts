@@ -12,7 +12,7 @@ export const guardPlataforma: CanActivateFn = (_ruta, estado) => {
     return true;
   }
 
-  return inject(Router).createUrlTree(['/plataforma/entrar'], {
+  return inject(Router).createUrlTree(['/entrar'], {
     queryParams: { destino: estado.url },
   });
 };

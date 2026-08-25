@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-import type { IdentidadEmpresa, SesionEmpresa } from './contratos';
+import type { IdentidadEmpresa, SesionEmpresa } from '../api/contratos';
 
 const LLAVE_TOKEN = 'maquinaria.token';
 const LLAVE_REFRESCO = 'maquinaria.refresco';

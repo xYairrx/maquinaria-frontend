@@ -1,7 +1,7 @@
 import type { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 
-import { configuracion } from './configuracion';
+import { configuracion } from '../ambiente/configuracion';
 import { Sesion } from './sesion';
 import { SesionPlataformaStore } from './sesion-plataforma';
 

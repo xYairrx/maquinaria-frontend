@@ -1,10 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 
-import { configuracion } from './configuracion';
+import { configuracion } from '../ambiente/configuracion';
 import type {
   IdentidadEmpresa,
   InvitacionVigente,
+  RestablecimientoAplicado,
+  RestablecimientoSolicitado,
   SesionEmpresa,
 } from './contratos';
 
@@ -25,6 +27,28 @@ export class Api {
     return this.http.post<{ correo: string; empresa: string }>(
       `${this.base}/api/empresas/${encodeURIComponent(empresa)}` +
         `/invitaciones/${encodeURIComponent(token)}`,
+      { contrasena },
+    );
+  }
+
+  solicitarRestablecimiento(empresa: string, correo: string) {
+    return this.http.post<RestablecimientoSolicitado>(
+      `${this.base}/api/empresas/${encodeURIComponent(empresa)}/restablecimientos`,
+      { correo },
+    );
+  }
+
+  consultarRestablecimiento(empresa: string, token: string) {
+    return this.http.get<void>(
+      `${this.base}/api/empresas/${encodeURIComponent(empresa)}` +
+        `/restablecimientos/${encodeURIComponent(token)}`,
+    );
+  }
+
+  restablecerContrasena(empresa: string, token: string, contrasena: string) {
+    return this.http.post<RestablecimientoAplicado>(
+      `${this.base}/api/empresas/${encodeURIComponent(empresa)}` +
+        `/restablecimientos/${encodeURIComponent(token)}`,
       { contrasena },
     );
   }
