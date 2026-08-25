@@ -1,0 +1,99 @@
+<nav
+  class="flex h-full w-66 shrink-0 flex-col overflow-y-auto bg-negro-lateral px-3 py-5"
+  [attr.aria-label]="etiquetaNavegacion()"
+>
+  <!--
+    Identidad del producto. Cuadrado amarillo de 32 px con el glifo en `sobre-amarillo`
+    (9.92:1) y, al lado, el nombre y la línea descriptiva.
+
+    El glifo va en línea aquí y no en `opciones-menu.ts` porque es la MARCA, no una
+    opción del menú: si viviera junto a los iconos de navegación acabaría reutilizado
+    como icono de un módulo. Sigue la regla del repo de no instalar librería de iconos.
+  -->
+  <p class="flex items-center gap-3 px-3">
+    <span
+      class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amarillo text-sobre-amarillo"
+      aria-hidden="true"
+    >
+      <svg
+        class="size-[18px]"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1zM10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5M4 15v-3a6 6 0 0 1 6-6M14 6a6 6 0 0 1 6 6v3"
+        />
+      </svg>
+    </span>
+
+    <span class="min-w-0">
+      <span class="block truncate text-[15px] font-semibold text-texto-inverso">
+        {{ producto() }}
+      </span>
+      @if (descripcion(); as linea) {
+        <span class="block truncate text-[10px] uppercase tracking-wide text-texto-inverso-tenue">
+          {{ linea }}
+        </span>
+      }
+    </span>
+  </p>
+
+  <div class="mt-2 flex flex-col">
+    @for (grupo of grupos(); track grupo.titulo) {
+      <div class="flex flex-col gap-1">
+        @if (grupo.titulo) {
+          <p
+            class="px-3 pb-2 pt-6 text-[11px] font-medium uppercase tracking-wide text-texto-inverso-tenue"
+          >
+            {{ grupo.titulo }}
+          </p>
+        }
+
+        @for (opcion of grupo.opciones; track opcion.ruta) {
+          <!--
+            El estado activo es una PÍLDORA amarilla sólida, no un filete lateral.
+
+            Las clases de estado van en un binding `[class]` y no en el atributo
+            `routerLinkActive` porque las de hover llevan pseudoclase y ganarían por
+            especificidad: al pasar el ratón por encima, la opción activa se volvería
+            negra. Aplicando hover SOLO cuando no está activa, el conflicto no existe.
+
+            `aria-current="page"` se conserva: el color no puede ser el único indicio
+            del estado (WCAG 1.4.1).
+          -->
+          <a
+            [routerLink]="opcion.ruta"
+            routerLinkActive
+            ariaCurrentWhenActive="page"
+            #activo="routerLinkActive"
+            class="flex h-10 items-center gap-3 rounded-lg px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amarillo"
+            [class]="
+              activo.isActive
+                ? 'bg-amarillo font-medium text-sobre-amarillo'
+                : 'text-texto-inverso-suave hover:bg-negro-caja hover:text-texto-inverso'
+            "
+          >
+            <svg
+              class="size-[18px] shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path [attr.d]="opcion.icono" />
+            </svg>
+
+            {{ opcion.titulo }}
+          </a>
+        }
+      </div>
+    }
+  </div>
+</nav>

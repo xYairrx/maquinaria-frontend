@@ -1,0 +1,42 @@
+<!--
+  Primer elemento enfocable de la página. Sin esto, quien navega con teclado tiene
+  que recorrer todo el menú en cada pantalla para llegar al contenido (WCAG 2.4.1).
+-->
+<a
+  href="#contenido"
+  class="sr-only rounded-lg bg-negro-tarjeta px-4 py-2 text-texto-inverso focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
+>
+  Ir al contenido
+</a>
+
+<div class="flex h-dvh bg-fondo-app">
+  <app-menu-lateral
+    [grupos]="menu()"
+    [producto]="sitio.nombre"
+    [descripcion]="razonSocial()"
+    etiquetaNavegacion="Navegación de la empresa"
+  />
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <header
+      class="flex items-center justify-between gap-4 border-b border-borde bg-superficie px-6 py-4"
+    >
+      <div class="min-w-0">
+        <p class="truncate text-sm font-medium text-texto">{{ nombre() }}</p>
+        <p class="truncate text-xs text-texto-apagado">{{ correo() }}</p>
+      </div>
+
+      <button
+        type="button"
+        (click)="salir()"
+        class="rounded-lg border border-borde-campo px-3 py-1.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+      >
+        Salir
+      </button>
+    </header>
+
+    <main id="contenido" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto p-6">
+      <router-outlet />
+    </main>
+  </div>
+</div>
