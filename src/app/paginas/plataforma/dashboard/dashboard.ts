@@ -14,6 +14,7 @@ import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
 import { EstadoTenant, type ResumenEmpresa } from '../../../nucleo/api/contratos-plataforma';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { idioma, t } from '../../../nucleo/i18n/i18n';
+import { DashboardEsqueleto } from './esqueleto';
 import { resumir, type MotivoAtencion } from './resumen';
 
 // Trazos de Lucide (ISC), copiados en lugar de instalar el paquete, igual que en
@@ -54,7 +55,7 @@ const MODULOS_DEL_CATALOGO = 26;
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [DatePipe, RouterLink],
+  imports: [DashboardEsqueleto, DatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.html',
 })

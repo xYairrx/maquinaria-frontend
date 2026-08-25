@@ -140,3 +140,28 @@ Whichever you pick, these are required:
   reach what is inside.
 
 See `docs/convenciones.md#el-avatar-es-un-desplegable`.
+
+## Loading skeletons
+
+**Never a "Loading…" text.** While data is in flight, render the SILHOUETTE of what is
+coming: grey blocks with the shape, size and position of the real content. A text says
+nothing about the shape, so when the data lands the screen jumps from one line to a grid of
+cards, and that jump reads as a bug.
+
+- Use `@utility esqueleto` from `src/styles.css`, and `esqueleto-inverso` on dark surfaces
+  (light grey on a black card is a white patch, and the layout must not flash colour).
+- **Keep the announcement.** The old text was also the `role="status"`. The split is:
+  `aria-busy` on the container, `role="status"` + `sr-only` for the announcement, and
+  `aria-hidden` on the blocks themselves — they are decoration.
+- Put it in a **sibling component**, not in the `@if` branch: it is dozens of lines of
+  structure with no data. The duplicated structure is the price — **if the real layout
+  changes, the skeleton changes.** A skeleton that no longer matches is worse than none.
+- **Blocks match the text's LINE BOX, not its font size.** 12 px text occupies 16, so its
+  block is `h-4`, not `h-3`.
+- **Bar heights in a chart are fixed literals**, never `Math.random()` — the silhouette
+  would shake on every change-detection pass.
+- Lists of unknown length cannot match exactly. Pick a plausible count and accept it.
+- **Not for user-triggered actions.** Submitting a form still uses the disabled button with
+  its "Sending…": a silhouette there would hide the form they just filled in.
+
+See `docs/convenciones.md#esqueletos-de-carga`.

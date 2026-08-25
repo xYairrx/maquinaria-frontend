@@ -150,6 +150,13 @@ Ordenados de "rompe algo" a "hay que decidirlo".
    igual de válidas: bajarlo a divulgación como el otro, o implementar las flechas. Ver
    [convenciones](convenciones.md#aria-de-divulgación-no-de-menú).
 
+### Esqueletos de carga
+
+0. **Dos pantallas siguen con «Cargando…» en texto**: `paginas/plataforma/empresas` y
+   `paginas/empresa/inicio`. La convención y las piezas ya están —ver
+   [convenciones](convenciones.md#esqueletos-de-carga)—; falta escribir el espejo de cada
+   una. El de `empresas` es una tabla, así que sale casi igual al del dashboard.
+
 ### Internacionalización y metadatos
 
 5. ~~El selector de idioma no traduce nada.~~ **HECHO (2026-08-25).** Español y

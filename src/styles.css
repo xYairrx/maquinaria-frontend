@@ -203,6 +203,16 @@
 
   /** Fondo de ese estado neutro, y de un control deshabilitado. */
   --color-estado-neutro-fondo: #ecece8;
+
+  /*
+   * Un peldano mas que `7xl` (80rem) para las pantallas anchas de panel: cuatro tarjetas
+   * de indicador mas una tabla de cinco columnas se quedan apretadas a 1280 px.
+   *
+   * Se define porque Tailwind NO trae `8xl`: la escala por defecto termina en `7xl`, asi
+   * que `max-w-8xl` era una clase inerte —no aparecia en el CSS compilado— y el contenedor
+   * se quedaba sin ancho maximo, estirandose de borde a borde en un monitor grande.
+   */
+  --container-8xl: 88rem;
 }
 
 /*
@@ -436,4 +446,45 @@ input:-webkit-autofill:focus {
   &:hover {
     color: var(--color-texto-inverso);
   }
+}
+
+/*
+ * Bloque de esqueleto: la silueta gris de un dato que todavia no ha llegado.
+ *
+ * Sustituye a los textos de «Cargando…». La razon no es estetica: un texto no dice NADA de
+ * la forma de lo que viene, asi que al llegar los datos la pantalla salta de una linea a
+ * una rejilla de tarjetas, y ese salto se lee como un error. Con la silueta, el hueco ya
+ * mide lo que va a medir.
+ *
+ * `pista-barra` y no `superficie-hover`: sobre una tarjeta blanca el segundo casi no se
+ * distingue, y un esqueleto que no se ve no comunica que falta algo.
+ */
+@keyframes esqueleto-latido {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@utility esqueleto {
+  border-radius: var(--radius-sm);
+  background-color: var(--color-pista-barra);
+  animation: esqueleto-latido 1.6s ease-in-out infinite;
+
+  /*
+   * El latido se apaga si el sistema pide menos movimiento. Va DENTRO de la utilidad y no
+   * en un `motion-reduce:` en cada uso, porque de esas se olvida una y esa es la que marea
+   * a quien lo pidio. La silueta sigue ahi, solo deja de pulsar.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/*
+ * El mismo bloque sobre fondo oscuro: en la tarjeta destacada, el gris claro es un parche
+ * blanco. El esqueleto de la tarjeta negra tiene que seguir siendo negro, o el layout
+ * parpadea de color al cargar.
+ */
+@utility esqueleto-inverso {
+  background-color: var(--color-negro-caja-borde);
 }

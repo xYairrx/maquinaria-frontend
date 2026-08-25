@@ -6,7 +6,7 @@
   después lo que hace al ensancharse. La regla y el por qué están en
   `docs/convenciones.md#responsivo`.
 -->
-<div class="mx-auto flex max-w-8xl flex-col gap-5">
+<div class="mx-auto flex flex-col gap-5">
   <!--
     Los cuatro estados son EXCLUYENTES, y el orden importa: el error va antes del vacío.
 
@@ -16,7 +16,13 @@
     pantalla de superadministración esa confusión es la peor posible.
   -->
   @if (cargando()) {
-    <p class="text-sm text-texto-secundario" role="status">{{ t().comun.cargando }}</p>
+    <!--
+      Esqueleto, no un «Cargando…». El texto no dice nada de la forma de lo que viene, asi
+      que al llegar los datos la pantalla salta de una linea a una rejilla de tarjetas, y
+      ese salto se lee como un error. El anuncio para lectores de pantalla no se pierde:
+      va dentro, en `sr-only` con `role="status"`.
+    -->
+    <app-dashboard-esqueleto />
   } @else if (error(); as mensaje) {
     <p
       class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"

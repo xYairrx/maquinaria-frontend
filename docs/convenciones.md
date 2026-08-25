@@ -217,6 +217,87 @@ todo lo ancho abajo (`order-last w-full sm:order-none sm:w-auto`). Comprimirlas 
 misma línea deja la búsqueda inservible, y esconderlas no es opción — la búsqueda es la
 única forma de filtrar.
 
+## Esqueletos de carga
+
+**Nada de textos que digan «Cargando…».** Mientras llegan los datos se pinta la SILUETA de
+lo que viene: bloques grises con la forma, el tamaño y la posición del contenido real.
+
+La razón no es estética. Un texto no dice nada de la forma de lo que falta, así que al
+llegar los datos la pantalla salta de una línea a una rejilla de tarjetas, y ese salto se
+lee como un error. Con la silueta, el hueco ya mide lo que va a medir.
+
+Las piezas son `@utility esqueleto` y `@utility esqueleto-inverso` en `src/styles.css`. La
+segunda es para fondos oscuros: sobre una tarjeta negra el gris claro es un parche blanco, y
+el esqueleto de una tarjeta destacada tiene que seguir siendo negro o el layout parpadea de
+color al cargar.
+
+### Accesibilidad: el texto no se pierde, se mueve
+
+El «Cargando…» no era solo visual — era el `role="status"` que anuncia la carga. Quitarlo
+del todo dejaría a un lector de pantalla anunciando una región vacía. El reparto es:
+
+```html
+<div aria-busy="true">
+  <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+
+  <div aria-hidden="true">
+    <!-- los bloques del esqueleto -->
+  </div>
+</div>
+```
+
+- **`aria-busy`** en el contenedor: lo de dentro está a medias.
+- **`role="status"` + `sr-only`**: el anuncio, invisible pero presente.
+- **`aria-hidden`** en los bloques: son decoración, y deletrear cuarenta divs vacíos es ruido.
+
+El latido se apaga con `prefers-reduced-motion`, y eso va **dentro de la utilidad**, no en un
+`motion-reduce:` en cada uso: de esos se olvida uno, y es el que marea a quien pidió menos
+movimiento.
+
+### En un componente hermano, no en la rama del `@if`
+
+El esqueleto del dashboard vive en `paginas/plataforma/dashboard/esqueleto.{ts,html}`.
+Dentro de `dashboard.html` esas sesenta líneas duplicarían su longitud y habría que leer dos
+rejillas en paralelo para encontrar la de verdad.
+
+**El precio es la estructura duplicada, y se paga a sabiendas.** La alternativa —pintar la
+plantilla real con datos de relleno— obliga a que cada `@if`, cada `@for` y cada pipe de la
+pantalla aguanten datos falsos, y eso ensucia el camino bueno para adornar el malo. Lo que
+sí es obligatorio: **si cambia el layout real, cambia el esqueleto.** Un esqueleto que ya no
+coincide es peor que ninguno, porque promete una forma y entrega otra.
+
+### Qué puede coincidir y qué no
+
+Medido en el dashboard, esqueleto contra cargado:
+
+| | Diferencia |
+|---|---|
+| Ancho del contenedor | 0 px |
+| Alto de la gráfica | 0 px |
+| Tarjeta de indicador | 1 px |
+| Un elemento de la lista de avisos | 7 px |
+| La tarjeta de avisos completa | 141 px |
+
+Lo de altura fija coincide exacto. **Lo que no puede coincidir es una lista cuyo largo se
+desconoce hasta que llegan los datos**: el esqueleto pinta tres avisos y llegaron cuatro. Se
+elige un número plausible y se acepta la diferencia; fingir precisión ahí no se puede.
+
+Dos detalles que sí se afinan y valen la pena:
+
+- **Los bloques miden la CAJA DE LÍNEA del texto, no su tamaño de fuente.** Un texto de 12 px
+  ocupa 16, así que su bloque es `h-4` y no `h-3`. Con `h-3` cada tarjeta quedaba 5 px más
+  baja.
+- **Los altos de las barras de una gráfica van FIJOS.** Con `Math.random()` la silueta
+  temblaría en cada pasada de detección de cambios, y además la convención prohíbe suponer
+  globales así en las plantillas.
+
+### Cuándo NO va un esqueleto
+
+Solo para los datos con los que ARRANCA una pantalla. Para algo que la persona acaba de
+disparar —enviar un formulario, guardar— lo correcto sigue siendo el botón deshabilitado con
+su «Enviando…»: ahí sí se sabe qué está pasando y quién lo pidió, y una silueta escondería
+el formulario que acaba de rellenar.
+
 ## Responsivo
 
 **Toda pantalla se hace responsiva desde el primer commit.** No es una pasada posterior:
