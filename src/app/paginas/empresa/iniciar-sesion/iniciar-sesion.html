@@ -31,6 +31,15 @@
     </p>
   }
 
+  @if (expirada() === '1') {
+    <p
+      class="mb-4 rounded-lg border border-borde border-l-4 border-l-negro-acento bg-superficie px-3 py-2.5 text-sm leading-relaxed text-texto"
+      role="status"
+    >
+      {{ t().entrarEmpresa.expirada }}
+    </p>
+  }
+
   <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4">
     <div>
       <!--

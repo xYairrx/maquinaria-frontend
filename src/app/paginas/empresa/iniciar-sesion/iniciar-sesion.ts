@@ -29,6 +29,16 @@ export class IniciarSesion {
    */
   readonly restablecida = input('');
 
+  /**
+   * Se llega con `?expirada=1` desde el interceptor de refresco, cuando el canje del
+   * token de refresco falla y no hay reintento posible.
+   *
+   * Aviso APARTE de los otros dos por la misma razon que ellos entre si: aqui nadie
+   * activo ni cambio nada, simplemente se le acabo la sesion a media tarea. Sin este
+   * texto la persona vuelve al acceso sin explicacion y lo lee como que algo se rompio.
+   */
+  readonly expirada = input('');
+
   readonly destino = input('');
 
   private readonly api = inject(Api);

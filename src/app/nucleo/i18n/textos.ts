@@ -87,6 +87,7 @@ const ES_MX = {
     activada: 'Tu cuenta quedó activada. Entra con tu correo y tu contraseña nueva.',
     restablecida:
       'Tu contraseña quedó cambiada y se cerraron las demás sesiones. Entra con la nueva.',
+    expirada: 'Tu sesión expiró. Entra otra vez con tu correo y tu contraseña.',
   },
 
   entrarPlataforma: {
@@ -455,6 +456,7 @@ const EN_US: Textos = {
     activada: 'Your account is active. Sign in with your email and your new password.',
     restablecida:
       'Your password was changed and all other sessions were closed. Sign in with the new one.',
+    expirada: 'Your session expired. Sign in again with your email and password.',
   },
 
   entrarPlataforma: {

@@ -13,6 +13,7 @@ import { TitleStrategy, provideRouter, withComponentInputBinding } from '@angula
 import { rutasDelAnfitrion } from './app.routes';
 import { TituloPagina } from './nucleo/ambiente/titulo-pagina';
 import { idiomaGuardado, iniciarIdioma } from './nucleo/i18n/i18n';
+import { interceptorRefresco } from './nucleo/sesion/interceptor-refresco';
 import { interceptorToken } from './nucleo/sesion/interceptor-token';
 
 // Los datos de locale se registran ANTES de que exista el inyector: sin esto, el primer
@@ -48,7 +49,11 @@ export const appConfig: ApplicationConfig = {
     // componentes como input(), que es lo que pide la convención de no usar decoradores.
     provideRouter(rutasDelAnfitrion(), withComponentInputBinding()),
 
-    provideHttpClient(withInterceptors([interceptorToken])),
+    // EL ORDEN IMPORTA, y no es cosmético. `interceptorRefresco` va primero, es decir por
+    // FUERA: su `siguiente` es el resto de la cadena, así que la petición que reintenta
+    // tras refrescar vuelve a pasar por `interceptorToken` y sale con el `Bearer` nuevo.
+    // Al revés, el reintento saldría con el token ya caducado y daría otro 401.
+    provideHttpClient(withInterceptors([interceptorRefresco, interceptorToken])),
 
     // El título de la pestaña lleva el nombre del producto detrás del de la pantalla.
     // Sin esto, dos pestañas abiertas —la plataforma y una empresa— dicen «Entrar» las

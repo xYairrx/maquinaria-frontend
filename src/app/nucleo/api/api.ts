@@ -1,4 +1,4 @@
-import { HttpClient, httpResource } from '@angular/common/http';
+import { HttpBackend, HttpClient, httpResource } from '@angular/common/http';
 import { Injectable, computed, inject, type Signal } from '@angular/core';
 
 import { configuracion } from '../ambiente/configuracion';
@@ -33,6 +33,21 @@ export interface ConsultaDeLiga<T> {
 @Injectable({ providedIn: 'root' })
 export class Api {
   private readonly http = inject(HttpClient);
+
+  /**
+   * Un cliente que sale por el `HttpBackend`, es decir SIN pasar por ningún interceptor.
+   *
+   * Solo lo usa `refrescarSesion`, y por dos razones que no son cosméticas:
+   *
+   * 1. **No puede llevar `Authorization`.** El token de acceso ya caducó —es justo por eso
+   *    que se está refrescando— y el endpoint es anónimo.
+   * 2. **No puede dispararse a sí misma.** Si la petición de refresco pasara por el
+   *    interceptor de refresco, su propio 401 pediría otro refresco, y así sin fin. Estar
+   *    fuera de la cadena lo hace imposible por construcción, no por una bandera que
+   *    alguien pueda olvidar de poner.
+   */
+  private readonly httpSinInterceptores = new HttpClient(inject(HttpBackend));
+
   private readonly base = configuracion.urlApi;
 
   /**
@@ -121,6 +136,24 @@ export class Api {
     return this.http.post<SesionEmpresa>(
       `${this.base}/api/empresas/${encodeURIComponent(empresa)}/sesion`,
       { correo, contrasena },
+    );
+  }
+
+  /**
+   * Canjea el token de refresco por una sesión nueva. **Anónimo.**
+   *
+   * La respuesta tiene la MISMA forma que la del login, así que reusa `SesionEmpresa` en
+   * lugar de un contrato propio, y el `tokenRefresco` que trae sustituye al anterior: la
+   * rotación revoca el viejo en la misma operación.
+   *
+   * El único que debe llamarla es `RefrescoSesion`, que la serializa. Dos refrescos
+   * concurrentes con el mismo token los lee el backend como reuso de token robado y
+   * revocan toda la cadena de sesiones del usuario.
+   */
+  refrescarSesion(empresa: string, tokenRefresco: string) {
+    return this.httpSinInterceptores.post<SesionEmpresa>(
+      `${this.base}/api/empresas/${encodeURIComponent(empresa)}/sesion/refresco`,
+      { tokenRefresco },
     );
   }
 

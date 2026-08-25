@@ -5,7 +5,8 @@ import { configuracion } from '../ambiente/configuracion';
 import { Sesion } from './sesion';
 import { SesionPlataformaStore } from './sesion-plataforma';
 
-const RUTAS_DE_PLATAFORMA = '/api/plataforma';
+/** El prefijo de las rutas del ámbito de plataforma. Lo comparte `interceptorRefresco`. */
+export const RUTAS_DE_PLATAFORMA = '/api/plataforma';
 
 /**
  * Agrega el `Authorization` correcto según a QUÉ ámbito va la petición.
@@ -18,6 +19,10 @@ const RUTAS_DE_PLATAFORMA = '/api/plataforma';
  *    firma los dos con la misma llave y los distingue por audiencia y por el claim
  *    `ambito`; mandar el equivocado da un 403 desconcertante. Elegir aquí evita
  *    reproducir ese error en cada llamada.
+ *
+ * Aquí NO se refresca nada: eso es `interceptor-refresco.ts`, que se registra por fuera
+ * de este y solo atiende a la sesión de empresa. Este interceptor pone la cabecera y ya,
+ * así que el reintento del otro sale con el token nuevo sin que aquí haya nada más.
  */
 export const interceptorToken: HttpInterceptorFn = (peticion, siguiente) => {
   if (!peticion.url.startsWith(configuracion.urlApi)) {
@@ -26,9 +31,7 @@ export const interceptorToken: HttpInterceptorFn = (peticion, siguiente) => {
 
   const esDePlataforma = peticion.url.includes(RUTAS_DE_PLATAFORMA);
 
-  const token = esDePlataforma
-    ? inject(SesionPlataformaStore).token()
-    : inject(Sesion).token();
+  const token = esDePlataforma ? inject(SesionPlataformaStore).token() : inject(Sesion).token();
 
   if (token === null) {
     return siguiente(peticion);

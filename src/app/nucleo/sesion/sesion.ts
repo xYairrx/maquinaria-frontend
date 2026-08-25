@@ -27,13 +27,41 @@ export class Sesion {
 
   readonly activa = computed(() => this._token() !== null);
 
-
+  /**
+   * Guarda una sesión recién emitida.
+   *
+   * La usan el login Y el refresco: la respuesta de `/sesion/refresco` tiene la misma
+   * forma, y el `tokenRefresco` que trae SUSTITUYE al anterior —el canje revoca el viejo
+   * en la misma operación—, así que escribirlo no es opcional. La identidad no se toca:
+   * el refresco no la cambia y volver a pedirla en cada renovación sería una petición de
+   * más.
+   */
   abrir(sesion: SesionEmpresa): void {
     localStorage.setItem(LLAVE_TOKEN, sesion.token);
     localStorage.setItem(LLAVE_REFRESCO, sesion.tokenRefresco);
     localStorage.setItem(LLAVE_EMPRESA, sesion.empresa);
 
     this._token.set(sesion.token);
+  }
+
+  /**
+   * Lo que hace falta para pedir un refresco, o `null` si falta algo.
+   *
+   * Los dos datos vienen de la respuesta del login y se leen del almacenamiento en el
+   * momento de pedir el refresco, nunca de una copia en memoria: el token de refresco
+   * ROTA en cada canje, y una copia vieja sería exactamente el «reuso de token robado»
+   * que el backend castiga revocando toda la cadena de sesiones.
+   *
+   * El slug sale de la sesión y no del subdominio (`tenantActual()`) porque es el que la
+   * API contestó al abrirla; el subdominio ya decidió a qué empresa se entró.
+   *
+   * ponytail: no es una señal —nada de la interfaz lo pinta— así que se lee directo.
+   */
+  datosDeRefresco(): { readonly empresa: string; readonly tokenRefresco: string } | null {
+    const tokenRefresco = localStorage.getItem(LLAVE_REFRESCO);
+    const empresa = localStorage.getItem(LLAVE_EMPRESA);
+
+    return tokenRefresco === null || empresa === null ? null : { empresa, tokenRefresco };
   }
 
   establecerIdentidad(identidad: IdentidadEmpresa): void {
