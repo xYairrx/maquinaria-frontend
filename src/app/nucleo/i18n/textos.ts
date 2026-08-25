@@ -68,6 +68,7 @@ const ES_MX = {
   menu: {
     inicio: 'Inicio',
     dashboard: 'Dashboard',
+    planes: 'Planes',
     operacion: 'Operación',
     equipos: 'Equipos',
     clientes: 'Clientes',
@@ -239,6 +240,61 @@ const ES_MX = {
     cerrar: 'Cerrar',
   },
 
+  planes: {
+    titulo: 'Planes',
+    contexto: (n: number) => (n === 1 ? 'Un plan en el catálogo' : `${n} planes en el catálogo`),
+
+    // --- Qué es un plan, dicho una vez y bien ---
+    queEsUnPlan:
+      'Crea y gestiona los planes que cada empresa podrá contratar. Los límites por empresa se gestionan en la propia empresa: este catálogo solo define qué módulos incluye cada plan.',
+
+    sinPlanes: 'Todavía no hay ningún plan en el catálogo.',
+    colPlan: 'Plan',
+    colPrecio: 'Precio mensual',
+    colModulos: 'Módulos',
+    colEmpresas: 'Empresas',
+    colEstado: 'Estado',
+    activo: 'Activo',
+    retirado: 'Retirado',
+    retirar: 'Retirar',
+    reactivar: 'Reactivar',
+    /** Se pregunta antes de retirar porque deja de poder contratarse. */
+    confirmarRetiro: (codigo: string) =>
+      `¿Retirar el plan «${codigo}»? Deja de ofrecerse en el alta de empresas. Quien ya lo tiene contratado no se ve afectado.`,
+    sinSuscripciones: 'Nadie',
+    conSuscripciones: (n: number) => (n === 1 ? 'Una empresa' : `${n} empresas`),
+
+    // --- Formulario ---
+    crear: 'Crear un plan',
+    crearApoyo: 'El código no se puede cambiar después: es lo que viaja en el alta de una empresa.',
+    codigo: 'Código',
+    ayudaCodigo: 'Minúsculas, dígitos y guiones. Por ejemplo: profesional, basico-anual.',
+    nombre: 'Nombre',
+    descripcion: 'Descripción',
+    opcional: '(opcional)',
+    precio: 'Precio mensual',
+    ayudaPrecio: 'Cero es válido: es un plan de cortesía o de prueba.',
+    moneda: 'Moneda',
+    orden: 'Orden',
+    ayudaOrden: 'Posición al comparar planes. El menor va primero.',
+    modulos: 'Módulos que incluye',
+    ayudaModulos:
+      'Al menos uno. Un plan sin módulos deja a la empresa dentro sin ver ni una pantalla.',
+    seleccionados: (n: number, total: number) => `${n} de ${total} seleccionados`,
+    todos: 'Todos',
+    ninguno: 'Ninguno',
+    guardar: 'Crear el plan',
+    guardando: 'Creando…',
+
+    // --- Lo que no se puede hacer, y por qué ---
+    ayuda: 'Por qué no se puede editar un plan',
+    cerrar: 'Cerrar',
+    noSeEdita: 'Por qué no se puede editar un plan',
+    noSeEditaPrecio:
+      'El precio no tiene historia: la suscripción no guarda importe, solo apunta al plan. Cambiarlo reescribiría lo que pagaron los suscriptores anteriores.',
+    noSeEditaModulos:
+      'Quitar un módulo se lo quita a todos sus suscriptores, retroactivamente. Para cambiar la composición se retira el plan y se crea su sucesor.',
+  },
 
   empresas: {
     titulo: 'Empresas',
@@ -267,6 +323,9 @@ const ES_MX = {
     telefono: 'Teléfono',
     nombreAdministrador: 'Nombre del administrador',
     correoAdministrador: 'Correo del administrador',
+    plan: 'Plan que contrata',
+    ayudaPlan: 'Determina a qué módulos tendrá acceso. Solo se ofrecen los planes activos.',
+    sinPlanesActivos: 'No hay ningún plan activo: crea uno antes de dar de alta una empresa.',
     aprovisionar: 'Dar de alta',
     aprovisionando: 'Aprovisionando…',
     tardaUnosSegundos: 'Tarda unos segundos: crea la base y le corre todas las migraciones.',
@@ -294,6 +353,7 @@ const ES_MX = {
   titulos: {
     invitacion: 'Define tu contraseña',
     panel: 'Resumen',
+    planes: 'Planes',
     entrar: 'Entrar',
     recuperar: 'Recuperar tu contraseña',
     restablecer: 'Tu contraseña nueva',
@@ -376,6 +436,7 @@ const EN_US: Textos = {
   menu: {
     inicio: 'Home',
     dashboard: 'Dashboard',
+    planes: 'Plans',
     operacion: 'Operations',
     equipos: 'Equipment',
     clientes: 'Customers',
@@ -544,6 +605,58 @@ const EN_US: Textos = {
     cerrar: 'Close',
   },
 
+  planes: {
+    titulo: 'Plans',
+    contexto: (n: number) =>
+      n === 1 ? 'One plan in the catalogue' : `${n} plans in the catalogue`,
+
+    queEsUnPlan:
+      'A plan is its set of modules: that is what is sold. Quotas —equipment, users, storage— do not belong here: they are negotiated per company.',
+
+    sinPlanes: 'There are no plans in the catalogue yet.',
+    colPlan: 'Plan',
+    colPrecio: 'Monthly price',
+    colModulos: 'Modules',
+    colEmpresas: 'Companies',
+    colEstado: 'Status',
+    activo: 'Active',
+    retirado: 'Retired',
+    retirar: 'Retire',
+    reactivar: 'Reactivate',
+    confirmarRetiro: (codigo: string) =>
+      `Retire the plan "${codigo}"? It stops being offered when adding a company. Whoever already has it is unaffected.`,
+    sinSuscripciones: 'Nobody',
+    conSuscripciones: (n: number) => (n === 1 ? 'One company' : `${n} companies`),
+
+    crear: 'Create a plan',
+    crearApoyo: 'The code cannot be changed later: it is what travels when adding a company.',
+    codigo: 'Code',
+    ayudaCodigo: 'Lowercase, digits and hyphens. For example: professional, basic-annual.',
+    nombre: 'Name',
+    descripcion: 'Description',
+    opcional: '(optional)',
+    precio: 'Monthly price',
+    ayudaPrecio: 'Zero is valid: it is a courtesy or trial plan.',
+    moneda: 'Currency',
+    orden: 'Order',
+    ayudaOrden: 'Position when comparing plans. The lowest goes first.',
+    modulos: 'Modules included',
+    ayudaModulos:
+      'At least one. A plan with no modules leaves the company inside without a single screen.',
+    seleccionados: (n: number, total: number) => `${n} of ${total} selected`,
+    todos: 'All',
+    ninguno: 'None',
+    guardar: 'Create the plan',
+    guardando: 'Creating…',
+
+    ayuda: 'Why a plan cannot be edited',
+    cerrar: 'Close',
+    noSeEdita: 'Why a plan cannot be edited',
+    noSeEditaPrecio:
+      'The price has no history: a subscription stores no amount, it only points at the plan. Changing it would rewrite what previous subscribers paid.',
+    noSeEditaModulos:
+      'Removing a module removes it from every subscriber, retroactively. To change the composition, retire the plan and create its successor.',
+  },
 
   empresas: {
     titulo: 'Companies',
@@ -573,6 +686,9 @@ const EN_US: Textos = {
     telefono: 'Phone',
     nombreAdministrador: "Administrator's name",
     correoAdministrador: "Administrator's email",
+    plan: 'Plan',
+    ayudaPlan: 'Decides which modules they will have access to. Only active plans are offered.',
+    sinPlanesActivos: 'There is no active plan: create one before adding a company.',
     aprovisionar: 'Add',
     aprovisionando: 'Provisioning…',
     tardaUnosSegundos:
@@ -600,6 +716,7 @@ const EN_US: Textos = {
   titulos: {
     invitacion: 'Set your password',
     panel: 'Overview',
+    planes: 'Plans',
     entrar: 'Sign in',
     recuperar: 'Recover your password',
     restablecer: 'Your new password',

@@ -54,6 +54,16 @@ export class Empresas {
   protected readonly empresas = this.api.empresas;
   protected readonly cargando = this.api.empresasCargando;
 
+  /**
+   * Solo los planes ACTIVOS: un plan retirado sigue existiendo para quien ya lo contrato,
+   * pero no se puede contratar de nuevo — `AprovisionarEmpresa` lo rechaza igual, y ofrecerlo
+   * aqui seria ofrecer algo que el servidor va a negar.
+   *
+   * Del recurso compartido, asi que la pantalla de Planes y esta hacen una peticion entre
+   * las dos.
+   */
+  protected readonly planes = this.api.planesActivos;
+
   protected readonly enviando = signal(false);
   protected readonly reciente = signal<EmpresaAprovisionada | null>(null);
 
@@ -73,6 +83,10 @@ export class Empresas {
     telefono: [''],
     nombreAdministrador: ['', Validators.required],
     correoAdministrador: ['', [Validators.required, Validators.email]],
+    // Ya no va fijo a 'base': el catalogo existe, asi que se elige. Arranca vacio y el
+    // `required` obliga a escogerlo — preseleccionar el primero haria que alguien diera de
+    // alta una empresa con un plan que no miro.
+    codigoPlan: ['', Validators.required],
   });
 
   constructor() {
@@ -148,7 +162,7 @@ export class Empresas {
         correoContacto: null,
         correoAdministrador: v.correoAdministrador,
         nombreAdministrador: v.nombreAdministrador,
-        codigoPlan: 'base',
+        codigoPlan: v.codigoPlan,
       })
       .subscribe({
         next: (creada) => {

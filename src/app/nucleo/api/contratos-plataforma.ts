@@ -62,3 +62,49 @@ export interface AltaDeEmpresa {
   readonly nombreAdministrador: string;
   readonly codigoPlan: string;
 }
+
+/**
+ * Un plan del catalogo comercial.
+ *
+ * `modulos` son las CLAVES, no los nombres: el plan ES su conjunto de modulos —no un
+ * paquete de cupos, que esos cuelgan de la empresa— y el nombre para mostrar lo traduce
+ * este lado con `nombreModulo()`, que ya tiene los 26 en los dos idiomas.
+ */
+export interface ResumenPlan {
+  readonly id: string;
+  readonly codigo: string;
+  readonly nombre: string;
+  readonly descripcion: string | null;
+  readonly precioMensual: number;
+  /** ISO 4217 de tres letras. */
+  readonly moneda: string;
+  readonly orden: number;
+  readonly activo: boolean;
+  readonly creadoEn: string;
+  readonly modulos: readonly string[];
+  /** Cuantas empresas lo tienen contratado. Un plan con suscripciones no se toca a la ligera. */
+  readonly suscripciones: number;
+}
+
+/**
+ * Un modulo del catalogo, para armar un plan.
+ *
+ * `numero` es el de la especificacion funcional: 8 es M8, logistica. La numeracion llega a
+ * 30 pero SALTA el 21, 22, 23 y 28 —esos modulos no existen— asi que son 26 y los huecos
+ * son correctos.
+ */
+export interface ResumenModulo {
+  readonly clave: string;
+  readonly numero: number;
+  readonly orden: number;
+}
+
+export interface AltaDePlan {
+  readonly codigo: string;
+  readonly nombre: string;
+  readonly descripcion: string | null;
+  readonly precioMensual: number;
+  readonly moneda: string;
+  readonly orden: number;
+  readonly modulos: readonly string[];
+}

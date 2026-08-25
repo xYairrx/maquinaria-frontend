@@ -18,6 +18,21 @@ import { ApiPlataforma } from './api-plataforma';
  */
 const LLAVE = 'maquinaria.plataforma.token';
 const URL = 'http://localhost:5123/api/plataforma/empresas';
+const URL_PLANES = 'http://localhost:5123/api/plataforma/planes';
+const URL_MODULOS = 'http://localhost:5123/api/plataforma/modulos';
+
+/**
+ * Con sesion, el servicio dispara TRES recursos a la vez: empresas, planes y modulos. Los
+ * dos ultimos se despachan aqui para que `verify()` siga significando «no quedo nada
+ * inesperado» en lugar de «no quedo nada».
+ *
+ * Que sean tres peticiones al abrir el panel es deliberado: las tres se comparten entre
+ * pantallas y se cachean para el resto de la sesion, asi que el coste es una vez.
+ */
+function despacharCatalogo(http: HttpTestingController) {
+  http.expectOne(URL_PLANES).flush([]);
+  http.expectOne(URL_MODULOS).flush([]);
+}
 
 /**
  * Deja correr lo pendiente: los recursos lanzan su peticion en una microtarea, asi que
@@ -56,7 +71,11 @@ describe('ApiPlataforma: el recurso de empresas', () => {
     await asentar();
 
     expect(api.empresas()).toEqual([]);
+    expect(api.planes()).toEqual([]);
+    expect(api.modulos()).toEqual([]);
     http.expectNone(URL);
+    http.expectNone(URL_PLANES);
+    http.expectNone(URL_MODULOS);
   });
 
   it('con sesion pide una vez y entrega la lista', async () => {
@@ -66,6 +85,7 @@ describe('ApiPlataforma: el recurso de empresas', () => {
     await asentar();
 
     http.expectOne(URL).flush([{ slug: 'bajio' }]);
+    despacharCatalogo(http);
     await asentar();
 
     expect(api.empresas()).toHaveLength(1);
@@ -108,6 +128,7 @@ describe('ApiPlataforma: el recurso de empresas', () => {
 
     await asentar();
     http.expectOne(URL).flush([]);
+    despacharCatalogo(http);
     await asentar();
 
     api
@@ -133,5 +154,104 @@ describe('ApiPlataforma: el recurso de empresas', () => {
 
     expect(api.empresas()).toHaveLength(1);
     http.verify();
+  });
+});
+
+describe('ApiPlataforma: el catalogo de planes', () => {
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    localStorage.clear();
+    localStorage.setItem(LLAVE, 'token-de-prueba');
+  });
+
+  afterEach(() => localStorage.clear());
+
+  /** Despacha los tres recursos y devuelve el servicio listo, con los planes dados. */
+  async function conPlanes(http: HttpTestingController, planes: unknown[]) {
+    await asentar();
+    http.expectOne(URL).flush([]);
+    http.expectOne(URL_PLANES).flush(planes);
+    http.expectOne(URL_MODULOS).flush([{ clave: 'equipos', numero: 2, orden: 1 }]);
+    await asentar();
+  }
+
+  it('planesActivos deja fuera los retirados', async () => {
+    // Es lo que alimenta el selector del alta de empresa: ofrecer un plan retirado seria
+    // ofrecer algo que `AprovisionarEmpresa` va a rechazar.
+    const { api, http } = crear();
+
+    await conPlanes(http, [
+      { codigo: 'base', activo: true, modulos: [] },
+      { codigo: 'viejo', activo: false, modulos: [] },
+    ]);
+
+    expect(api.planes()).toHaveLength(2);
+    expect(api.planesActivos().map((p) => p.codigo)).toEqual(['base']);
+  });
+
+  it('crear un plan recarga el catalogo solo', async () => {
+    // Sin esto, la pantalla de planes y el selector del alta se quedarian con datos viejos
+    // y cada sitio que cree un plan tendria que acordarse de recargar.
+    const { api, http } = crear();
+
+    await conPlanes(http, []);
+
+    api
+      .crearPlan({
+        codigo: 'profesional',
+        nombre: 'Plan profesional',
+        descripcion: null,
+        precioMensual: 4800,
+        moneda: 'MXN',
+        orden: 10,
+        modulos: ['equipos'],
+      })
+      .subscribe();
+
+    http.expectOne((r) => r.method === 'POST' && r.url === URL_PLANES).flush({});
+    await asentar();
+
+    // La segunda peticion a /planes es la recarga que dispara el `tap`.
+    http
+      .expectOne(URL_PLANES)
+      .flush([{ codigo: 'profesional', activo: true, modulos: ['equipos'] }]);
+    await asentar();
+
+    expect(api.planes()).toHaveLength(1);
+    http.verify();
+  });
+
+  it('retirar un plan recarga el catalogo y va por PATCH', async () => {
+    const { api, http } = crear();
+
+    await conPlanes(http, [{ codigo: 'base', activo: true, modulos: [] }]);
+
+    api.cambiarActivoDePlan('base', false).subscribe();
+
+    const patch = http.expectOne(
+      (r) => r.method === 'PATCH' && r.url === `${URL_PLANES}/base/activo`,
+    );
+
+    expect(patch.request.body).toEqual({ activo: false });
+    patch.flush({});
+    await asentar();
+
+    http.expectOne(URL_PLANES).flush([{ codigo: 'base', activo: false, modulos: [] }]);
+    await asentar();
+
+    expect(api.planesActivos()).toEqual([]);
+    http.verify();
+  });
+
+  it('sin sesion el catalogo no se pide', async () => {
+    localStorage.clear();
+    const { api, http } = crear();
+
+    await asentar();
+
+    expect(api.planes()).toEqual([]);
+    expect(api.modulos()).toEqual([]);
+    http.expectNone(URL_PLANES);
+    http.expectNone(URL_MODULOS);
   });
 });

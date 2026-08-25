@@ -490,6 +490,43 @@ input:-webkit-autofill:focus {
 }
 
 /*
+ * Campo de formulario dentro de la aplicacion, tal como lo especifica
+ * `docs/sistema-de-diseno.md`. Es la NORMA; el campo relleno y sin borde —`campo-acceso`,
+ * el buscador de la barra— es la excepcion.
+ *
+ * El borde usa `borde-campo` y NO `borde`: un control necesita 3:1 (WCAG 1.4.11), y `borde`
+ * es decorativo —1.29:1 contra blanco—. `borde-campo` llega a 3.45:1 sobre `superficie`.
+ *
+ * `rounded-lg` y no `rounded-md`: es la escala que el documento asigna a los controles, y
+ * lo que los distingue de una tarjeta de seccion.
+ */
+@utility campo-formulario {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-borde-campo);
+  background-color: var(--color-superficie);
+  padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+  font-size: 0.875rem;
+  color: var(--color-texto);
+
+  &::placeholder {
+    color: var(--color-texto-apagado);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-negro-acento);
+    outline-offset: 1px;
+    border-color: var(--color-negro-acento);
+  }
+
+  &:disabled {
+    background-color: var(--color-estado-neutro-fondo);
+    color: var(--color-estado-neutro-texto);
+    cursor: not-allowed;
+  }
+}
+
+/*
  * La accion principal de la barra. Sale a utilidad porque ahora se pinta dos veces —como
  * enlace cuando navega y como boton cuando abre algo— y dos copias de la misma cadena es
  * como se desincronizan.

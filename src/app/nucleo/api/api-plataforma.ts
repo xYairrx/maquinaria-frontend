@@ -6,9 +6,12 @@ import { configuracion } from '../ambiente/configuracion';
 import { SesionPlataformaStore } from '../sesion/sesion-plataforma';
 import type {
   AltaDeEmpresa,
+  AltaDePlan,
   EmpresaAprovisionada,
   IdentidadPlataforma,
   ResumenEmpresa,
+  ResumenModulo,
+  ResumenPlan,
   SesionPlataforma,
 } from './contratos-plataforma';
 import { mensajeDeErrorDeRecurso } from './mensaje-error';
@@ -76,6 +79,46 @@ export class ApiPlataforma {
    */
   readonly empresasError = computed(() => mensajeDeErrorDeRecurso(this.recursoEmpresas.error()));
 
+  /**
+   * El catalogo comercial. Compartido, igual que las empresas: lo leen la pantalla de
+   * planes y el selector de plan del alta de empresa, y entre las dos hacen una peticion.
+   */
+  private readonly recursoPlanes = httpResource<readonly ResumenPlan[]>(
+    () => (this.sesion.activa() ? `${this.base}/planes` : undefined),
+    { defaultValue: [] },
+  );
+
+  /**
+   * Los modulos del catalogo, para armar un plan.
+   *
+   * Se piden a la API y no se leen de `textos.ts` a proposito: el backend es la fuente de
+   * verdad de QUE modulos existen —`ClavesModulo`— y este lado solo traduce sus nombres.
+   * Asi, agregar un modulo en el backend lo hace aparecer en el selector sin desplegar
+   * nada aqui, solo su traduccion.
+   */
+  private readonly recursoModulos = httpResource<readonly ResumenModulo[]>(
+    () => (this.sesion.activa() ? `${this.base}/modulos` : undefined),
+    { defaultValue: [] },
+  );
+
+  /** Ver el comentario de `empresas`: `hasValue()` porque `value()` lanza en error. */
+  readonly planes = computed<readonly ResumenPlan[]>(() =>
+    this.recursoPlanes.hasValue() ? this.recursoPlanes.value() : [],
+  );
+
+  readonly planesCargando = this.recursoPlanes.isLoading;
+
+  readonly planesError = computed(() => mensajeDeErrorDeRecurso(this.recursoPlanes.error()));
+
+  /** Solo los activos, que son los unicos que el alta de una empresa puede contratar. */
+  readonly planesActivos = computed(() => this.planes().filter((p) => p.activo));
+
+  readonly modulos = computed<readonly ResumenModulo[]>(() =>
+    this.recursoModulos.hasValue() ? this.recursoModulos.value() : [],
+  );
+
+  readonly modulosCargando = this.recursoModulos.isLoading;
+
   iniciarSesion(correo: string, contrasena: string) {
     return this.http.post<SesionPlataforma>(`${this.base}/sesion`, { correo, contrasena });
   }
@@ -96,6 +139,30 @@ export class ApiPlataforma {
    * acordarse de recargar, y el día que haya un segundo sitio que dé de alta empresas no
    * hay una segunda copia de esa llamada que se pueda olvidar.
    */
+  recargarPlanes(): void {
+    this.recursoPlanes.reload();
+  }
+
+  /** Crea un plan y refresca el catalogo solo, igual que el alta de empresa. */
+  crearPlan(alta: AltaDePlan) {
+    return this.http
+      .post<ResumenPlan>(`${this.base}/planes`, alta)
+      .pipe(tap(() => this.recargarPlanes()));
+  }
+
+  /**
+   * Retira o reactiva un plan.
+   *
+   * Retirar NO toca a quien ya lo tiene contratado: su suscripcion sigue apuntando al
+   * mismo plan con los mismos modulos. Lo unico que cambia es que el alta de empresas deja
+   * de ofrecerlo.
+   */
+  cambiarActivoDePlan(codigo: string, activo: boolean) {
+    return this.http
+      .patch<ResumenPlan>(`${this.base}/planes/${encodeURIComponent(codigo)}/activo`, { activo })
+      .pipe(tap(() => this.recargarPlanes()));
+  }
+
   darDeAltaEmpresa(alta: AltaDeEmpresa) {
     return this.http
       .post<EmpresaAprovisionada>(`${this.base}/empresas`, alta)

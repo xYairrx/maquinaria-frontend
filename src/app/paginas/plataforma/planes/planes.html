@@ -1,0 +1,362 @@
+<!--
+  Sin <header> ni <main> propios: los aporta DisposicionPlataforma. El <h1> lo pinta la
+  barra del armazon, y el boton amarillo de «Crear un plan» tambien: la pantalla solo
+  declara la accion y abre la hoja.
+
+  Responsivo desde el primer commit. Ver `docs/convenciones.md#responsivo`.
+-->
+<div class="mx-auto flex max-w-5xl flex-col gap-5">
+  <div class="flex items-start justify-between gap-3">
+    <!--
+      Qué es un plan, dicho arriba y una sola vez. No es relleno: quien llega esperando
+      campos de «máximo de equipos» necesita saber por qué no están.
+    -->
+    <p class="max-w-3xl text-[13px] leading-relaxed text-texto-apagado">
+      {{ t().planes.queEsUnPlan }}
+    </p>
+
+    <!--
+      El «?» usa el atributo `popover` NATIVO: `popovertarget` lo abre y el navegador da el
+      descarte al pulsar fuera, el cierre con Escape y la capa superior. A mano son una
+      señal, dos escuchas de documento y una comprobación de contención.
+
+      `aria-details` y no `aria-describedby`: lo que hay dentro es un bloque con estructura
+      —un título y dos puntos— y `describedby` lo aplanaría a una sola cadena leída de
+      corrido.
+    -->
+    <button
+      type="button"
+      popovertarget="ayuda-planes"
+      [attr.aria-label]="t().planes.ayuda"
+      aria-details="ayuda-planes"
+      class="flex size-8 shrink-0 items-center justify-center rounded-full border border-borde-campo text-sm font-semibold text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      ?
+    </button>
+  </div>
+
+  <div id="ayuda-planes" popover class="globo-ayuda">
+    <h2 class="text-[13px] font-semibold text-texto">{{ t().planes.noSeEdita }}</h2>
+
+    <ul class="mt-2 flex flex-col gap-2 text-xs leading-relaxed text-texto-apagado">
+      <li>{{ t().planes.noSeEditaPrecio }}</li>
+      <li>{{ t().planes.noSeEditaModulos }}</li>
+    </ul>
+
+    <!--
+      Cierre explícito además del descarte nativo: en un teléfono, «pulsar fuera» de un
+      globo que ocupa casi todo el ancho es un objetivo estrecho.
+    -->
+    <button
+      type="button"
+      popovertarget="ayuda-planes"
+      popovertargetaction="hide"
+      class="mt-3 text-xs text-texto-secundario underline underline-offset-2 hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().planes.cerrar }}
+    </button>
+  </div>
+
+  @if (cargando()) {
+    <app-planes-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie">
+      @if (planes().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ t().planes.sinPlanes }}</p>
+      } @else {
+        <!--
+          `overflow-x-auto` en la tabla y no en la pagina: el documento nunca se desplaza en
+          horizontal. `min-w-*` para que las columnas no se aplasten en un telefono.
+        -->
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-180 text-left text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().planes.colPlan }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                  {{ t().planes.colPrecio }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().planes.colModulos }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().planes.colEmpresas }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().planes.colEstado }}</th>
+                <th scope="col" class="px-4 py-2.5 md:px-5">
+                  <span class="sr-only">{{ t().planes.retirar }}</span>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (plan of planes(); track plan.id) {
+                <tr class="border-b border-borde-fila align-top last:border-0">
+                  <td class="px-4 py-3 md:px-5">
+                    <p class="font-medium text-texto">{{ plan.nombre }}</p>
+                    <p class="text-xs text-texto-apagado">{{ plan.codigo }}</p>
+                    @if (plan.descripcion; as descripcion) {
+                      <p class="mt-1 max-w-80 text-xs leading-relaxed text-texto-apagado">
+                        {{ descripcion }}
+                      </p>
+                    }
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-texto">
+                    <!--
+                      El locale va explicito como cuarto argumento, igual que las fechas del
+                      dashboard: `LOCALE_ID` se fija al arrancar. Y la moneda sale del PLAN,
+                      no de una constante: cada plan lleva la suya en el contrato.
+                    -->
+                    {{ plan.precioMensual | currency: plan.moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <!--
+                      Los nombres completos, no un conteo. El plan ES su conjunto de modulos,
+                      asi que «26 modulos» esconde justo el dato que define el plan.
+                    -->
+                    <p class="mb-1 text-xs text-texto-apagado">
+                      {{ t().planes.seleccionados(plan.modulos.length, modulos().length) }}
+                    </p>
+
+                    <ul class="flex max-w-96 flex-wrap gap-1">
+                      @for (nombre of modulosDe(plan); track nombre) {
+                        <li
+                          class="rounded bg-superficie-hover px-1.5 py-0.5 text-[11px] text-texto-secundario"
+                        >
+                          {{ nombre }}
+                        </li>
+                      }
+                    </ul>
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 text-texto-secundario">
+                    @if (plan.suscripciones === 0) {
+                      {{ t().planes.sinSuscripciones }}
+                    } @else {
+                      {{ t().planes.conSuscripciones(plan.suscripciones) }}
+                    }
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <!-- El color no es el unico indicio: la pildora lleva el estado escrito. -->
+                    <span
+                      class="inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium"
+                      [class]="
+                        plan.activo
+                          ? 'bg-negro-tarjeta text-texto-inverso'
+                          : 'bg-estado-neutro-fondo text-estado-neutro-texto'
+                      "
+                    >
+                      {{ plan.activo ? t().planes.activo : t().planes.retirado }}
+                    </span>
+                  </td>
+
+                  <td class="px-4 py-3 text-right md:px-5">
+                    <button
+                      type="button"
+                      (click)="alternarActivo(plan)"
+                      class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                    >
+                      {{ plan.activo ? t().planes.retirar : t().planes.reactivar }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</div>
+
+<!--
+  El formulario, dentro de la hoja inferior ARRASTRABLE de `disposicion/hoja.ts`. La hoja
+  aporta el gesto, los anclajes, la cabecera con su asa y el `<dialog>` nativo; aqui solo va
+  el contenido.
+-->
+<app-hoja
+  [abierta]="hojaAbierta()"
+  [anclajes]="[50, 70, 95]"
+  [titulo]="t().planes.crear"
+  [apoyo]="t().planes.crearApoyo"
+  (cerrar)="cerrarHoja()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-plan">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <!-- Una columna en teléfono, dos desde `sm`. Tres apretaría dentro de la hoja. -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="codigo" class="text-sm font-medium text-texto-secundario">
+            {{ t().planes.codigo }}
+          </label>
+          <input
+            id="codigo"
+            formControlName="codigo"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-describedby="ayuda-codigo"
+            class="campo-formulario"
+          />
+          <p id="ayuda-codigo" class="text-xs text-texto-apagado">{{ t().planes.ayudaCodigo }}</p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="nombre" class="text-sm font-medium text-texto-secundario">
+            {{ t().planes.nombre }}
+          </label>
+          <input id="nombre" formControlName="nombre" class="campo-formulario" />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="precio" class="text-sm font-medium text-texto-secundario">
+            {{ t().planes.precio }}
+          </label>
+          <input
+            id="precio"
+            type="number"
+            min="0"
+            step="0.01"
+            formControlName="precioMensual"
+            aria-describedby="ayuda-precio"
+            class="campo-formulario tabular-nums"
+          />
+          <p id="ayuda-precio" class="text-xs text-texto-apagado">{{ t().planes.ayudaPrecio }}</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="flex flex-col gap-1">
+            <label for="moneda" class="text-sm font-medium text-texto-secundario">
+              {{ t().planes.moneda }}
+            </label>
+            <input
+              id="moneda"
+              formControlName="moneda"
+              maxlength="3"
+              autocapitalize="characters"
+              spellcheck="false"
+              class="campo-formulario uppercase"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="orden" class="text-sm font-medium text-texto-secundario">
+              {{ t().planes.orden }}
+            </label>
+            <input
+              id="orden"
+              type="number"
+              formControlName="orden"
+              class="campo-formulario tabular-nums"
+            />
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+            {{ t().planes.descripcion }}
+            <span class="font-normal text-texto-apagado">{{ t().planes.opcional }}</span>
+          </label>
+          <input id="descripcion" formControlName="descripcion" class="campo-formulario" />
+        </div>
+      </div>
+
+      <!--
+        El selector de módulos. Es un `fieldset` con `legend` porque las 26 casillas
+        responden a una sola pregunta: sin agruparlas, un lector de pantalla las anuncia
+        como 26 preguntas suertas.
+      -->
+      <fieldset class="flex flex-col gap-2">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <legend class="text-sm font-medium text-texto-secundario">
+            {{ t().planes.modulos }}
+          </legend>
+
+          <div class="flex items-center gap-2">
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().planes.seleccionados(totalElegidos(), modulos().length) }}
+            </span>
+            <button type="button" (click)="elegirTodos()" class="chip">
+              {{ t().planes.todos }}
+            </button>
+            <button type="button" (click)="elegirNinguno()" class="chip">
+              {{ t().planes.ninguno }}
+            </button>
+          </div>
+        </div>
+
+        <p class="text-xs text-texto-apagado">{{ t().planes.ayudaModulos }}</p>
+
+        <ul class="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
+          @for (modulo of modulos(); track modulo.clave) {
+            <li>
+              <!--
+                Etiqueta envolvente: toda la fila es zona de clic, que en un teléfono es la
+                diferencia entre acertar y no. La casilla es un `checkbox` de verdad y no un
+                `div` con `aria-checked`: teclado y lector de pantalla salen gratis.
+              -->
+              <label
+                class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-negro-acento"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="estaElegido(modulo.clave)"
+                  (change)="alternarModulo(modulo.clave)"
+                  class="size-4 shrink-0 accent-amarillo"
+                />
+                <span class="min-w-0 truncate">{{ nombreDeModulo(modulo.clave) }}</span>
+                <span class="ml-auto shrink-0 text-[10px] tabular-nums text-texto-tenue">
+                  M{{ modulo.numero }}
+                </span>
+              </label>
+            </li>
+          }
+        </ul>
+      </fieldset>
+    </div>
+  </form>
+
+  <!--
+    El pie va al hueco `[pie]` de la hoja, que lo deja fijo abajo. El submit apunta al
+    formulario por `form=`: esta fuera de el en el arbol, porque la hoja lo proyecta en otra
+    ranura.
+  -->
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarHoja()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().planes.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-plan"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().planes.guardando : t().planes.guardar }}
+    </button>
+  </div>
+</app-hoja>

@@ -49,6 +49,8 @@ const ICONOS = {
     'M4 17h16M6 17v-5h5l2-4h4l3 5v4M6 12V8h3M8 20a2 2 0 1 1-4 0 2 2 0 0 1 4 0M20 20a2 2 0 1 1-4 0 2 2 0 0 1 4 0',
   documento: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
   tablero: 'M3 3h7v7H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 14h7v7H3z',
+  etiqueta:
+    'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6M7.5 7.5h.01',
 } as const;
 
 /**
@@ -94,6 +96,7 @@ export function menuPlataforma(): readonly GrupoMenu[] {
       titulo: '',
       opciones: [
         { titulo: t().menu.dashboard, ruta: '/dashboard', icono: ICONOS.tablero },
+        { titulo: t().menu.planes, ruta: '/planes', icono: ICONOS.etiqueta },
         { titulo: t().menu.empresas, ruta: '/empresas', icono: ICONOS.edificios },
       ],
     },

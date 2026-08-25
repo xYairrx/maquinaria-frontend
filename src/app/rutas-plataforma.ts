@@ -35,6 +35,11 @@ export const rutasPlataforma: Routes = [
           import('./paginas/plataforma/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
+        path: 'planes',
+        title: () => t().titulos.planes,
+        loadComponent: () => import('./paginas/plataforma/planes/planes').then((m) => m.Planes),
+      },
+      {
         path: 'empresas',
         title: () => t().titulos.empresas,
         loadComponent: () =>

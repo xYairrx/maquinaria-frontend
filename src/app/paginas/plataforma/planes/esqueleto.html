@@ -1,0 +1,41 @@
+<!--
+  Espejo de `planes.html`. Mismas secciones, mismas rejillas, mismos cortes responsivos.
+
+  El esqueleto es DECORACION y va `aria-hidden`; lo que sustituye al texto de «Cargando...»
+  es el `role="status"` en `sr-only`. Ver `docs/convenciones.md#esqueletos-de-carga`.
+-->
+<div class="flex flex-col gap-6" aria-busy="true">
+  <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+
+  <div aria-hidden="true" class="flex flex-col gap-6">
+    <!-- Tabla del catálogo. -->
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div class="border-b border-borde px-4 py-2.5 md:px-5">
+        <div class="esqueleto h-3 w-full"></div>
+      </div>
+
+      @for (fila of filas; track fila) {
+        <div
+          class="flex items-start justify-between gap-4 border-b border-borde-fila px-4 py-3 last:border-0 md:px-5"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="esqueleto h-3.5 w-40 max-w-full"></div>
+            <div class="esqueleto mt-1.5 h-2.5 w-20"></div>
+
+            <!-- Las píldoras de los módulos: es lo que da altura a la fila. -->
+            <div class="mt-2 flex max-w-96 flex-wrap gap-1">
+              @for (pildora of pildoras; track pildora) {
+                <div class="esqueleto h-4 w-16 rounded"></div>
+              }
+            </div>
+          </div>
+
+          <div class="esqueleto hidden h-3.5 w-20 shrink-0 sm:block"></div>
+          <div class="esqueleto hidden h-3 w-16 shrink-0 lg:block"></div>
+          <div class="esqueleto h-6 w-16 shrink-0 rounded-full"></div>
+          <div class="esqueleto h-8 w-20 shrink-0 rounded-lg"></div>
+        </div>
+      }
+    </section>
+  </div>
+</div>

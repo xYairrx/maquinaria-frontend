@@ -126,6 +126,30 @@ los 17 componentes.
   acción principal—, junto al botón del menú, Salir y el avatar de iniciales, que son del
   armazón. El porqué de que sea un servicio y no proyección de contenido está en
   [convenciones](convenciones.md#la-barra-superior).
+- **Catálogo comercial** (`/planes`): la lista de planes con sus módulos y el formulario
+  para crear uno, más retirar y reactivar. Contra los cuatro endpoints reales del backend.
+
+  **La regla que gobierna la pantalla**: un plan ES su conjunto de módulos, así que **no hay
+  ni un campo de cupos** —los cupos cuelgan de la empresa, en `tenant_limite`—. Meterlos ahí
+  contradiría el modelo, que dice literalmente «LOS MODULOS SON LA DEFINICION DEL PLAN».
+
+  **No hay editar, y la pantalla lo explica en voz alta** en lugar de dejar a quien llega
+  buscando el botón: la suscripción no guarda importe —solo apunta al plan— así que cambiar
+  el precio reescribiría lo que pagaron los suscriptores anteriores, y quitar un módulo se lo
+  quita a todos retroactivamente. Se retira el plan y se crea su sucesor.
+
+  El formulario vive en una **hoja inferior arrastrable** (`disposicion/hoja.ts`), abierta
+  desde el botón amarillo de la barra: se agarra del asa, tiene dos anclajes y se cierra
+  tirándola hacia abajo o con un gesto rápido, como las de móvil. El componente es
+  reutilizable; y el «por qué no se puede editar» está detrás de un botón `?`
+  con un `popover` nativo. Las dos capas y sus trampas están en
+  [convenciones](convenciones.md#capas-hoja-inferior-y-globo-de-ayuda).
+
+  De paso, el alta de empresa dejó de mandar `codigoPlan: 'base'` fijo en el código: ahora es
+  un selector alimentado por los planes **activos** del recurso compartido.
+- **Campos de formulario de aplicación** como `@utility campo-formulario`, con lo que ya solo
+  faltan las tablas de los cinco componentes que el sistema de diseño especificaba sin código.
+  `empresas.html` perdió sus 6 copias de la misma cadena de Tailwind.
 - **Todo responsivo**, comprobado en 375, 768 y 1280. El menú lateral es un **cajón** por
   debajo de `lg` —con hamburguesa, velo y cierre con Escape— y una columna fija desde ahí;
   antes ocupaba 264 px fijos a cualquier ancho, lo que dejaba un teléfono con 111 px de

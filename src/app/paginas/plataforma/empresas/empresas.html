@@ -126,7 +126,7 @@
             id="slug"
             formControlName="slug"
             aria-describedby="ayuda-slug"
-            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
+            class="campo-formulario"
           />
           <p id="ayuda-slug" class="text-xs text-texto-apagado">
             {{ t().empresas.ayudaIdentificador }}
@@ -139,33 +139,21 @@
           <label for="razonSocial" class="text-sm font-medium text-texto-secundario">
             {{ t().empresas.razonSocial }}
           </label>
-          <input
-            id="razonSocial"
-            formControlName="razonSocial"
-            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
-          />
+          <input id="razonSocial" formControlName="razonSocial" class="campo-formulario" />
         </div>
 
         <div class="flex flex-col gap-1">
           <label for="rfc" class="text-sm font-medium text-texto-secundario">{{
             t().empresas.rfc
           }}</label>
-          <input
-            id="rfc"
-            formControlName="rfc"
-            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
-          />
+          <input id="rfc" formControlName="rfc" class="campo-formulario" />
         </div>
 
         <div class="flex flex-col gap-1">
           <label for="telefono" class="text-sm font-medium text-texto-secundario">
             {{ t().empresas.telefono }}
           </label>
-          <input
-            id="telefono"
-            formControlName="telefono"
-            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
-          />
+          <input id="telefono" formControlName="telefono" class="campo-formulario" />
         </div>
 
         <div class="flex flex-col gap-1">
@@ -175,7 +163,7 @@
           <input
             id="nombreAdministrador"
             formControlName="nombreAdministrador"
-            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
+            class="campo-formulario"
           />
         </div>
 
@@ -187,8 +175,44 @@
             id="correoAdministrador"
             type="email"
             formControlName="correoAdministrador"
-            class="rounded-md border border-borde-campo bg-superficie px-3 py-2 text-texto focus:border-negro-acento focus:outline-none focus:ring-2 focus:ring-negro-acento"
+            class="campo-formulario"
           />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="codigoPlan" class="text-sm font-medium text-texto-secundario">
+            {{ t().empresas.plan }}
+          </label>
+
+          <!--
+            `select` nativo y no un desplegable propio: en un telefono el sistema abre su
+            propio selector, que es mejor que cualquier lista que se pueda dibujar aqui.
+          -->
+          <select
+            id="codigoPlan"
+            formControlName="codigoPlan"
+            aria-describedby="ayuda-plan"
+            class="campo-formulario"
+          >
+            <option value="" disabled>—</option>
+            @for (plan of planes(); track plan.id) {
+              <option [value]="plan.codigo">
+                {{ plan.nombre }} — {{ t().planes.seleccionados(plan.modulos.length, 26) }}
+              </option>
+            }
+          </select>
+
+          @if (planes().length === 0) {
+            <!--
+              Sin planes activos no se puede dar de alta nada, asi que se dice en lugar de
+              dejar un desplegable vacio que no explica por que no funciona.
+            -->
+            <p id="ayuda-plan" class="text-xs text-alerta-texto" role="alert">
+              {{ t().empresas.sinPlanesActivos }}
+            </p>
+          } @else {
+            <p id="ayuda-plan" class="text-xs text-texto-apagado">{{ t().empresas.ayudaPlan }}</p>
+          }
         </div>
 
         <div class="sm:col-span-2">

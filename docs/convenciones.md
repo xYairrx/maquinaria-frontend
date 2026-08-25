@@ -700,6 +700,8 @@ src/app/
     │   ├── iniciar-sesion/
     │   ├── dashboard/   el resumen, y la pantalla de entrada del panel
     │   │                dashboard.{ts,html}, esqueleto.{ts,html}, resumen.ts (+ .spec)
+    │   ├── planes/     el catalogo comercial: lista y creacion
+    │   │                planes.{ts,html}, esqueleto.{ts,html}
     │   └── empresas/
     └── portal/      lo que se ve en el dominio pelado y en `login.<dominio>`
         └── seleccionar-empresa/
