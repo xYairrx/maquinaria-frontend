@@ -102,6 +102,25 @@ los 17 componentes.
   `src/styles.css`, siguiendo la especificación del sistema de diseño. Eran tres de los
   cinco componentes que el documento describía sin que existieran; siguen faltando las
   tablas y los campos de formulario de aplicación.
+- **La lista de empresas es un recurso COMPARTIDO** (`ApiPlataforma.empresas`, con
+  `httpResource`): el dashboard y la pantalla de Empresas la leen los dos y hacen una sola
+  petición entre las dos, en lugar de una cada uno en cada navegación. El alta recarga la
+  lista sola. Las reglas —y las tres trampas de `httpResource`, incluida la de que `value()`
+  lanza en estado de error— están en
+  [convenciones](convenciones.md#datos-httpresource-y-el-recurso-compartido).
+
+  **Las dos consultas de liga también son recursos** (`Api.consultaDeInvitacion` y
+  `Api.consultaDeRestablecimiento`), por fábrica en vez de campo del servicio: llevan
+  parámetros de la pantalla y no las comparte nadie. Las pantallas de invitación y de
+  restablecimiento perdieron su `effect` con `subscribe` dentro, y la consulta se rehace sola
+  si cambia el token. El resto de `api.ts` son mutaciones y se quedan con `subscribe`, que es
+  lo correcto.
+
+  De paso salió un fallo ANTERIOR a los recursos: `withComponentInputBinding` pone
+  `undefined` en un `input()` cuando el parámetro no está en la URL, pisando su valor por
+  defecto, así que `token() === ''` era falso, se pedía la liga `undefined` y el 404 hacía
+  que **una liga que faltaba se viera como una liga caducada**. Arreglado con
+  comprobaciones falsy y fijado con pruebas.
 - **Una sola barra superior por pantalla**, dibujada por el armazón y alimentada por la
   pantalla como DATOS a través de `disposicion/barra.ts` — título, contexto, búsqueda y
   acción principal—, junto al botón del menú, Salir y el avatar de iniciales, que son del

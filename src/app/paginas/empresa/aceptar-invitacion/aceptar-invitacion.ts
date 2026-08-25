@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -32,6 +32,14 @@ export class AceptarInvitacion {
    */
   protected readonly empresa = tenantActual() ?? '';
 
+  /**
+   * OJO CON EL TIPO: dice `string` y en tiempo de ejecucion puede ser `undefined`.
+   *
+   * `withComponentInputBinding` asigna `undefined` cuando el parametro no esta en la URL, y
+   * eso PISA el valor por defecto del `input`. De ahi que las comprobaciones de este archivo
+   * usen falsy y no `=== ''`: con la comparacion estricta se pedia la liga `undefined` y el
+   * servidor contestaba 404, asi que una liga que faltaba se veia como una liga caducada.
+   */
   readonly token = input('');
 
   private readonly api = inject(Api);
@@ -41,41 +49,44 @@ export class AceptarInvitacion {
   protected readonly t = t;
   protected readonly largoMinimo = LARGO_MINIMO;
 
-  protected readonly estado = signal<'cargando' | 'lista' | 'invalida'>('cargando');
-  protected readonly invitacion = signal<InvitacionVigente | null>(null);
-  protected readonly error = signal<string | null>(null);
+  /**
+   * La liga se consulta sola: el recurso pide en cuanto hay empresa y token, y vuelve a
+   * pedir si el token cambia. Antes esto era un `effect` con un `subscribe` dentro y tres
+   * señales que había que mover a mano en cada rama.
+   */
+  private readonly liga = this.api.consultaDeInvitacion(this.empresa, this.token);
+
+  protected readonly invitacion = this.liga.valor;
   protected readonly enviando = signal(false);
+
+  /** El error del ALTA. El de la liga lo trae la consulta. */
+  private readonly errorAceptar = signal<string | null>(null);
+
+  /** Con el del alta por delante: es el que acaba de provocar la persona. */
+  protected readonly error = computed(
+    () => this.errorAceptar() ?? this.ligaIncompleta() ?? this.liga.error(),
+  );
+
+  /**
+   * La liga sin empresa o sin token no llega a pedirse —el recurso se queda inactivo— así
+   * que este caso lo dice la pantalla, no la API.
+   */
+  private readonly ligaIncompleta = computed(() =>
+    !this.empresa || !this.token() ? t().invitacion.ligaIncompleta : null,
+  );
+
+  protected readonly estado = computed<'cargando' | 'lista' | 'invalida'>(() => {
+    if (this.ligaIncompleta() !== null || this.liga.error() !== null) {
+      return 'invalida';
+    }
+
+    return this.liga.resuelta() ? 'lista' : 'cargando';
+  });
 
   protected readonly formulario = this.fb.group({
     contrasena: ['', [Validators.required, Validators.minLength(LARGO_MINIMO)]],
     confirmacion: ['', Validators.required],
   });
-
-  constructor() {
-    // Se consulta la liga en cuanto los inputs de ruta están disponibles. La API dice
-    // a quién va dirigida sin exigir sesión, que es lo que permite pintar la pantalla.
-    effect(() => {
-      const empresa = this.empresa;
-      const token = this.token();
-
-      if (empresa === '' || token === '') {
-        this.estado.set('invalida');
-        this.error.set(t().invitacion.ligaIncompleta);
-        return;
-      }
-
-      this.api.consultarInvitacion(empresa, token).subscribe({
-        next: (inv) => {
-          this.invitacion.set(inv);
-          this.estado.set('lista');
-        },
-        error: (e: unknown) => {
-          this.error.set(mensajeDeError(e));
-          this.estado.set('invalida');
-        },
-      });
-    });
-  }
 
   protected contrasenaCorta(): boolean {
     const control = this.formulario.controls.contrasena;
@@ -99,7 +110,7 @@ export class AceptarInvitacion {
     }
 
     this.enviando.set(true);
-    this.error.set(null);
+    this.errorAceptar.set(null);
 
     const { contrasena } = this.formulario.getRawValue();
 
@@ -111,7 +122,7 @@ export class AceptarInvitacion {
           queryParams: { activada: '1' },
         }),
       error: (e: unknown) => {
-        this.error.set(mensajeDeError(e));
+        this.errorAceptar.set(mensajeDeError(e));
         this.enviando.set(false);
       },
     });

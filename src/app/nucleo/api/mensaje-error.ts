@@ -29,3 +29,39 @@ export function mensajeDeError(error: unknown): string {
 
   return t().errores.inesperado;
 }
+
+/**
+ * Lo mismo, pero para el error de un `Resource`, y `null` si no hay error.
+ *
+ * Existe porque `Resource.error` está tipado como `Error` y Angular **envuelve** lo que no
+ * sea «parecido a un error», dejando el original en `cause`. Un `HttpErrorResponse` pasa tal
+ * cual —tiene `name` y `message`, que es lo que mira su `isErrorLike`—, pero se desenvuelve
+ * igual: son dos líneas y así esto no depende de un detalle interno de una API que Angular
+ * marca como experimental. Sin desenvolver, un error envuelto perdería el `detail` del
+ * `ProblemDetails` y se vería como «Ocurrió un error inesperado».
+ */
+export function mensajeDeErrorDeRecurso(error: Error | undefined): string | null {
+  return error === undefined ? null : mensajeDeError(desenvolver(error));
+}
+
+/**
+ * Si el error de un `Resource` es un 404.
+ *
+ * Importa donde el 404 significa algo distinto de «falló la red»: en las ligas de
+ * invitación y de restablecimiento, un 404 dice que la liga no sirve —no existe, ya se usó o
+ * caducó, y el backend no los distingue a propósito— mientras que cualquier otro código es
+ * un fallo de transporte que no dice NADA de la liga.
+ */
+export function esNoEncontrado(error: Error | undefined): boolean {
+  if (error === undefined) {
+    return false;
+  }
+
+  const real = desenvolver(error);
+
+  return real instanceof HttpErrorResponse && real.status === 404;
+}
+
+function desenvolver(error: Error): unknown {
+  return error.cause ?? error;
+}

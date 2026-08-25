@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Barra } from '../../../disposicion/barra';
@@ -38,11 +45,26 @@ export class Empresas {
   protected readonly dominioBase = configuracion.dominioBase;
 
   protected readonly identidad = this.sesion.identidad;
-  protected readonly empresas = signal<readonly ResumenEmpresa[]>([]);
-  protected readonly cargando = signal(true);
-  protected readonly error = signal<string | null>(null);
+
+  /**
+   * La lista NO se pide aquí: viene del recurso compartido de `ApiPlataforma`, el mismo que
+   * lee el dashboard. Y el alta lo recarga sola, así que esta pantalla ya no tiene una
+   * función `recargar()` que alguien pueda olvidarse de llamar.
+   */
+  protected readonly empresas = this.api.empresas;
+  protected readonly cargando = this.api.empresasCargando;
+
   protected readonly enviando = signal(false);
   protected readonly reciente = signal<EmpresaAprovisionada | null>(null);
+
+  /** El error del ALTA, que es de esta pantalla. El de la lista lo trae el recurso. */
+  private readonly errorAlta = signal<string | null>(null);
+
+  /**
+   * Un solo hueco para el aviso, con el del alta por delante: es el que acaba de provocar
+   * la persona, así que taparlo con un fallo de la lista sería contestar a otra pregunta.
+   */
+  protected readonly error = computed(() => this.errorAlta() ?? this.api.empresasError());
 
   protected readonly formulario = this.fb.group({
     slug: ['', [Validators.required, Validators.pattern(PATRON_SLUG)]],
@@ -62,10 +84,6 @@ export class Empresas {
         contexto: t().panel.contexto(this.empresas().length),
       }),
     );
-
-    // La identidad la carga DisposicionPlataforma, la ruta padre. Aquí solo los datos
-    // de la pantalla.
-    this.recargar();
   }
 
   protected enProceso(e: ResumenEmpresa): boolean {
@@ -114,7 +132,7 @@ export class Empresas {
     }
 
     this.enviando.set(true);
-    this.error.set(null);
+    this.errorAlta.set(null);
 
     const v = this.formulario.getRawValue();
 
@@ -134,30 +152,16 @@ export class Empresas {
       })
       .subscribe({
         next: (creada) => {
+          // Sin `recargar()`: `darDeAltaEmpresa` refresca el recurso compartido, asi que la
+          // lista de esta pantalla —y la del dashboard— se actualizan solas.
           this.reciente.set(creada);
           this.formulario.reset();
           this.enviando.set(false);
-          this.recargar();
         },
         error: (e: unknown) => {
-          this.error.set(mensajeDeError(e));
+          this.errorAlta.set(mensajeDeError(e));
           this.enviando.set(false);
         },
       });
-  }
-
-  private recargar(): void {
-    this.cargando.set(true);
-
-    this.api.listarEmpresas().subscribe({
-      next: (lista) => {
-        this.empresas.set(lista);
-        this.cargando.set(false);
-      },
-      error: (e: unknown) => {
-        this.error.set(mensajeDeError(e));
-        this.cargando.set(false);
-      },
-    });
   }
 }

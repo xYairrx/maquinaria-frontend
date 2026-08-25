@@ -12,7 +12,6 @@ import { RouterLink } from '@angular/router';
 import { Barra } from '../../../disposicion/barra';
 import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
 import { EstadoTenant, type ResumenEmpresa } from '../../../nucleo/api/contratos-plataforma';
-import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { idioma, t } from '../../../nucleo/i18n/i18n';
 import { DashboardEsqueleto } from './esqueleto';
 import { resumir, type MotivoAtencion } from './resumen';
@@ -85,9 +84,14 @@ export class Dashboard {
    */
   protected readonly cargadoEn = new Date();
 
-  protected readonly empresas = signal<readonly ResumenEmpresa[]>([]);
-  protected readonly cargando = signal(true);
-  protected readonly error = signal<string | null>(null);
+  /**
+   * Los datos NO se piden aquí: vienen del recurso compartido de `ApiPlataforma`, que la
+   * pantalla de Empresas lee tambien. Antes cada una hacia su propia peticion en cada
+   * navegacion; ahora es una entre las dos.
+   */
+  protected readonly empresas = this.api.empresas;
+  protected readonly cargando = this.api.empresasCargando;
+  protected readonly error = this.api.empresasError;
 
   protected readonly busqueda = signal('');
   protected readonly filtro = signal<Filtro>('todas');
@@ -226,19 +230,6 @@ export class Dashboard {
         busqueda: { marcador: p.buscar, valor: this.busqueda },
         accion: { etiqueta: p.nuevaEmpresa, ruta: '/empresas' },
       });
-    });
-
-    // La identidad la carga `DisposicionPlataforma`, la ruta padre. Aquí solo los datos
-    // de la pantalla.
-    this.api.listarEmpresas().subscribe({
-      next: (lista) => {
-        this.empresas.set(lista);
-        this.cargando.set(false);
-      },
-      error: (e: unknown) => {
-        this.error.set(mensajeDeError(e));
-        this.cargando.set(false);
-      },
     });
   }
 

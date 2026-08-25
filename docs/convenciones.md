@@ -217,6 +217,135 @@ todo lo ancho abajo (`order-last w-full sm:order-none sm:w-auto`). Comprimirlas 
 misma línea deja la búsqueda inservible, y esconderlas no es opción — la búsqueda es la
 única forma de filtrar.
 
+## Datos: `httpResource` y el recurso compartido
+
+**ANTES DE PEDIR NADA EN UNA PANTALLA NUEVA, MIRA SI YA EXISTE.** La lista de empresas, por
+ejemplo, ya está en `ApiPlataforma.empresas` y es compartida: el dashboard y la pantalla de
+Empresas la leen los dos y entre las dos hacen **una** petición. Antes cada una hacía la
+suya en cada navegación.
+
+### El recurso vive en el SERVICIO, no en el componente
+
+Ahí está toda la gracia. Un `httpResource` dentro de un componente se crea una vez por
+instancia de componente: dos pantallas, dos peticiones. En un servicio `providedIn: 'root'`
+hay una sola instancia, así que hay un solo recurso y una sola petición, compartida y
+cacheada mientras la aplicación viva.
+
+```ts
+// nucleo/api/api-plataforma.ts
+private readonly recursoEmpresas = httpResource<readonly ResumenEmpresa[]>(
+  () => (this.sesion.activa() ? `${this.base}/empresas` : undefined),
+  { defaultValue: [] },
+);
+```
+
+```ts
+// en la pantalla: se leen señales, y ya
+protected readonly empresas = this.api.empresas;
+protected readonly cargando = this.api.empresasCargando;
+protected readonly error = this.api.empresasError;
+```
+
+Eso sustituye a las tres señales más el `subscribe` que había en cada pantalla.
+
+### Cuando no lo comparte nadie: una fábrica
+
+Si la lectura lleva parámetros de la pantalla y no la comparte nadie —las dos consultas de
+liga, `Api.consultaDeInvitacion` y `Api.consultaDeRestablecimiento`— el dedup no aplica, pero
+la otra razón sí. Entonces el servicio expone una **fábrica** que devuelve señales:
+
+```ts
+// en el componente, en un inicializador de campo (que es contexto de inyeccion)
+private readonly liga = this.api.consultaDeInvitacion(this.empresa, this.token);
+
+protected readonly invitacion = this.liga.valor;
+```
+
+La fábrica devuelve un `ConsultaDeLiga<T>`: `valor`, `cargando`, `resuelta`, `error` y
+`noSirve`. Con la URL dependiendo de la señal del token, **la consulta se rehace sola si el
+token cambia** — antes eso era un `effect` con un `subscribe` dentro.
+
+`noSirve` es el 404, y existe porque en una liga significa algo distinto de «falló la red»:
+un 404 dice que la liga no sirve —no existe, ya se usó o caducó, y el backend no los
+distingue a propósito—, mientras que cualquier otro código no dice NADA de la liga. Con lo
+segundo se reintenta; con lo primero se manda a pedir otra.
+
+### Lo que se expone son SEÑALES, nunca el recurso
+
+`httpResource` está marcado **`@experimental`** en Angular —desde la 19.2, y sigue así en la
+21.2—, así que se queda encerrado en el archivo del servicio. Las pantallas ven
+`Signal<T>` normales. Si su API cambia en una versión menor, cambia un archivo y no
+veintiséis pantallas.
+
+### Tres trampas, las tres pagadas ya
+
+**1. `value()` LANZA si el recurso está en error.** Está en su documentación, en una frase de
+paso: *«the current value, or throws an error if the resource is in an error state»*. Como
+las pantallas leen los datos dentro de un `effect` sin condición, exponer `.value` directo
+hacía que un fallo de la petición reventara el efecto en lugar de pintar el aviso. La
+envoltura obligatoria:
+
+```ts
+readonly empresas = computed(() =>
+  this.recursoEmpresas.hasValue() ? this.recursoEmpresas.value() : [],
+);
+```
+
+**2. Una URL `undefined` significa «todavía no pidas».** Es como se expresa una petición
+condicional. Sin eso, la pantalla de acceso —que inyecta el mismo servicio para iniciar
+sesión— dispara un GET sin token y se come un 401 antes de que nadie haya entrado.
+
+**3. Un `input()` de ruta puede ser `undefined` aunque su tipo diga `string`.**
+`withComponentInputBinding` asigna `undefined` cuando el parámetro no está en la URL, y eso
+**pisa el valor por defecto** del `input`. Así que las comprobaciones van con falsy y no con
+`=== ''`:
+
+```ts
+readonly token = input('');          // el tipo dice string; en ejecucion puede ser undefined
+!empresa || !token() ? undefined : `.../invitaciones/${...}`
+```
+
+Con la comparación estricta se pedía la liga `undefined`, el servidor contestaba 404, y **una
+liga que faltaba se veía como una liga caducada**. Era un fallo anterior a los recursos; la
+migración solo lo hizo visible. Hay pruebas de regresión en `api.spec.ts`.
+
+**4. El error hay que desenvolverlo.** `Resource.error` está tipado como `Error`, y Angular
+envuelve lo que no sea «parecido a un error». Un `HttpErrorResponse` pasa tal cual porque
+tiene `name` y `message`, pero se desenvuelve igual (`error.cause ?? error`) para no depender
+de ese detalle interno. Sin ello se perdería el `detail` del `ProblemDetails` y todos los
+fallos se verían como «Ocurrió un error inesperado».
+
+### Una mutación recarga su propia lista
+
+El `reload()` va en el servicio, encadenado a la mutación, **no en la pantalla**:
+
+```ts
+darDeAltaEmpresa(alta: AltaDeEmpresa) {
+  return this.http.post<EmpresaAprovisionada>(`${this.base}/empresas`, alta)
+    .pipe(tap(() => this.recargarEmpresas()));
+}
+```
+
+Así quien dé de alta una empresa no tiene que acordarse de recargar, y el día que haya un
+segundo sitio que lo haga no hay una segunda copia de esa llamada que se pueda olvidar. La
+pantalla de Empresas ya no tiene función `recargar()`.
+
+### Qué NO es un recurso
+
+Un `httpResource` es para **leer**. Las mutaciones —iniciar sesión, dar de alta, restablecer
+una contraseña— siguen siendo `HttpClient` con `subscribe`: las dispara una persona, tienen
+su propio `enviando` y su propio error, y no se cachean. Las pantallas de acceso se quedan
+como están.
+
+### Por qué no TanStack Query
+
+Se evaluó y se descartó por ahora: `httpResource` cubre lo que dolía —el estado de carga
+repetido en cada pantalla— sin añadir la primera dependencia de terceros del repo, y el
+adaptador de Angular de TanStack también está marcado como experimental. **El disparador para
+volver a mirarlo**: cuando una mutación tenga que invalidar varias listas de pantallas
+distintas, cuando haya que escribir una caché propia con TTL, o cuando haga falta paginación
+de servidor con `keepPreviousData`. Hasta entonces, no.
+
 ## Esqueletos de carga
 
 **Nada de textos que digan «Cargando…».** Mientras llegan los datos se pinta la SILUETA de

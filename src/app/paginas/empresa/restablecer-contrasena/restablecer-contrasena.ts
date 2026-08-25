@@ -1,13 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  input,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
@@ -52,6 +43,14 @@ export class RestablecerContrasena {
    * La empresa NO viaja en la liga: sale del subdominio, igual que en `iniciar-sesion.ts`. La
    * liga del correo apunta a `bajio.<dominio>/restablecer?token=…`.
    */
+  /**
+   * OJO CON EL TIPO: dice `string` y en tiempo de ejecucion puede ser `undefined`.
+   *
+   * `withComponentInputBinding` asigna `undefined` cuando el parametro no esta en la URL, y
+   * eso PISA el valor por defecto del `input`. De ahi que las comprobaciones de este archivo
+   * usen falsy y no `=== ''`: con la comparacion estricta se pedia la liga `undefined` y el
+   * servidor contestaba 404, asi que una liga que faltaba se veia como una liga caducada.
+   */
   readonly token = input('');
 
   protected readonly empresa = tenantActual() ?? '';
@@ -70,9 +69,47 @@ export class RestablecerContrasena {
    * dicen nada de la liga, y titular «la liga ya no sirve» ahí manda a pedir otra —que
    * tampoco va a llegar— en vez de a reintentar dentro de un rato.
    */
-  protected readonly estado = signal<'cargando' | 'lista' | 'invalida' | 'caido'>('cargando');
-  protected readonly error = signal<string | null>(null);
+  /**
+   * La liga se consulta sola: el recurso pide en cuanto hay empresa y token, y vuelve a
+   * pedir si el token cambia. Antes era un `effect` con un `subscribe` dentro.
+   */
+  private readonly liga = this.api.consultaDeRestablecimiento(this.empresa, this.token);
+
   protected readonly enviando = signal(false);
+
+  /** El error de GUARDAR. El de la liga lo trae la consulta. */
+  private readonly errorGuardar = signal<string | null>(null);
+
+  protected readonly error = computed(
+    () => this.errorGuardar() ?? this.ligaIncompleta() ?? this.liga.error(),
+  );
+
+  /**
+   * Sin empresa o sin token el recurso no llega a pedir nada —se queda inactivo—, así que
+   * este caso lo dice la pantalla y no la API.
+   */
+  private readonly ligaIncompleta = computed(() =>
+    !this.empresa || !this.token() ? t().restablecer.ligaIncompleta : null,
+  );
+
+  /**
+   * `invalida` y `caido` son estados DISTINTOS, y ahora el que los separa es `noSirve`.
+   *
+   * Solo el 404 significa que la liga no sirve; un servidor apagado o una red caída no
+   * dicen nada de la liga, y titular «la liga ya no sirve» ahí manda a pedir otra —que
+   * tampoco va a llegar— en vez de a reintentar dentro de un rato.
+   */
+  protected readonly estado = computed<'cargando' | 'lista' | 'invalida' | 'caido'>(() => {
+    if (this.ligaIncompleta() !== null) {
+      return 'invalida';
+    }
+
+    if (this.liga.error() !== null) {
+      return this.liga.noSirve() ? 'invalida' : 'caido';
+    }
+
+    return this.liga.resuelta() ? 'lista' : 'cargando';
+  });
 
   /**
    * El `<h1>` lo pone el marco, así que el título cambia con el estado en lugar de
@@ -97,40 +134,6 @@ export class RestablecerContrasena {
     confirmacion: ['', Validators.required],
   });
 
-  constructor() {
-    // Se consulta la liga en cuanto el input de ruta está disponible: no tiene sentido
-    // pedir una contraseña que el servidor va a rechazar.
-    effect(() => {
-      const empresa = this.empresa;
-      const token = this.token();
-
-      // Se limpia antes de volver a preguntar: si la comprobación anterior falló y esta
-      // sale bien, el formulario no debe aparecer con la alerta vieja encima.
-      this.error.set(null);
-
-      if (empresa === '' || token === '') {
-        this.estado.set('invalida');
-        this.error.set(t().restablecer.ligaIncompleta);
-        return;
-      }
-
-      this.api.consultarRestablecimiento(empresa, token).subscribe({
-        next: () => this.estado.set('lista'),
-        error: (e: unknown) => {
-          // 404 para todos los motivos —no existe, ya se usó, caducó— porque el backend
-          // no los distingue: decir cuál es le diría a cualquiera con una liga vieja en
-          // qué estado está la cuenta. El texto que llega ya viene redactado así.
-          //
-          // Cualquier otro código es un fallo de transporte y no dice nada de la liga.
-          const noSirve = e instanceof HttpErrorResponse && e.status === 404;
-
-          this.error.set(mensajeDeError(e));
-          this.estado.set(noSirve ? 'invalida' : 'caido');
-        },
-      });
-    });
-  }
-
   protected contrasenaInvalida(): boolean {
     const control = this.formulario.controls.contrasena;
 
@@ -153,7 +156,7 @@ export class RestablecerContrasena {
     }
 
     this.enviando.set(true);
-    this.error.set(null);
+    this.errorGuardar.set(null);
 
     const { contrasena } = this.formulario.getRawValue();
 
@@ -166,7 +169,7 @@ export class RestablecerContrasena {
           queryParams: { restablecida: '1' },
         }),
       error: (e: unknown) => {
-        this.error.set(mensajeDeError(e));
+        this.errorGuardar.set(mensajeDeError(e));
         this.enviando.set(false);
       },
     });

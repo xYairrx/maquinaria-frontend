@@ -165,3 +165,57 @@ cards, and that jump reads as a bug.
   its "Sending…": a silhouette there would hide the form they just filled in.
 
 See `docs/convenciones.md#esqueletos-de-carga`.
+
+## Data fetching: check for an existing resource FIRST
+
+**Before writing any fetch in a new screen, look for one that already exists.** The empresas
+list lives in `ApiPlataforma.empresas` and is SHARED — the dashboard and the Empresas screen
+both read it and make ONE request between them. Do not add a second fetch for data a service
+already exposes.
+
+- **The `httpResource` lives in the SERVICE, never in the component.** That is the whole
+  point: a resource in a component is one request per component instance; in a
+  `providedIn: 'root'` service there is one instance, so one request, shared and cached.
+- **Expose plain `Signal<T>`, never the resource itself.** `httpResource` is `@experimental`
+  in Angular (since 19.2, still so in 21.2). Keeping it inside one file means an API change
+  touches one file, not every screen.
+- **`value()` THROWS when the resource is in an error state.** Always wrap:
+  `computed(() => res.hasValue() ? res.value() : [])`. Screens read data inside effects with
+  no guard, so exposing `.value` directly makes a failed request blow up the effect instead
+  of rendering the error notice. There is a regression test for this in
+  `api-plataforma.spec.ts` — do not "simplify" that `computed` away.
+- **A `undefined` URL means "do not fetch yet"** — that is how a conditional request is
+  expressed. Without it, the login screen (which injects the same service to sign in) fires
+  an unauthenticated GET.
+- **Unwrap the error**: `error.cause ?? error` before handing it to `mensajeDeError`, or the
+  server's `ProblemDetails` text is lost.
+- **A mutation reloads its own list, in the service**, chained with `tap(() => this.reload…)`
+  — never in the screen. Callers must not have to remember.
+- **Resources are for READING.** Mutations (sign in, provision, reset password) stay
+  `HttpClient` + `subscribe`: a person triggers them, they have their own `enviando` flag and
+  their own error, and they are not cached.
+
+TanStack Query was evaluated and deferred. Revisit when a mutation must invalidate several
+lists across screens, when you find yourself writing a cache with a TTL, or when you need
+server-side pagination. See `docs/convenciones.md#datos-httpresource-y-el-recurso-compartido`.
+
+## Route inputs can be `undefined` despite their type
+
+`withComponentInputBinding` assigns `undefined` when a query param is absent from the URL,
+**overriding the `input()` default**. So `readonly token = input('')` can hand you
+`undefined` at runtime while TypeScript insists it is a `string`.
+
+Always test route-derived params with falsy checks, never `=== ''`:
+
+```ts
+!empresa || !token() ? undefined : buildUrl()   // yes
+empresa === '' || token() === ''                // no — lets `undefined` through
+```
+
+The bug this caused: the URL was built with the string `"undefined"`, the server answered
+404, and **a missing link rendered as an expired link**. Regression tests live in
+`nucleo/api/api.spec.ts`.
+
+Related: when a read takes screen params and nothing shares it, the service exposes a
+FACTORY returning plain signals (`Api.consultaDeInvitacion`), not a resource field. The
+dedup argument does not apply, but keeping `httpResource` out of components still does.
