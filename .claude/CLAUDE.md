@@ -114,8 +114,10 @@ and primary action belong to the screen.
 - **The `<h1>` is the bar's.** Never add another one in the screen; there would be two.
 - **Pass the search signal, do not copy it.** `valor` is the screen's writable signal: the
   bar writes to it and the screen filters by reading it. No intermediate state to sync.
-- **The primary action always navigates.** If the form lives on the screen itself, declare
-  no action — a button pointing at where you already are goes nowhere.
+- **The primary action either navigates or acts, never both.** `ruta` makes the shell render
+  an `<a>` (openable in a new tab); `alPulsar` makes it a `<button>`. Not cosmetic: announcing
+  "link" for something that opens a sheet on the same screen lies to a screen reader. Declare
+  no action if there is neither.
 - Why a service and not `<ng-content>`: projected content does not cross a
   `<router-outlet>`. Same reasoning as `opciones-menu.ts`, where the menu is data too.
 
@@ -219,3 +221,70 @@ The bug this caused: the URL was built with the string `"undefined"`, the server
 Related: when a read takes screen params and nothing shares it, the service exposes a
 FACTORY returning plain signals (`Api.consultaDeInvitacion`), not a resource field. The
 dedup argument does not apply, but keeping `httpResource` out of components still does.
+
+## Overlays: use the native element
+
+**A bottom sheet is `disposicion/hoja.ts`** — reuse it, do not write another. It is a
+`<dialog>` + `showModal()` (focus trap, `aria-modal`, page inert, top layer for free) plus the
+drag gesture and CONFIGURABLE snap points (`[anclajes]="[50, 70, 95]"`, percentages of the
+viewport height, as many as you need).
+
+**What makes it a sheet and not a modal is that it MOVES.** Grab the handle, snap up, snap
+down, drag down far enough (or flick) to dismiss. A panel that only appears and disappears is
+a modal with rounded corners. And **a sheet is never centred** — it stays at the bottom at
+every width, floating with all four corners rounded.
+
+Five gesture decisions, each one a bug that already happened or was avoided:
+
+- **Drag only from the handle and header.** Dragging from the body forces you to disambiguate
+  "move the sheet" from "scroll the content". Restricting the zone removes the conflict.
+- **`touch-action: none` on the drag zone**, or the browser keeps the vertical gesture for
+  scrolling and `pointermove` never fires.
+- **`setPointerCapture` first, inside `try`.** It THROWS when the pointer is already gone (a
+  very fast tap); after setting the dragging flag, that would leave the sheet stuck in gesture
+  mode forever, waiting for a `pointerup` that never comes.
+- **Velocity needs a minimum sampling interval (8 ms).** Two `pointermove` events in the same
+  millisecond divide by almost zero and give a huge velocity — the sheet then closes itself on
+  a SLOW 45 px drag.
+- **Kill the transition while dragging.** With it on, the sheet lags behind the finger.
+
+**Undo the browser's `<dialog>` defaults one by one.** Three of them bit, and none of them
+errors — you only see something wrong:
+
+- `display: none` on the closed dialog, which OUR `display: flex` overrides (same specificity,
+  ours wins by order) → **the sheet renders in the page while closed**. Write
+  `&:not([open]) { display: none }`.
+- `max-height: calc(100% - 6px - 2em)` caps the height you asked for → the snap point must be
+  set INLINE from the component, and as a max-height, not a fixed height.
+- `max-width: calc(100% - 6px - 2em)` leaves a 38px gap on the right → `max-width: 100%`.
+
+Always check the CLOSED state, not just the open one.
+
+**Dragging is never the only path**: the handle is a `<button>` that toggles snaps by keyboard,
+Escape closes, and there is an explicit close button (WCAG 2.1.1).
+
+**The backdrop click is NOT free.** A modal `<dialog>` closes on Escape but IGNORES clicks on
+its backdrop — you have to write it. Detect it by `target`, **never by coordinates**: a click
+born from the KEYBOARD (Enter/Space on a button) arrives with `clientX`/`clientY` at **zero**,
+so a geometric check reads it as "above the sheet" and **pressing any inner button by keyboard
+closes the whole sheet**. Use `evento.target !== dialogo → return`. Also guard with a flag for
+the `click` the browser emits after a drag that ended outside the sheet.
+
+**Never omit `(close)` on the dialog.** Escape is closed by the BROWSER without going through
+your method; without listening the signal stays "open", the effect does not re-run, and the
+button stops opening the sheet forever.
+
+**A help/info popup is the native `popover` attribute** with `popovertarget`: light dismiss,
+Escape and the top layer come free. Position it with explicit `top`/`right` — in the top layer
+`inset: auto` has no static position to resolve against. Use `aria-details`, not
+`aria-describedby`, when it has structure (heading plus points).
+
+**Verifying overlays with the browser pane hidden**: the page does not composite, so animations
+freeze on their first frame and queued tasks are delayed. `getBoundingClientRect()` then
+includes the entry transform — a sheet that looks 24px too low is the animation mid-flight.
+Call `el.getAnimations().forEach(a => a.finish())` before measuring, dispatch
+`new Event('close')` by hand to test that binding, and space synthetic `pointermove` events
+across separate calls so real time passes (otherwise the velocity guard is what you are
+testing).
+
+See `docs/convenciones.md#capas-hoja-inferior-y-globo-de-ayuda`.

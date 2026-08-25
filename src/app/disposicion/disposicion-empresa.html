@@ -138,24 +138,44 @@
         }
 
         @if (barra().accion; as accion) {
-          <a
-            [routerLink]="accion.ruta"
-            class="flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-amarillo px-4 py-2 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
-          >
-            <svg
-              class="size-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.25"
-              stroke-linecap="round"
-              aria-hidden="true"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+          <!--
+            Enlace si la accion navega, boton si hace algo. No es cosmetico: un `<a>` se
+            puede abrir en otra pestaña y un `<button>` no, y anunciar «enlace» algo que
+            abre una hoja en la misma pantalla es mentirle a un lector de pantalla.
+          -->
+          @if (accion.ruta; as ruta) {
+            <a [routerLink]="ruta" class="boton-principal">
+              <svg
+                class="size-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.25"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
 
-            {{ accion.etiqueta }}
-          </a>
+              {{ accion.etiqueta }}
+            </a>
+          } @else {
+            <button type="button" (click)="accion.alPulsar?.()" class="boton-principal">
+              <svg
+                class="size-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.25"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+
+              {{ accion.etiqueta }}
+            </button>
+          }
         }
       </div>
 

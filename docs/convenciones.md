@@ -175,8 +175,10 @@ entera y a la pantalla diciendo solo qué pone. Es el mismo criterio que
 2. **La señal de búsqueda se pasa, no se copia.** `valor` es la señal escribible de la
    pantalla; la barra escribe ahí y la pantalla filtra leyéndola. Sin copia intermedia no
    hay dos estados que sincronizar.
-3. **La acción principal navega, siempre.** Si el formulario está en la propia pantalla,
-   no se declara acción: un botón que apunta a donde ya estás no lleva a ninguna parte.
+3. **La acción principal o navega o hace algo, nunca las dos.** Con `ruta` el armazón pinta
+   un `<a>` —se puede abrir en otra pestaña— y con `alPulsar` un `<button>`. No es cosmético:
+   anunciar «enlace» algo que abre una hoja en la misma pantalla es mentirle a un lector de
+   pantalla. Y si no hay ni una cosa ni la otra, no se declara acción.
 
 ### El avatar es un desplegable
 
@@ -345,6 +347,150 @@ adaptador de Angular de TanStack también está marcado como experimental. **El 
 volver a mirarlo**: cuando una mutación tenga que invalidar varias listas de pantallas
 distintas, cuando haya que escribir una caché propia con TTL, o cuando haga falta paginación
 de servidor con `keepPreviousData`. Hasta entonces, no.
+
+## Capas: hoja inferior y globo de ayuda
+
+Las dos usan **elementos nativos**, y esa es la razon de que ocupen tan poco codigo.
+
+### La hoja inferior es un `<dialog>` ARRASTRABLE
+
+Vive en `disposicion/hoja.ts` y se usa proyectando contenido:
+
+```html
+<app-hoja
+  [abierta]="hojaAbierta()"
+  [anclajes]="[50, 70, 95]"
+  [titulo]="..."
+  [apoyo]="..."
+  (cerrar)="cerrarHoja()"
+>
+  <form ...>…</form>
+  <div pie>…</div>
+</app-hoja>
+```
+
+**Los anclajes son configurables**, en porcentaje del alto de la pantalla y tantos como haga
+falta. Se abre en el más bajo, sube de uno en uno al arrastrar hacia arriba, baja al arrastrar
+hacia abajo, y desde el más bajo un arrastre hacia abajo la cierra; un lanzamiento fuerte
+cierra desde cualquiera. Se normalizan al leerlos —ordenados, sin repetidos, acotados entre 20
+y 98— y una lista vacía cae a los de por defecto: una hoja de cero píxeles no se ve como un
+error, se ve como una hoja que «no abre».
+
+**Lo que la hace una hoja y no un modal es que se mueve.** Se agarra del asa, sube al anclaje
+completo, baja al medio, y si se tira hacia abajo lo suficiente —o se lanza con un gesto
+rápido— se cierra. Un panel que solo aparece y desaparece es un modal con las esquinas
+redondeadas, y ese fue el primer intento: **una hoja no se centra nunca**, se queda abajo en
+todos los anchos.
+
+El elemento es un `<dialog>` con `showModal()`, y de ahí salen gratis el atrapado de foco, el
+`aria-modal`, el resto de la página inerte y la capa superior. Lo que el componente agrega es
+el gesto y los anclajes.
+
+#### Cinco decisiones del gesto, y por qué
+
+1. **El arrastre solo vive en el asa y la cabecera.** Arrastrar desde el cuerpo obliga a
+   distinguir «quiero mover la hoja» de «quiero desplazar el contenido», que se resuelve
+   mirando si el contenedor está en su tope y encadenando los dos gestos. Con el asa como
+   única zona, el cuerpo se desplaza como cualquier lista y no hay conflicto.
+2. **`touch-action: none` en la zona de arrastre.** Sin él el navegador se queda el gesto
+   vertical para desplazar la página y los `pointermove` nunca llegan.
+3. **`setPointerCapture` va primero y entre `try`.** Sin captura, sacar el dedo del asa corta
+   el gesto a medias. Pero **lanza** si el puntero ya no existe —un toque muy rápido—, y si
+   eso pasara después de marcar `arrastrando`, la hoja se quedaría en modo gesto para siempre:
+   sin transición y esperando un `pointerup` que nunca llega.
+4. **La velocidad necesita un piso de muestreo (8 ms).** Sin él, dos `pointermove` en el mismo
+   milisegundo —normal con un puntero de alta frecuencia o con eventos coalescidos— dan una
+   división por casi cero y una velocidad enorme. El síntoma es **una hoja que se cierra sola
+   en un arrastre lento de 45 px**, que es lo contrario de lo que el gesto quiere decir. Es un
+   fallo que ya ocurrió.
+5. **La transición se apaga mientras el dedo está encima** (`hoja-en-gesto`). Con la
+   transición puesta la hoja persigue al dedo con retraso, que es el síntoma clásico de una
+   hoja que no se programó con el gesto en mente.
+
+#### Tres cosas que el NAVEGADOR le hace a un `<dialog>` y hay que deshacer
+
+Las tres dieron fallos reales, y ninguna avisa: no hay error, solo algo que se ve mal.
+
+| Lo que pone el navegador | Síntoma | Qué se escribe |
+|---|---|---|
+| `display: none` al cerrado | **La hoja se ve en la página estando cerrada** — con su formulario y todo. Lo pisaba nuestro `display: flex`, que tiene la misma especificidad y gana por orden | `&:not([open]) { display: none }` |
+| `max-height: calc(100% - 6px - 2em)` | Alto constante que ignora el anclaje | El tope va **en línea** desde el componente |
+| `max-width: calc(100% - 6px - 2em)` | 38 px de hueco a la derecha | `max-width: 100%` |
+
+La regla general: al usar `<dialog>` para algo que no es un cuadro centrado, **hay que anular
+sus valores por defecto uno por uno**, y comprobar el estado CERRADO además del abierto.
+
+#### El anclaje es un TOPE de alto, no un alto fijo
+
+Aparte de lo del `max-height` de arriba, un alto fijo deja hueco vacío cuando el contenido es
+más corto que el anclaje. Con el tope, la hoja mide lo que mide su contenido hasta donde el
+anclaje la deje, y de ahí desplaza.
+
+#### Accesibilidad: el arrastre nunca es el único camino
+
+El asa es un `<button>`, así que con teclado alterna entre los dos anclajes y su `aria-label`
+dice a cuál lleva. Escape cierra —lo da el `<dialog>`— y hay un botón de cerrar explícito. Un
+gesto de puntero como única forma de expandir dejaría fuera a quien navega con teclado
+(WCAG 2.1.1).
+
+#### Lo demás de la forma
+
+Pegada al fondo y a lo ancho, **sin huecos**, con solo las esquinas de arriba redondeadas y
+la sombra hacia arriba, que es por donde se separa del contenido. El velo es **negro puro al
+55 %** —no el negro de la marca: el velo no es parte de la paleta, es ausencia de pantalla— y
+entra a la vez que la hoja, o aparece de golpe y la hoja llega después. La entrada es `translateY(100%)` —desde fuera de la pantalla, no unos píxeles— y
+solo hay animación de entrada: la de salida necesita `transition-behavior: allow-discrete`,
+que aún no está en todos los motores.
+
+#### El clic en el velo NO lo da el navegador
+
+Aquí había un error en esta guía: un `<dialog>` modal cierra con **Escape**, pero **ignora los
+clics en su velo**. Hay que escribirlo.
+
+Y se detecta por `target`, **no por coordenadas**, que fue un fallo de accesibilidad real: un
+`click` nacido del TECLADO —Enter o Espacio sobre un botón— llega con `clientX` y `clientY` en
+**cero**. Con la comprobación geométrica ese cero quedaba «por encima» de la hoja y se leía
+como un clic en el velo, así que **pulsar con teclado cualquier botón de dentro cerraba la hoja
+entera**. Con `target` no hay ambigüedad: el velo es área del propio `<dialog>`, y todo lo de
+dentro está cubierto por sus hijos.
+
+```ts
+if (dialogo === undefined || evento.target !== dialogo) return;
+```
+
+Falta un detalle más: al soltar un arrastre que acabó fuera de la hoja, el navegador emite
+también un `click`. Sin una bandera que recuerde que hubo gesto, ese clic se lee como «pulsé el
+velo» y cierra la hoja justo después de haberla arrastrado.
+
+**Y el `(close)` del `<dialog>` no es opcional.** Escape lo cierra el NAVEGADOR sin pasar por
+tu método; sin escucharlo la señal se queda diciendo que está abierta, y como el `effect` no se
+reejecuta si nada cambió, **el botón deja de abrir la hoja para siempre**.
+
+### El globo de ayuda es un `popover`
+
+El atributo `popover` nativo con `popovertarget` da el descarte al pulsar fuera, el cierre con
+Escape y la capa superior. A mano es una senal, dos escuchas de documento y una comprobacion
+de contencion — que es exactamente lo que hay escrito en `menu-usuario`, **anterior a esto**.
+Si se toca ese componente, migrarlo a `popover` borra casi todo su codigo.
+
+Su posicion va **explicita** (`top` y `right`, no `inset: auto`): un popover vive en la capa
+superior, donde «auto» no tiene una posicion estatica de la que partir y el resultado depende
+del motor.
+
+Se usa `aria-details` y no `aria-describedby` cuando el contenido tiene estructura —un titulo
+y varios puntos—: `describedby` lo aplana a una sola cadena leida de corrido.
+
+### Verificar capas con el panel del navegador oculto
+
+Ojo con esto, que hace perder el tiempo: **con el panel oculto la pagina no compone
+fotogramas**, asi que las animaciones se congelan en su primer fotograma y las tareas en cola
+se retrasan. Sintomas que parecen fallos y no lo son:
+
+- `getBoundingClientRect()` devuelve la posicion **con la transformacion de entrada aplicada**
+  — una hoja que parece desbordar 24 px es la animacion a medias. Se resuelve con
+  `elemento.getAnimations().forEach(a => a.finish())` antes de medir.
+- Los `Escape` sinteticos no llegan al `<dialog>`, y el evento `close` puede tardar. Para
+  comprobar el enganche, despacha el evento a mano: `d.dispatchEvent(new Event('close'))`.
 
 ## Esqueletos de carga
 
@@ -553,7 +699,7 @@ src/app/
     ├── plataforma/  lo que se ve en `admin.<dominio>`
     │   ├── iniciar-sesion/
     │   ├── dashboard/   el resumen, y la pantalla de entrada del panel
-    │   │                dashboard.{ts,html}, resumen.ts (+ .spec)
+    │   │                dashboard.{ts,html}, esqueleto.{ts,html}, resumen.ts (+ .spec)
     │   └── empresas/
     └── portal/      lo que se ve en el dominio pelado y en `login.<dominio>`
         └── seleccionar-empresa/

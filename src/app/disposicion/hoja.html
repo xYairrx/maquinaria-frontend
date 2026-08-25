@@ -1,0 +1,101 @@
+<!--
+  Hoja inferior arrastrable, sobre un `<dialog>` nativo.
+
+  `(close)` no es opcional: Escape lo cierra el navegador sin pasar por este componente, y sin
+  escucharlo la señal de quien nos usa se queda desincronizada.
+
+  `(click)` cierra al pulsar el velo, y eso el navegador NO lo da: un `<dialog>` modal cierra
+  con Escape pero ignora los clics en su velo.
+
+  El anclaje se expresa como TOPE de alto, no como alto fijo. Dos razones: un alto fijo deja
+  hueco vacío cuando el contenido es más corto que el anclaje, y un `<dialog>` modal trae su
+  propio `max-height` del navegador que capaba el alto pedido sin dar ningún error. Con el
+  tope, la hoja mide lo que mide su contenido hasta donde el anclaje la deje, y de ahí
+  desplaza.
+
+  El tope y el desplazamiento van en `style` y no en clases porque son valores continuos: una
+  clase por cada píxel de arrastre no existe.
+-->
+<dialog
+  #dialogo
+  (close)="alCerrarse()"
+  (click)="alPulsar($event)"
+  class="hoja-inferior"
+  [class.hoja-en-gesto]="arrastrando()"
+  [style.maxHeight.dvh]="alturaVh()"
+  [style.translate]="'0 ' + desplazamiento() + 'px'"
+  [attr.aria-label]="titulo()"
+>
+  <!--
+    ZONA DE ARRASTRE: el asa y la cabecera. El cuerpo no arrastra, y así el contenido se
+    desplaza como cualquier lista sin pelearse con el gesto.
+
+    `touch-action: none` es obligatorio aquí: sin él el navegador se queda el gesto vertical
+    para desplazar la página y los `pointermove` nunca llegan.
+  -->
+  <div
+    class="sticky top-0 z-10 touch-none select-none border-b border-borde bg-superficie px-4 pb-3 pt-2 sm:px-5"
+    (pointerdown)="iniciarArrastre($event)"
+    (pointermove)="moverArrastre($event)"
+    (pointerup)="terminarArrastre()"
+    (pointercancel)="terminarArrastre()"
+  >
+    <!--
+      El asa es un BOTÓN, no un adorno: con teclado alterna entre los dos anclajes. Un gesto
+      de puntero como única forma de expandir dejaría fuera a quien navega con teclado
+      (WCAG 2.1.1).
+
+      Zona de toque de 44 px de alto aunque la barra visible mida 4: es el mínimo para un
+      objetivo táctil, y en un asa de 4 px nadie acierta.
+    -->
+    <button
+      type="button"
+      (click)="siguienteAnclaje()"
+      [attr.aria-label]="etiquetaAsa()"
+      class="mx-auto -mt-1 mb-1 flex h-8 w-full max-w-24 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+    >
+      <span class="h-1 w-10 rounded-full bg-pista-barra" aria-hidden="true"></span>
+    </button>
+
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="font-titulo text-[17px] font-semibold text-texto">{{ titulo() }}</h2>
+        @if (apoyo(); as linea) {
+          <p class="mt-0.5 text-xs text-texto-apagado">{{ linea }}</p>
+        }
+      </div>
+
+      <button
+        type="button"
+        (click)="cerrar.emit()"
+        [attr.aria-label]="t().hoja.cerrar"
+        class="-mr-1 shrink-0 rounded-lg p-2 text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+      >
+        <svg
+          class="size-5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- El cuerpo, proyectado. Se desplaza solo: es el único con overflow. -->
+  <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    <ng-content />
+  </div>
+
+  <!--
+    El pie, proyectado y pegado abajo. Con un formulario largo dentro, la acción principal
+    tiene que estar siempre a la vista en lugar de al final de un recorrido.
+  -->
+  <div class="shrink-0 border-t border-borde bg-superficie">
+    <ng-content select="[pie]" />
+  </div>
+</dialog>

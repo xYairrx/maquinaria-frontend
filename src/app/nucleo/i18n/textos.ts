@@ -233,6 +233,13 @@ const ES_MX = {
     alDia: 'Al día',
   },
 
+  hoja: {
+    expandir: 'Expandir la hoja',
+    contraer: 'Contraer la hoja',
+    cerrar: 'Cerrar',
+  },
+
+
   empresas: {
     titulo: 'Empresas',
     aprovisionada: (slug: string) => `${slug} aprovisionada`,
@@ -530,6 +537,13 @@ const EN_US: Textos = {
     modulosDe: (n: number, total: number) => `${n} of ${total} modules`,
     alDia: 'Up to date',
   },
+
+  hoja: {
+    expandir: 'Expand the sheet',
+    contraer: 'Collapse the sheet',
+    cerrar: 'Close',
+  },
+
 
   empresas: {
     titulo: 'Companies',

@@ -18,11 +18,23 @@ import { Injectable, signal, type WritableSignal } from '@angular/core';
  * el menú y la identidad, que es un estado válido.
  */
 
-/** La acción principal: el botón amarillo. Siempre navega, nunca abre un diálogo. */
+/**
+ * La acción principal: el botón amarillo.
+ *
+ * O navega o hace algo, nunca las dos. `ruta` para lo primero —y entonces es un `<a>`, con
+ * lo que se puede abrir en otra pestaña— y `alPulsar` para lo segundo, que es lo que usa la
+ * pantalla de planes para abrir su hoja inferior.
+ *
+ * Se modela con los dos campos opcionales y no con una unión discriminada porque el
+ * armazón tiene que preguntar por uno de los dos de todas formas, y una unión obligaría a
+ * declarar un `tipo` que no añade nada.
+ */
 export interface AccionBarra {
   readonly etiqueta: string;
-  /** Ruta absoluta dentro del árbol de esta aplicación. */
-  readonly ruta: string;
+  /** Ruta absoluta dentro del árbol de esta aplicación. Si está, la acción es un enlace. */
+  readonly ruta?: string;
+  /** Qué hacer al pulsar. Si está, la acción es un botón. */
+  readonly alPulsar?: () => void;
 }
 
 /**
