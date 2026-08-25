@@ -38,6 +38,9 @@ const ES_MX = {
   comun: {
     salir: 'Salir',
     irAlContenido: 'Ir al contenido',
+    abrirMenu: 'Abrir el menú',
+    cerrarMenu: 'Cerrar el menú',
+    tuCuenta: 'Tu cuenta',
     cargando: 'Cargando…',
     entrar: 'Entrar',
     entrando: 'Entrando…',
@@ -64,6 +67,7 @@ const ES_MX = {
 
   menu: {
     inicio: 'Inicio',
+    dashboard: 'Dashboard',
     operacion: 'Operación',
     equipos: 'Equipos',
     clientes: 'Clientes',
@@ -166,6 +170,69 @@ const ES_MX = {
     cargandoSesion: 'Cargando tu sesión…',
   },
 
+  panel: {
+    titulo: 'Resumen',
+    apoyo: 'Todo lo que se ve aquí sale del alta de empresas. No hay ninguna cifra estimada.',
+
+    totalEmpresas: 'Empresas',
+    pieTotal: (n: number) => (n === 1 ? 'Una en la plataforma' : `${n} en la plataforma`),
+    activas: 'Activas',
+    pieActivas: 'Con suscripción en curso',
+    enPrueba: 'En prueba',
+    pieEnPrueba: 'Todavía sin contratar',
+    requierenAtencion: 'Requieren atención',
+    pieAtencionCero: 'Nada pendiente',
+    pieAtencion: (n: number) => (n === 1 ? '1 aviso abierto' : `${n} avisos abiertos`),
+
+    enProceso: (n: number) =>
+      n === 1 ? 'Un alta en curso ahora mismo' : `${n} altas en curso ahora mismo`,
+
+    avisos: 'Qué hay que atender',
+    sinAvisos: 'No hay nada que atender.',
+    sinEmpresas: 'Todavía no hay ninguna empresa dada de alta.',
+
+    motivoFallida: 'El alta falló',
+    detalleFallida:
+      'Su base quedó a medias. Volver a darla de alta con el mismo identificador reintenta el proceso.',
+    motivoSinSuscripcion: 'Sin suscripción',
+    detalleSinSuscripcion:
+      'Su base existe pero no tiene plan, así que su gente no ve ningún módulo.',
+    motivoEsquemaDesfasado: 'Esquema desfasado',
+    detalleEsquemaDesfasado: (suyo: string, referencia: string) =>
+      `Su base está en ${suyo} y la más avanzada va en ${referencia}. Le faltan migraciones.`,
+
+    recientes: 'Últimas altas',
+    esquemaReferencia: (version: string) => `Esquema más avanzado: ${version}`,
+    sinEsquema: 'Ninguna base está lista todavía.',
+
+    verEmpresas: 'Ver todas las empresas',
+
+    // --- Barra de la pantalla ---
+    contexto: (n: number) => (n === 1 ? 'Una empresa' : `${n} empresas`),
+    actualizado: (hora: string) => `Actualizado a las ${hora}`,
+    buscar: 'Buscar una empresa',
+    nuevaEmpresa: 'Nueva empresa',
+
+    // --- Gráfica ---
+    altasPorMes: 'Altas por mes',
+    altasPorMesApoyo: 'Empresas dadas de alta en cada uno de los últimos seis meses',
+    altasEnElMes: (n: number, mes: string) =>
+      n === 1 ? `Un alta en ${mes}` : `${n} altas en ${mes}`,
+
+    // --- Tabla ---
+    tabla: 'Estado de las empresas',
+    chipTodas: 'Todas',
+    chipActivas: 'Activas',
+    chipPrueba: 'En prueba',
+    chipDetenidas: 'Detenidas',
+    verModulo: 'Ver módulo',
+    colEsquema: 'Esquema',
+    colModulos: 'Módulos',
+    sinCoincidencias: 'Ninguna empresa coincide con lo que buscas.',
+    modulosDe: (n: number, total: number) => `${n} de ${total} módulos`,
+    alDia: 'Al día',
+  },
+
   empresas: {
     titulo: 'Empresas',
     aprovisionada: (slug: string) => `${slug} aprovisionada`,
@@ -219,6 +286,7 @@ const ES_MX = {
   /** Títulos de pestaña. `TituloPagina` les añade el nombre del producto detrás. */
   titulos: {
     invitacion: 'Define tu contraseña',
+    panel: 'Resumen',
     entrar: 'Entrar',
     recuperar: 'Recuperar tu contraseña',
     restablecer: 'Tu contraseña nueva',
@@ -273,6 +341,9 @@ const EN_US: Textos = {
   comun: {
     salir: 'Sign out',
     irAlContenido: 'Skip to content',
+    abrirMenu: 'Open the menu',
+    cerrarMenu: 'Close the menu',
+    tuCuenta: 'Your account',
     cargando: 'Loading…',
     entrar: 'Sign in',
     entrando: 'Signing in…',
@@ -297,6 +368,7 @@ const EN_US: Textos = {
 
   menu: {
     inicio: 'Home',
+    dashboard: 'Dashboard',
     operacion: 'Operations',
     equipos: 'Equipment',
     clientes: 'Customers',
@@ -396,6 +468,69 @@ const EN_US: Textos = {
     cargandoSesion: 'Loading your session…',
   },
 
+  panel: {
+    titulo: 'Overview',
+    apoyo: 'Everything here comes from company provisioning. No figure is an estimate.',
+
+    totalEmpresas: 'Companies',
+    pieTotal: (n: number) => (n === 1 ? 'One on the platform' : `${n} on the platform`),
+    activas: 'Active',
+    pieActivas: 'With a running subscription',
+    enPrueba: 'On trial',
+    pieEnPrueba: 'Not signed up yet',
+    requierenAtencion: 'Need attention',
+    pieAtencionCero: 'Nothing pending',
+    pieAtencion: (n: number) => (n === 1 ? '1 open alert' : `${n} open alerts`),
+
+    enProceso: (n: number) =>
+      n === 1 ? 'One provisioning run in progress' : `${n} provisioning runs in progress`,
+
+    avisos: 'What needs attention',
+    sinAvisos: 'Nothing needs attention.',
+    sinEmpresas: 'No company has been added yet.',
+
+    motivoFallida: 'Provisioning failed',
+    detalleFallida:
+      'Its database was left half-built. Adding it again with the same identifier retries the process.',
+    motivoSinSuscripcion: 'No subscription',
+    detalleSinSuscripcion:
+      'Its database exists but has no plan, so its people see no modules at all.',
+    motivoEsquemaDesfasado: 'Schema behind',
+    detalleEsquemaDesfasado: (suyo: string, referencia: string) =>
+      `Its database is on ${suyo} while the furthest along is on ${referencia}. It is missing migrations.`,
+
+    recientes: 'Latest additions',
+    esquemaReferencia: (version: string) => `Furthest schema: ${version}`,
+    sinEsquema: 'No database is ready yet.',
+
+    verEmpresas: 'See every company',
+
+    // --- Barra de la pantalla ---
+    contexto: (n: number) => (n === 1 ? 'One company' : `${n} companies`),
+    actualizado: (hora: string) => `Updated at ${hora}`,
+    buscar: 'Search for a company',
+    nuevaEmpresa: 'New company',
+
+    // --- Grafica ---
+    altasPorMes: 'Additions per month',
+    altasPorMesApoyo: 'Companies added in each of the last six months',
+    altasEnElMes: (n: number, mes: string) =>
+      n === 1 ? `One addition in ${mes}` : `${n} additions in ${mes}`,
+
+    // --- Tabla ---
+    tabla: 'Company status',
+    chipTodas: 'All',
+    chipActivas: 'Active',
+    chipPrueba: 'On trial',
+    chipDetenidas: 'Stopped',
+    verModulo: 'Open module',
+    colEsquema: 'Schema',
+    colModulos: 'Modules',
+    sinCoincidencias: 'No company matches your search.',
+    modulosDe: (n: number, total: number) => `${n} of ${total} modules`,
+    alDia: 'Up to date',
+  },
+
   empresas: {
     titulo: 'Companies',
     aprovisionada: (slug: string) => `${slug} provisioned`,
@@ -450,6 +585,7 @@ const EN_US: Textos = {
 
   titulos: {
     invitacion: 'Set your password',
+    panel: 'Overview',
     entrar: 'Sign in',
     recuperar: 'Recover your password',
     restablecer: 'Your new password',

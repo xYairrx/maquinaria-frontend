@@ -48,6 +48,7 @@ const ICONOS = {
   maquina:
     'M4 17h16M6 17v-5h5l2-4h4l3 5v4M6 12V8h3M8 20a2 2 0 1 1-4 0 2 2 0 0 1 4 0M20 20a2 2 0 1 1-4 0 2 2 0 0 1 4 0',
   documento: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
+  tablero: 'M3 3h7v7H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 14h7v7H3z',
 } as const;
 
 /**
@@ -91,7 +92,10 @@ export function menuPlataforma(): readonly GrupoMenu[] {
   return [
     {
       titulo: '',
-      opciones: [{ titulo: t().menu.empresas, ruta: '/empresas', icono: ICONOS.edificios }],
+      opciones: [
+        { titulo: t().menu.dashboard, ruta: '/dashboard', icono: ICONOS.tablero },
+        { titulo: t().menu.empresas, ruta: '/empresas', icono: ICONOS.edificios },
+      ],
     },
   ];
 }

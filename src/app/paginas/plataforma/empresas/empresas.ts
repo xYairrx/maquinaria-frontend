@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
+import { Barra } from '../../../disposicion/barra';
 import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
 import { t } from '../../../nucleo/i18n/i18n';
 import { configuracion } from '../../../nucleo/ambiente/configuracion';
@@ -24,6 +25,7 @@ const PATRON_SLUG = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 })
 export class Empresas {
   private readonly api = inject(ApiPlataforma);
+  private readonly barra = inject(Barra);
   private readonly sesion = inject(SesionPlataformaStore);
   private readonly fb = inject(NonNullableFormBuilder);
 
@@ -52,6 +54,15 @@ export class Empresas {
   });
 
   constructor() {
+    // Sin busqueda ni accion: el formulario de alta esta en esta misma pantalla, asi que
+    // un boton amarillo que apunte aqui no lleva a ninguna parte.
+    effect(() =>
+      this.barra.configurar({
+        titulo: t().empresas.titulo,
+        contexto: t().panel.contexto(this.empresas().length),
+      }),
+    );
+
     // La identidad la carga DisposicionPlataforma, la ruta padre. Aquí solo los datos
     // de la pantalla.
     this.recargar();

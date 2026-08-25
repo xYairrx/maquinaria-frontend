@@ -115,12 +115,21 @@ export function nombreModulo(clave: string): string {
  * española. `index.html` lo trae en `es-MX` para el primer instante, antes de que
  * Angular arranque.
  *
- * ponytail: el cambio es en vivo para los TEXTOS, pero `LOCALE_ID` se fija al arrancar,
- * así que fechas, números y moneda se quedan con el idioma con el que se cargó la
- * página. Hoy no se nota porque no hay un solo `| date` ni `| number` en la aplicación.
- * Cuando llegue el primero, hay dos salidas: pasarle el locale al pipe
- * (`| date: 'short' : undefined : idioma()`) o recargar aquí con `location.reload()`.
+ * El cambio es en vivo para los TEXTOS, pero `LOCALE_ID` se fija al construirse el
+ * inyector, así que los `pipe` de fecha, número y moneda se quedan con el idioma con el
+ * que se cargó la página. La salida elegida es **pasarle el locale al pipe**:
+ *
+ *     {{ fecha | date: 'mediumDate' : undefined : locale() }}
+ *
+ * con `protected readonly locale = idioma;` en el componente. Así se reevalúa como
+ * cualquier otro signal y no hace falta recargar. La primera fecha de la aplicación está
+ * en `paginas/plataforma/dashboard/`, con la explicación al lado.
+ *
+ * ponytail: se repite en cada pipe en lugar de encapsularlo. Con unas pocas fechas no
+ * vale un pipe propio; si llegan a ser muchas, el sitio de un `FechaLocal` que envuelva a
+ * `DatePipe` es `nucleo/i18n/`.
  */
+
 /**
  * Lo que hay que correr una vez al arrancar.
  *

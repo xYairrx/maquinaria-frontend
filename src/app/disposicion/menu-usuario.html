@@ -1,0 +1,80 @@
+<!--
+  El disparador es el avatar. Se dibuja SIEMPRE, incluso sin identidad cargada: si se
+  ocultara sin iniciales, «Salir» dejaría de estar en la página y esa es la única forma de
+  cerrar la sesión. Sin nombre se enseña la silueta.
+
+  El nombre no va en `aria-label`: ya está dentro del panel, y anunciarlo también aquí lo
+  repetiría en cada pasada. La etiqueta dice qué ABRE el botón.
+-->
+<button
+  #disparador
+  type="button"
+  (click)="alternar()"
+  aria-haspopup="true"
+  [attr.aria-expanded]="abierto()"
+  aria-controls="panel-usuario"
+  [attr.aria-label]="t().comun.tuCuenta"
+  class="flex size-9 items-center justify-center rounded-full bg-negro-tarjeta text-xs font-medium text-texto-inverso hover:bg-negro-caja focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+>
+  @if (iniciales(); as letras) {
+    <span aria-hidden="true">{{ letras }}</span>
+  } @else {
+    <svg
+      class="size-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8" />
+    </svg>
+  }
+</button>
+
+@if (abierto()) {
+  <!--
+    Panel anclado a la DERECHA (`right-0`): el avatar es el último elemento de la barra, y
+    con `left-0` el panel se saldría de la pantalla.
+
+    `z-20` lo deja por encima del contenido pero por debajo del cajón del menú (40) y su
+    velo (30): con el cajón abierto en un teléfono, el menú manda.
+  -->
+  <div
+    id="panel-usuario"
+    class="absolute right-0 z-20 mt-2 w-60 rounded-lg border border-borde bg-superficie py-1 shadow-sm"
+  >
+    <!--
+      Quién eres. Es texto, no una opción: por eso no es un botón y no recibe foco. Aquí es
+      donde volvieron el nombre y el correo cuando el título de la pantalla les quitó el
+      sitio en la barra.
+    -->
+    <div class="border-b border-borde px-3 py-2.5">
+      <p class="truncate text-sm font-medium text-texto">{{ nombre() }}</p>
+      <p class="truncate text-xs text-texto-apagado">{{ correo() }}</p>
+    </div>
+
+    <button
+      type="button"
+      (click)="pulsarSalir()"
+      class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      <svg
+        class="size-4 shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+      </svg>
+
+      {{ t().comun.salir }}
+    </button>
+  </div>
+}

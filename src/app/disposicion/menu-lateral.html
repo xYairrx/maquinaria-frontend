@@ -1,5 +1,19 @@
+<!--
+  Cajón por debajo de `lg`, columna fija desde `lg`.
+
+  `fixed` + `-translate-x-full` lo saca de pantalla sin ocupar espacio, y `invisible` lo
+  saca además del orden de tabulación: con solo el `translate`, quien navega con teclado
+  se metía en un menú que no ve. Las tres se revierten en `lg:`, donde el menú siempre
+  está y el estado del cajón deja de tener efecto.
+
+  `id` fijo porque el botón que lo abre lo referencia con `aria-controls`. Hay un solo
+  menú por página, así que no hace falta generarlo.
+-->
 <nav
-  class="flex h-full w-66 shrink-0 flex-col overflow-y-auto bg-negro-lateral px-3 py-5"
+  id="menu-lateral"
+  class="fixed inset-y-0 left-0 z-40 flex h-full w-66 shrink-0 flex-col overflow-y-auto bg-negro-lateral px-3 py-5 transition-transform duration-200 lg:static lg:visible lg:translate-x-0"
+  [class.-translate-x-full]="!abierto()"
+  [class.invisible]="!abierto()"
   [attr.aria-label]="etiquetaFinal()"
 >
   <!--

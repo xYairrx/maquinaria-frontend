@@ -237,12 +237,6 @@ input:-webkit-autofill:focus {
  * cambia, la textura la sigue.
  */
 
-
-
-
-
-
-
 /*
  * Los controles de las pantallas de acceso.
  *
@@ -290,7 +284,7 @@ input:-webkit-autofill:focus {
  */
 @utility boton-acceso {
   width: 100%;
-  border-radius: calc(infinity * 1px);
+  border-radius: calc(infinity* 1px);
   background-color: var(--color-amarillo);
   padding: calc(var(--spacing) * 4) calc(var(--spacing) * 4);
   font-size: 0.875rem;
@@ -352,4 +346,94 @@ input:-webkit-autofill:focus {
   opacity: 0.4;
 }
 
+/*
+ * Tarjeta de indicador, tal como la especifica `docs/sistema-de-diseno.md`.
+ *
+ * Es utilidad y no componente porque lo que se repite son los ESTILOS, no la estructura:
+ * el contenido de cada tarjeta —etiqueta, icono, cifra, pie— ya sale de un `@for` sobre
+ * datos, así que el marcado se escribe una sola vez de todos modos.
+ *
+ * `rounded-xl` y no `rounded-md` como las demás secciones: es la escala que el documento
+ * asigna a las tarjetas de indicador, y lo que las separa de una tabla o un formulario.
+ */
+@utility tarjeta-indicador {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-borde);
+  background-color: var(--color-superficie);
+  padding: calc(var(--spacing) * 5);
+}
 
+/*
+ * La variante destacada: UNA por pantalla, para el indicador que hay que mirar primero.
+ *
+ * Solo invierte el fondo. Los colores del texto van en bindings de clase en la plantilla
+ * porque cambian por elemento —la cifra va en amarillo, el pie en `texto-inverso-tenue`—
+ * y meterlos aquí con selectores de descendencia acoplaría la utilidad a una estructura
+ * concreta de marcado.
+ *
+ * El amarillo de la cifra sobre `negro-tarjeta` es legible; el mismo amarillo sobre la
+ * superficie clara da 1.61:1 y está prohibido. Es la razón de que la variante cambie el
+ * fondo y no solo el color de la cifra.
+ */
+@utility tarjeta-indicador-destacada {
+  border-color: var(--color-negro-tarjeta);
+  background-color: var(--color-negro-tarjeta);
+}
+
+/*
+ * Elemento de una lista de avisos: filete amarillo a la izquierda.
+ *
+ * El filete es lo único que lleva el color, y va acompañado SIEMPRE de un titular que
+ * dice qué pasa. El color no puede ser el único indicio (WCAG 1.4.1), y aquí importa
+ * doble: la paleta no tiene rojo ni verde, así que un filete a secas no distingue un
+ * aviso de un adorno.
+ */
+@utility aviso {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-borde);
+  border-left: 4px solid var(--color-amarillo);
+  background-color: var(--color-superficie);
+  padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
+}
+
+/*
+ * Chip de filtro, tal como lo especifica `docs/sistema-de-diseno.md`.
+ *
+ * Es un `button` con `aria-pressed`, no un enlace: filtra lo que ya está en pantalla, no
+ * navega. El estado activo va en negro sólido y NO solo por color — el chip lleva su
+ * etiqueta escrita, y `aria-pressed` dice cuál está puesto a quien no ve el contraste.
+ */
+@utility chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1.5);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-superficie-hover);
+  padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-texto-secundario);
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--color-texto);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-negro-acento);
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * El chip puesto. Va después de `chip` en el archivo para ganar por orden, que es como
+ * Tailwind resuelve dos utilidades de la misma especificidad.
+ */
+@utility chip-activo {
+  background-color: var(--color-negro-tarjeta);
+  color: var(--color-texto-inverso);
+
+  &:hover {
+    color: var(--color-texto-inverso);
+  }
+}

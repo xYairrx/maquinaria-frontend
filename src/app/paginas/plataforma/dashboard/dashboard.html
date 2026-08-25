@@ -1,0 +1,370 @@
+<!--
+  Sin <header> ni <main> propios: los aporta DisposicionPlataforma, que es la ruta padre.
+  Anidar un <main> dentro de otro es HTML inválido y lo marca AXE.
+
+  RESPONSIVO, y no como un añadido: cada banda declara primero su forma de una columna y
+  después lo que hace al ensancharse. La regla y el por qué están en
+  `docs/convenciones.md#responsivo`.
+-->
+<div class="mx-auto flex max-w-8xl flex-col gap-5">
+  <!--
+    Los cuatro estados son EXCLUYENTES, y el orden importa: el error va antes del vacío.
+
+    Con el aviso de error fuera de esta cadena, un fallo de la petición dejaba la lista
+    vacía y se pintaba además «todavía no hay ninguna empresa» — es decir, el panel
+    afirmaba que no hay clientes cuando lo único que sabe es que no pudo preguntar. En una
+    pantalla de superadministración esa confusión es la peor posible.
+  -->
+  @if (cargando()) {
+    <p class="text-sm text-texto-secundario" role="status">{{ t().comun.cargando }}</p>
+  } @else if (error(); as mensaje) {
+    <p
+      class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+      role="alert"
+    >
+      {{ mensaje }}
+    </p>
+  } @else if (resumen().total === 0) {
+    <!--
+      Sin empresas no se pintan cuatro ceros: cuatro tarjetas en cero parecen un fallo de
+      carga. Se dice lo que pasa y se ofrece la única acción posible.
+    -->
+    <section class="rounded-xl border border-borde bg-superficie p-6">
+      <p class="text-sm text-texto-secundario">{{ t().panel.sinEmpresas }}</p>
+      <a
+        routerLink="/empresas"
+        class="mt-3 inline-block text-sm text-texto underline underline-offset-2 hover:text-texto-secundario focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+      >
+        {{ t().panel.verEmpresas }}
+      </a>
+    </section>
+  } @else {
+    <!--
+      Indicadores. Una columna en teléfono, dos en tableta y cuatro desde `xl`: a `lg`
+      con el menú al lado, cuatro tarjetas de 30 px de cifra se quedan sin sitio para el
+      pie.
+
+      Salen de un @for sobre datos, no de cuatro bloques copiados: con marcado repetido,
+      la cuarta copia siempre se queda sin algún detalle.
+    -->
+    <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      @for (i of indicadores(); track i.clave) {
+        <li class="tarjeta-indicador" [class.tarjeta-indicador-destacada]="i.destacada">
+          <div class="flex items-start justify-between gap-2">
+            <p
+              class="text-[11px] font-medium uppercase tracking-wide"
+              [class.text-texto-apagado]="!i.destacada"
+              [class.text-texto-inverso-micro]="i.destacada"
+            >
+              {{ i.etiqueta }}
+            </p>
+
+            <svg
+              class="size-4 shrink-0"
+              [class.text-texto-apagado]="!i.destacada"
+              [class.text-texto-inverso-micro]="i.destacada"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path [attr.d]="i.icono" />
+            </svg>
+          </div>
+
+          <!--
+            `tabular-nums` para que las cifras no bailen de ancho al actualizarse, y para
+            que las cuatro tarjetas alineen sus dígitos entre sí.
+          -->
+          <p
+            class="mt-2 text-[30px] font-bold leading-none tabular-nums"
+            [class.text-texto]="!i.destacada"
+            [class.text-amarillo]="i.destacada"
+          >
+            {{ i.cifra }}
+          </p>
+
+          <p
+            class="mt-2 text-xs"
+            [class.text-texto-apagado]="!i.destacada"
+            [class.text-texto-inverso-tenue]="i.destacada"
+          >
+            {{ i.pie }}
+          </p>
+        </li>
+      }
+    </ul>
+
+    <!--
+      Banda de dos columnas: la gráfica ocupa lo que sobra y los avisos una columna fija
+      de 380 px. Apiladas por debajo de `lg`, porque una gráfica de barras a 320 px de
+      ancho al lado de una lista no se lee ni una ni la otra.
+    -->
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <section class="rounded-xl border border-borde bg-superficie p-5">
+        <h2 class="text-[15px] font-semibold text-texto">{{ t().panel.altasPorMes }}</h2>
+        <p class="mt-0.5 text-xs text-texto-apagado">{{ t().panel.altasPorMesApoyo }}</p>
+
+        <!--
+          Gráfica de barras sin librería: son seis divs con una altura en porcentaje.
+
+          CADA BARRA LLEVA SU VALOR ESCRITO encima, no solo el alto. Es la regla del
+          sistema de diseño —«una barra sola no es accesible»— y de paso resuelve el
+          problema de que a un mes en cero no se le ve la barra.
+
+          Es una `<ul>` y no un `<svg>` a propósito: así cada mes es un elemento de lista
+          con su texto, que es lo que lee un lector de pantalla sin necesidad de una
+          descripción aparte.
+        -->
+        <ul class="mt-5 flex h-44 items-end gap-2 sm:gap-4">
+          @for (mes of resumen().altasPorMes; track mes.inicio) {
+            <li class="flex h-full flex-1 flex-col items-center justify-end gap-2">
+              <p class="text-xs font-medium tabular-nums text-texto">{{ mes.total }}</p>
+
+              <!--
+                `flex-1` en el contenedor y la barra dentro con altura en porcentaje: así
+                todas las barras comparten la misma pista y el porcentaje es comparable.
+                Un mes en cero deja una línea de 2 px, que dice «cero» mejor que la nada.
+              -->
+              <div class="flex w-full flex-1 items-end">
+                <div
+                  class="w-full rounded-sm bg-negro-tarjeta"
+                  [style.height.%]="mes.total === 0 ? 0 : (mes.total / maximoAltas()) * 100"
+                  [class.min-h-0.5]="true"
+                  [attr.aria-hidden]="true"
+                ></div>
+              </div>
+
+              <!--
+                La zona va en `'UTC'` a la fuerza, y no es un detalle.
+
+                `mes.inicio` es el primer instante del mes EN UTC, porque así se calculan
+                los cubos en `resumen.ts`. Con la zona local, en México (UTC-6) el 1 de
+                agosto a las 00:00Z es el 31 de julio a las 18:00, así que el eje entero
+                salía etiquetado un mes antes que los datos que contaba.
+              -->
+              <p class="text-[11px] capitalize text-texto-apagado">
+                {{ mes.inicio | date: 'MMM' : 'UTC' : locale() }}
+              </p>
+
+              <!-- El texto completo para quien no ve la barra ni la columna de meses. -->
+              <span class="sr-only">
+                {{
+                  t().panel.altasEnElMes(
+                    mes.total,
+                    (mes.inicio | date: 'MMMM y' : 'UTC' : locale()) ?? ''
+                  )
+                }}
+              </span>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="flex flex-col rounded-xl border border-borde bg-superficie p-5">
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-[15px] font-semibold text-texto">{{ t().panel.avisos }}</h2>
+
+          @if (resumen().atencion.length > 0) {
+            <p
+              class="shrink-0 rounded-full bg-alerta-fondo px-2.5 py-1 text-[11px] font-medium text-alerta-texto"
+            >
+              {{ t().panel.pieAtencion(resumen().atencion.length) }}
+            </p>
+          }
+        </div>
+
+        @if (resumen().atencion.length === 0) {
+          <!--
+            Sin avisos se dice en texto y en neutro. NADA de una marca verde de «todo
+            bien»: la paleta no tiene verde, y un adorno de éxito sugiere una comprobación
+            que esta pantalla no hace —solo mira lo que trae la lista de empresas—.
+          -->
+          <p class="mt-4 text-sm text-texto-secundario">{{ t().panel.sinAvisos }}</p>
+        } @else {
+          <ul class="mt-4 flex flex-col gap-2">
+            @for (a of resumen().atencion; track a.empresa.id + a.motivo) {
+              <li class="aviso">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium text-texto">
+                      {{ a.empresa.slug }} · {{ motivo(a.motivo) }}
+                    </p>
+                    <p class="mt-0.5 text-xs leading-relaxed text-texto-apagado">
+                      {{ detalle(a.motivo, a.empresa) }}
+                    </p>
+                  </div>
+
+                  <time
+                    [attr.datetime]="a.empresa.creadoEn"
+                    class="shrink-0 text-xs tabular-nums text-texto-apagado"
+                  >
+                    {{ a.empresa.creadoEn | date: 'shortDate' : undefined : locale() }}
+                  </time>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+
+        <!-- `mt-auto` lo pega al fondo de la tarjeta, alineado con la gráfica de al lado. -->
+        <a
+          routerLink="/empresas"
+          class="mt-auto pt-4 text-sm text-texto underline underline-offset-2 hover:text-texto-secundario focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+        >
+          {{ t().panel.verEmpresas }} →
+        </a>
+      </section>
+    </div>
+
+    <section class="rounded-xl border border-borde bg-superficie">
+      <!--
+        Cabecera de la tabla: título, chips y el enlace al módulo. En columna por debajo
+        de `md`; los chips se envuelven con `flex-wrap` en lugar de desbordarse.
+      -->
+      <div
+        class="flex flex-col gap-3 border-b border-borde px-4 py-3 md:flex-row md:items-center md:justify-between md:px-5"
+      >
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="mr-2 text-[15px] font-semibold text-texto">{{ t().panel.tabla }}</h2>
+
+          @for (chip of chips(); track chip.clave) {
+            <!--
+              `aria-pressed` y no `aria-current`: son filtros que se activan, no la
+              posición en una navegación. El chip activo va en negro sólido, y el conteo
+              va dentro para no tener que filtrar solo para descubrir que está vacío.
+            -->
+            <button
+              type="button"
+              (click)="filtro.set(chip.clave)"
+              [attr.aria-pressed]="filtro() === chip.clave"
+              class="chip"
+              [class.chip-activo]="filtro() === chip.clave"
+            >
+              {{ chip.etiqueta }}
+              <span class="tabular-nums opacity-60">{{ chip.total }}</span>
+            </button>
+          }
+        </div>
+
+        <a
+          routerLink="/empresas"
+          class="flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-borde-campo px-3 py-1.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento md:self-auto"
+        >
+          <svg
+            class="size-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path [attr.d]="iconos.salida" />
+          </svg>
+
+          {{ t().panel.verModulo }}
+        </a>
+      </div>
+
+      @if (visibles().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5" role="status">
+          {{ t().panel.sinCoincidencias }}
+        </p>
+      } @else {
+        <!--
+          `overflow-x-auto` en la tabla y NO en la página: el cuerpo del documento nunca
+          debe desplazarse en horizontal. Cinco columnas no caben en un teléfono y
+          convertirlas en tarjetas duplicaría el marcado, así que la tabla se desplaza
+          dentro de su caja.
+        -->
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-160 text-left text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().empresas.colEmpresa }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().panel.colEsquema }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().empresas.colPlan }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().panel.colModulos }}</th>
+                <th scope="col" class="px-4 py-2.5 text-right font-medium md:px-5">
+                  {{ t().empresas.colEstado }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (e of visibles(); track e.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td class="px-4 py-3 md:px-5">
+                    <p class="font-medium text-texto">{{ e.razonSocial }}</p>
+                    <p class="text-xs text-texto-apagado">{{ e.slug }}</p>
+                  </td>
+
+                  <td class="px-4 py-3 text-xs text-texto-apagado">
+                    <!--
+                      El esquema se corta al identificador de la migración: el nombre
+                      completo mide 50 caracteres y aquí solo interesa si va al día.
+                    -->
+                    @if (e.versionEsquema; as version) {
+                      @if (version === resumen().esquemaReferencia) {
+                        <span class="text-texto-secundario">{{ t().panel.alDia }}</span>
+                      } @else {
+                        <span class="text-alerta-texto">{{ version.slice(0, 8) }}</span>
+                      }
+                    } @else {
+                      —
+                    }
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ e.codigoPlan ?? t().empresas.sinSuscripcion }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <!--
+                      Barra de progreso con el valor TAMBIÉN escrito: una barra sola no es
+                      accesible, y con `role="img"` más `aria-label` un lector de pantalla
+                      leería el dato dos veces.
+                    -->
+                    <div class="flex items-center gap-2">
+                      <div class="h-1 w-14 shrink-0 rounded-full bg-pista-barra">
+                        <div
+                          class="h-full rounded-full bg-amarillo"
+                          [style.width.%]="(e.modulos / totalModulos) * 100"
+                          aria-hidden="true"
+                        ></div>
+                      </div>
+
+                      <span class="whitespace-nowrap text-xs tabular-nums text-texto-apagado">
+                        {{ t().panel.modulosDe(e.modulos, totalModulos) }}
+                      </span>
+                    </div>
+                  </td>
+
+                  <td class="px-4 py-3 text-right md:px-5">
+                    <span
+                      class="inline-block rounded-full px-2.5 py-1 text-[11px] font-medium"
+                      [class]="clasePildora(e.estado)"
+                    >
+                      {{ nombreEstado(e.estado) }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</div>

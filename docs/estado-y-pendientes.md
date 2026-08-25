@@ -79,7 +79,39 @@ los 17 componentes.
   de cada token.
 - **`sitio.ts`** centraliza el nombre del producto, el corte de la marca en dos colores,
   la descripción y el idioma.
-- **`TituloPagina`** compone el título de la pestaña como «pantalla · producto».
+- **`TituloPagina`** compone el título de la pestaña como «pantalla · producto», y lo
+  recompone al cambiar de idioma sin esperar a la siguiente navegación.
+- **Resumen de la superadministración** (`/dashboard`), la pantalla de entrada del panel.
+  Cuatro indicadores, una lista de avisos y las últimas altas, **todo derivado de
+  `GET /empresas`**: sin endpoint de estadísticas y sin una sola cifra estimada, que es lo
+  que prohíbe el sistema de diseño. La lógica de agregación vive aparte en `resumen.ts`,
+  como función pura, con 13 casos de prueba.
+
+  Los tres avisos que sabe detectar son los tres problemas que la lista permite deducir:
+  un alta **fallida**, una empresa **lista sin plan** —su base existe y su gente no ve
+  ningún módulo— y una base con el **esquema desfasado**, comparando su `versionEsquema`
+  contra la más avanzada. Ese último cubre en la interfaz el desfase que hoy hay que
+  descubrir a mano; el comando `migrar-empresas` del backend sigue pendiente.
+  El diseño sigue el boceto de referencia —barra de la pantalla con búsqueda y acción
+  principal, cuatro indicadores con el último destacado en negro y amarillo, banda de
+  gráfica y avisos, tabla con chips de filtro— pero **cada hueco se llenó con el dato real
+  que le corresponde**, no con el del boceto: donde el boceto pedía «utilización semanal»
+  van **altas por mes**, que es la única serie temporal que la lista de empresas permite
+  calcular.
+- **Tarjetas de indicador, listas de aviso y chips de filtro** como `@utility` en
+  `src/styles.css`, siguiendo la especificación del sistema de diseño. Eran tres de los
+  cinco componentes que el documento describía sin que existieran; siguen faltando las
+  tablas y los campos de formulario de aplicación.
+- **Una sola barra superior por pantalla**, dibujada por el armazón y alimentada por la
+  pantalla como DATOS a través de `disposicion/barra.ts` — título, contexto, búsqueda y
+  acción principal—, junto al botón del menú, Salir y el avatar de iniciales, que son del
+  armazón. El porqué de que sea un servicio y no proyección de contenido está en
+  [convenciones](convenciones.md#la-barra-superior).
+- **Todo responsivo**, comprobado en 375, 768 y 1280. El menú lateral es un **cajón** por
+  debajo de `lg` —con hamburguesa, velo y cierre con Escape— y una columna fija desde ahí;
+  antes ocupaba 264 px fijos a cualquier ancho, lo que dejaba un teléfono con 111 px de
+  contenido. La regla, los cortes y las trampas están en
+  [convenciones](convenciones.md#responsivo) y en [`AGENTS.md`](../AGENTS.md).
 
 ---
 
@@ -107,6 +139,16 @@ Ordenados de "rompe algo" a "hay que decidirlo".
    `excavator-bulldozer-svgrepo-com.svg`. La ilustración del acceso es
    `excavadora.webp`, referenciada desde `src/styles.css`. Los dos SVG no aparecen en
    ningún archivo de `src/` y aun así se copian al build.
+
+### Accesibilidad
+
+0. **`selector-idioma` declara `role="listbox"` y `role="option"` sin navegación con
+   flechas.** Un `listbox` obliga a mover la selección con las flechas, y anunciarlo sin
+   implementarlo promete a un lector de pantalla un comportamiento que no está. Se nota
+   ahora por contraste con `menu-usuario`, que resolvió el mismo problema con ARIA de
+   divulgación —`aria-haspopup` + `aria-expanded` y botones normales—. Las dos salidas son
+   igual de válidas: bajarlo a divulgación como el otro, o implementar las flechas. Ver
+   [convenciones](convenciones.md#aria-de-divulgación-no-de-menú).
 
 ### Internacionalización y metadatos
 

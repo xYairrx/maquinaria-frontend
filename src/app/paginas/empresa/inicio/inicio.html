@@ -3,14 +3,8 @@
   padre. Anidar un <main> dentro de otro es HTML inválido y lo marca AXE, y repetir
   la cabecera duplicaría el botón de salir.
 -->
+<!-- El <h1> lo pinta la barra del armazon: una pantalla, un solo <h1>. -->
 <div class="mx-auto flex max-w-5xl flex-col gap-4">
-  <div>
-    <h1 class="font-titulo text-lg font-semibold text-texto">
-      {{ identidad()?.razonSocial ?? '…' }}
-    </h1>
-    <p class="text-xs text-texto-apagado">{{ identidad()?.empresa }}</p>
-  </div>
-
   <div>
     @if (identidad(); as id) {
       <section class="mb-6 rounded-md border border-borde bg-superficie p-4">

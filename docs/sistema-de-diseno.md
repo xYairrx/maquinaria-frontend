@@ -172,6 +172,9 @@ separa. **A cambio, el `outline` de foco deja de ser opcional.**
 
 ## Tarjetas de indicador
 
+Escritas como `@utility tarjeta-indicador` y `@utility tarjeta-indicador-destacada` en
+`src/styles.css`. En uso en `paginas/plataforma/dashboard/`.
+
 `bg-superficie`, `rounded-xl`, `border border-borde`, `p-5`.
 
 - Etiqueta: `texto-apagado`, 11 px, mayúsculas, `tracking-wide`. El icono va **arriba a
@@ -184,6 +187,8 @@ separa. **A cambio, el `outline` de foco deja de ser opcional.**
 `texto-inverso-tenue`.
 
 ## Listas de aviso
+
+Escritas como `@utility aviso` en `src/styles.css`.
 
 Cada elemento: `bg-superficie`, `border border-borde`, **`border-l-4 border-l-amarillo`**,
 `rounded-lg`, `px-4 py-3`. Título 14 px medium en `texto`, detalle 12 px en

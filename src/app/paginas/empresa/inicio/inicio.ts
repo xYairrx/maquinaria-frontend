@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
 
+import { Barra } from '../../../disposicion/barra';
 import { idioma, nombreModulo, t } from '../../../nucleo/i18n/i18n';
 import { Sesion } from '../../../nucleo/sesion/sesion';
 
@@ -45,4 +46,17 @@ export class Inicio {
   );
 
   protected readonly implementados = computed(() => this.modulos().filter((m) => m.listo).length);
+
+  constructor() {
+    // El titulo es la razon social de la empresa y el contexto su identificador: es lo
+    // que dice a que empresa perteneces sin gastar una linea del contenido.
+    const barra = inject(Barra);
+
+    effect(() =>
+      barra.configurar({
+        titulo: this.identidad()?.razonSocial ?? '…',
+        contexto: this.identidad()?.empresa ?? '',
+      }),
+    );
+  }
 }

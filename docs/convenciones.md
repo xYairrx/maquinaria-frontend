@@ -135,6 +135,168 @@ números y moneda se quedan con el idioma con el que se cargó la página. Hoy n
 porque no hay un solo `| date` en la aplicación. Está anotado con un comentario
 `ponytail:` en `i18n.ts`, con las dos salidas.
 
+## La barra superior
+
+**Hay UNA sola barra por pantalla, y la dibuja el armazón.** Mezcla dos ámbitos a
+propósito, porque así es como se ve en el diseño:
+
+| Del armazón | De la pantalla |
+|---|---|
+| Botón del menú (`lg:hidden`), Salir, avatar de iniciales | Título, contexto, búsqueda, acción principal |
+
+La pantalla no dibuja nada de eso: **lo publica como datos** en el servicio
+`disposicion/barra.ts`, desde un `effect` en su constructor.
+
+```ts
+effect(() =>
+  this.barra.configurar({
+    titulo: t().panel.titulo,
+    contexto: `${p.contexto(this.resumen().total)} · ${p.actualizado(this.horaDeCarga())}`,
+    busqueda: { marcador: p.buscar, valor: this.busqueda },
+    accion: { etiqueta: p.nuevaEmpresa, ruta: '/empresas' },
+  }),
+);
+```
+
+Va en un `effect` y no en una llamada suelta porque el contexto depende de cosas que
+cambian después: los datos que llegan con la petición, y el idioma.
+
+### Por qué un servicio y no `<ng-content>`
+
+Entre el armazón y la pantalla hay un `<router-outlet>`, y **el contenido proyectado no
+cruza un outlet**. Publicar un `<ng-template>` en un servicio sí funcionaría, pero es
+maquinaria para mover marcado; describir la barra como datos deja al armazón dibujándola
+entera y a la pantalla diciendo solo qué pone. Es el mismo criterio que
+`opciones-menu.ts`, donde el menú también es datos.
+
+### Tres reglas
+
+1. **El `<h1>` lo pinta la barra.** Una pantalla no añade el suyo: habría dos.
+2. **La señal de búsqueda se pasa, no se copia.** `valor` es la señal escribible de la
+   pantalla; la barra escribe ahí y la pantalla filtra leyéndola. Sin copia intermedia no
+   hay dos estados que sincronizar.
+3. **La acción principal navega, siempre.** Si el formulario está en la propia pantalla,
+   no se declara acción: un botón que apunta a donde ya estás no lleva a ninguna parte.
+
+### El avatar es un desplegable
+
+De él cuelgan la identidad —nombre y correo— y **Salir**. Vive en
+`disposicion/menu-usuario.ts` y lo usan las dos aplicaciones; recibe la identidad por
+`input()` y emite `salir`, así que no conoce ninguno de los dos almacenes de sesión.
+
+Está ahí por dos razones que se juntaron: al entrar el título de la pantalla en la barra,
+el nombre y el correo se quedaron sin sitio; y en un teléfono un botón de «Salir» suelto
+competía por el ancho con la búsqueda y la acción principal.
+
+**El disparador se dibuja SIEMPRE**, incluso sin identidad cargada — entonces enseña una
+silueta en lugar de las iniciales. Si se ocultara, «Salir» dejaría de estar en la página, y
+esconder la única forma de hacer algo es justo lo que prohíbe la regla de arriba.
+
+#### ARIA de divulgación, no de menú
+
+Se declara `aria-haspopup` + `aria-expanded` y el panel es una lista de botones normales.
+**No lleva `role="menu"` ni `role="menuitem"`**, y es deliberado: un `role="menu"` obliga a
+navegación con flechas, Home y End, y anunciarlo sin implementarlo es peor que no
+anunciarlo — el lector de pantalla promete un comportamiento que no está. Con dos
+elementos, Tab basta.
+
+Lo que sí es obligatorio, y está implementado:
+
+- **Escape cierra y devuelve el foco al disparador.** Sin lo segundo, cerrar con el foco en
+  «Salir» lo deja en la nada: el elemento enfocado desaparece y el foco cae al `<body>`,
+  así que hay que recorrer la página entera otra vez (WCAG 2.4.3).
+- **Un clic fuera cierra**, y ese sí no mueve el foco: quien usa el ratón ya está mirando a
+  otra parte.
+- La comprobación de «fuera» es lo que evita que el propio clic del disparador —que también
+  burbujea hasta el documento— lo cierre en el mismo gesto que lo abre.
+
+### Responsivo
+
+Por debajo de `sm` la barra se envuelve en dos filas: título arriba, búsqueda y acción a
+todo lo ancho abajo (`order-last w-full sm:order-none sm:w-auto`). Comprimirlas en la
+misma línea deja la búsqueda inservible, y esconderlas no es opción — la búsqueda es la
+única forma de filtrar.
+
+## Responsivo
+
+**Toda pantalla se hace responsiva desde el primer commit.** No es una pasada posterior:
+adaptar una pantalla ya escrita cuesta más que escribirla adaptada, porque obliga a
+deshacer decisiones de ancho fijo que ya se colaron en tres sitios.
+
+### Móvil primero, y siempre en ese orden
+
+Las clases sin prefijo son las del **teléfono**; los prefijos `sm: md: lg: xl:` solo
+**añaden** al ensanchar. Nunca al revés: una clase de escritorio revertida con `sm:` deja
+el caso pequeño —que es el más apretado— definido por descarte.
+
+```html
+<!-- Sí: declara la forma estrecha y la ensancha -->
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+<!-- No: el caso del teléfono queda implícito -->
+<div class="grid grid-cols-4 gap-4 sm:grid-cols-1">
+```
+
+Los cortes son los de Tailwind, sin personalizar: `sm` 640, `md` 768, `lg` 1024, `xl`
+1280. El que más pesa aquí es **`lg`**, porque es donde el menú lateral pasa de cajón a
+columna fija: por debajo de `lg` el contenido tiene todo el ancho.
+
+### Las cinco reglas
+
+1. **El `<body>` no se desplaza en horizontal, nunca.** Lo que no cabe se desplaza dentro
+   de su propia caja con `overflow-x-auto` — tablas, gráficas y bloques de código. Es la
+   comprobación más barata de todas y la que más se rompe.
+2. **Una tabla ancha se desplaza, no se convierte en tarjetas.** Convertirla duplica el
+   marcado y las dos copias se desincronizan. La tabla va en un `overflow-x-auto` con
+   `min-w-*` para que las columnas no se aplasten.
+3. **Nada de anchos fijos en el contenido.** `max-w-*` y `min-w-0` sí; `w-[720px]` no. El
+   `min-w-0` en un hijo de flex es lo que permite que `truncate` funcione: sin él, el hijo
+   se niega a encogerse y desborda al padre.
+4. **Los grupos de botones y chips se envuelven** (`flex-wrap`), no se desbordan ni se
+   comprimen.
+5. **Lo que se oculta en móvil no puede ser la única forma de hacer algo.** Ocultar es
+   para lo redundante —un avatar cuando el nombre ya está al lado—, nunca para una acción.
+
+### Ocultar de verdad, no solo de la vista
+
+Un elemento sacado de pantalla con `translate` **sigue en el orden de tabulación**: quien
+navega con teclado se mete en un menú que no ve. Para eso está `visibility: hidden`, que sí
+saca del foco, y se revierte con `lg:visible`. Es exactamente lo que hace `menu-lateral`:
+
+```html
+<nav class="fixed ... transition-transform lg:static lg:visible lg:translate-x-0"
+     [class.-translate-x-full]="!abierto()"
+     [class.invisible]="!abierto()">
+```
+
+`display: none` también sirve, pero mata la transición; con `visibility` el cajón entra
+deslizándose.
+
+### El armazón
+
+El menú lateral es **un cajón por debajo de `lg` y una columna fija desde `lg`**. Lo que
+eso exige, y que no es opcional:
+
+- Un botón de hamburguesa en la cabecera, `lg:hidden`, con `aria-expanded` y
+  `aria-controls="menu-lateral"`.
+- Un velo que tape el contenido. Es un `<button>` y no un `<div>` con `click`: un `div`
+  clicable no recibe foco ni responde a Enter.
+- **Escape lo cierra** (WCAG 2.1.2), desde el `host` del armazón y no con `@HostListener`.
+- Un clic en el menú lo cierra: cualquier opción navega, y dejar el cajón encima de la
+  pantalla nueva obliga a cerrarlo a mano.
+
+### Cómo se comprueba
+
+En los tres anchos, y son tres números concretos: **375** (teléfono), **768** (tableta) y
+**1280** (escritorio). Lo que se mira en cada uno:
+
+| Qué | Cómo se ve que está mal |
+|---|---|
+| `document.documentElement.scrollWidth > innerWidth` | Hay desborde horizontal del documento |
+| El menú cerrado | Algún enlace suyo sigue siendo alcanzable con Tab |
+| Los grupos de tarjetas | Cifras o pies cortados |
+| La tabla | Se desplaza la página en vez de la tabla |
+
 ## Accesibilidad
 
 Requisito, no aspiración:
@@ -180,6 +342,8 @@ src/app/
     │   └── restablecer-contrasena/
     ├── plataforma/  lo que se ve en `admin.<dominio>`
     │   ├── iniciar-sesion/
+    │   ├── dashboard/   el resumen, y la pantalla de entrada del panel
+    │   │                dashboard.{ts,html}, resumen.ts (+ .spec)
     │   └── empresas/
     └── portal/      lo que se ve en el dominio pelado y en `login.<dominio>`
         └── seleccionar-empresa/

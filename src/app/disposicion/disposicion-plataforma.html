@@ -10,33 +10,168 @@
     El nombre del producto es el mismo en las dos aplicaciones; lo que cambia es el
     ámbito, y ese es el papel de la línea descriptiva. El correo del superadministrador
     NO va ahí: la línea se muestra en mayúsculas de 10 px y un correo queda ilegible.
+
+    El `click` cierra el cajón: cualquier opción del menú navega, y dejar el cajón abierto
+    encima de la pantalla nueva obliga a cerrarlo a mano. Desde `lg` no se nota, porque
+    ahí el menú está siempre.
   -->
   <app-menu-lateral
     [grupos]="menu()"
     [producto]="sitio.nombre"
     [descripcion]="t().menu.superadministracion"
     [etiquetaNavegacion]="t().menu.navegacionPlataforma"
+    [abierto]="menuAbierto()"
+    (click)="cerrarMenu()"
   />
 
-  <div class="flex min-w-0 flex-1 flex-col">
-    <header
-      class="flex items-center justify-between gap-4 border-b border-borde bg-superficie px-6 py-4"
-    >
-      <div class="min-w-0">
-        <p class="truncate text-sm font-medium text-texto">{{ nombre() }}</p>
-        <p class="truncate text-xs text-texto-apagado">{{ correo() }}</p>
-      </div>
+  @if (menuAbierto()) {
+    <!--
+      Velo. Es un `button` y no un `div` con `click` para que también se pueda cerrar con
+      teclado: un `div` clicable no recibe foco ni responde a Enter.
 
+      `lg:hidden` porque desde ahí el menú no es una capa: taparlo todo con un velo sobre
+      un menú que siempre está visible dejaría la pantalla muerta.
+    -->
+    <button
+      type="button"
+      (click)="cerrarMenu()"
+      [attr.aria-label]="t().comun.cerrarMenu"
+      class="fixed inset-0 z-30 bg-negro-lateral/60 lg:hidden"
+    ></button>
+  }
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <!--
+      UNA sola barra superior, no dos filas.
+
+      Mezcla lo del armazón —el botón del menú y la identidad, que están en todas las
+      pantallas— con lo de la pantalla —título, contexto, búsqueda y acción—, que llega
+      como datos por el servicio `Barra`. El porqué de que sea un servicio y no
+      proyección de contenido está en `barra.ts`.
+
+      `flex-wrap` con el grupo de acciones en `order-last w-full` por debajo de `sm`: en un
+      teléfono el título y una caja de búsqueda no caben en la misma línea, así que las
+      acciones bajan a una segunda fila a todo lo ancho en lugar de comprimirse.
+    -->
+    <header
+      class="flex flex-wrap items-center gap-x-3 gap-y-3 border-b border-borde bg-superficie px-4 py-3 sm:px-6"
+    >
+      <!--
+        La hamburguesa solo existe por debajo de `lg`, que es donde el menú es un cajón.
+        `aria-expanded` dice si está abierto y `aria-controls` a qué se refiere; sin los
+        dos, un lector de pantalla anuncia un botón que no lleva a ningún sitio.
+      -->
       <button
         type="button"
-        (click)="salir()"
-        class="rounded-lg border border-borde-campo px-3 py-1.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+        (click)="alternarMenu()"
+        [attr.aria-expanded]="menuAbierto()"
+        aria-controls="menu-lateral"
+        [attr.aria-label]="menuAbierto() ? t().comun.cerrarMenu : t().comun.abrirMenu"
+        class="-ml-1 shrink-0 rounded-lg p-2 text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento lg:hidden"
       >
-        {{ t().comun.salir }}
+        <svg
+          class="size-5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          @if (menuAbierto()) {
+            <path d="M18 6 6 18M6 6l12 12" />
+          } @else {
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          }
+        </svg>
       </button>
+
+      <div class="min-w-0 flex-1">
+        @if (barra().titulo) {
+          <h1 class="truncate font-titulo text-xl font-bold leading-tight text-texto">
+            {{ barra().titulo }}
+          </h1>
+        } @else {
+          <!-- Sin título de pantalla, la barra enseña de quién es la sesión. -->
+          <p class="truncate text-sm font-medium text-texto">{{ nombre() }}</p>
+        }
+
+        @if (barra().contexto) {
+          <p class="truncate text-xs text-texto-apagado">{{ barra().contexto }}</p>
+        } @else if (barra().titulo) {
+          <p class="truncate text-xs text-texto-apagado">{{ correo() }}</p>
+        }
+      </div>
+
+      <div class="order-last flex w-full items-center gap-2 sm:order-none sm:w-auto">
+        @if (barra().busqueda; as busqueda) {
+          <!--
+            Campo de búsqueda: sin borde y sobre `superficie-hover`, con la lupa dentro. La
+            etiqueta va en `sr-only` porque el marcador de posición desaparece al escribir
+            y no sirve como nombre del campo (WCAG 3.3.2).
+
+            Escribe DIRECTO en la señal de la pantalla, que es la misma que la pantalla lee
+            para filtrar: sin copia intermedia no hay dos estados que sincronizar.
+          -->
+          <div class="relative min-w-0 flex-1 sm:flex-none">
+            <label for="barra-buscar" class="sr-only">{{ busqueda.marcador }}</label>
+
+            <svg
+              class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-texto-tenue"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M21 21l-4.3-4.3M17 11a6 6 0 1 1-12 0 6 6 0 0 1 12 0" />
+            </svg>
+
+            <input
+              id="barra-buscar"
+              type="search"
+              [value]="busqueda.valor()"
+              (input)="busqueda.valor.set($any($event.target).value)"
+              [attr.placeholder]="busqueda.marcador"
+              autocapitalize="off"
+              spellcheck="false"
+              class="w-full rounded-lg bg-superficie-hover py-2 pl-9 pr-3 text-sm text-texto placeholder:text-texto-apagado focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento sm:w-70"
+            />
+          </div>
+        }
+
+        @if (barra().accion; as accion) {
+          <a
+            [routerLink]="accion.ruta"
+            class="flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-amarillo px-4 py-2 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+          >
+            <svg
+              class="size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.25"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+
+            {{ accion.etiqueta }}
+          </a>
+        }
+      </div>
+
+      <!--
+        El avatar, con la identidad y «Salir» colgando de él. Salir ya no está suelto en la
+        barra: en un teléfono competía por el ancho con la búsqueda y la acción principal,
+        y el nombre y el correo se habían quedado sin sitio al entrar el título.
+      -->
+      <app-menu-usuario [nombre]="nombre()" [correo]="correo()" (salir)="salir()" />
     </header>
 
-    <main id="contenido" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto p-6">
+    <main id="contenido" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
       <router-outlet />
     </main>
   </div>

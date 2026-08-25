@@ -44,6 +44,16 @@ export class MenuLateral {
   readonly etiquetaNavegacion = input<string>('');
 
   /**
+   * Si el cajón está abierto. Solo importa **por debajo de `lg`**: desde ahí el menú es
+   * una columna fija y las clases `lg:` ganan sobre este estado.
+   *
+   * Cerrado no basta con sacarlo de pantalla con un `translate`: seguiría en el orden de
+   * tabulación y quien navega con teclado caería en un menú invisible. De ahí el
+   * `invisible` —`visibility: hidden` sí saca del foco— revertido con `lg:visible`.
+   */
+  readonly abierto = input(false);
+
+  /**
    * Vacío es «la de por defecto», no «sin etiqueta»: un `<nav>` sin nombre accesible es
    * justo lo que este input existe para evitar. El texto no puede ser el valor por
    * defecto del input porque se congelaría en el idioma del momento de construir.
