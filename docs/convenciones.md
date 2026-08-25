@@ -42,10 +42,33 @@ Las reglas del repo están en [`AGENTS.md`](../AGENTS.md), y `.claude/CLAUDE.md`
 
 - Formularios **reactivos**, no template-driven.
 - **Lazy loading por ruta de feature.** Con 26 módulos previstos, un bundle único es inviable.
+- **Los parámetros de ruta y de query llegan como `input()`**, no leyendo `ActivatedRoute`.
+  El router va con `withComponentInputBinding()` en `app.config.ts`, así que
+  `/entrar?restablecida=1` se recibe con `readonly restablecida = input('')`. Es la misma
+  razón que el resto: sin decoradores y sin suscripciones que limpiar.
+- **El árbol de rutas lo elige el anfitrión.** `app.routes.ts` registra `rutas-empresa`,
+  `rutas-plataforma` o `rutas-portal` según el subdominio, una sola vez al arrancar.
+  Detalle en [`integracion-backend.md`](integracion-backend.md).
 
 ## Imágenes
 
 `NgOptimizedImage` para toda imagen estática. No aplica a base64 inline.
+
+**Hoy no se usa en ningún sitio, y las dos imágenes del repo explican por qué.** Se anota
+para que nadie lo tome por descuido:
+
+- **La fotografía del panel de marca** (`excavadora.webp`) es un **fondo de CSS**, no un
+  `<img>`. `NgOptimizedImage` la detectaba como elemento LCP y exigía `priority`
+  (NG02955), que la precargaría también en móvil, donde ese panel está oculto y la imagen
+  no se ve nunca. Y el navegador **no descarga el fondo de un elemento con
+  `display: none`**, así que como fondo ni siquiera se pide. El detalle está en la
+  utilidad `foto-marca` de `styles.css`.
+- **Las banderas del selector de idioma** son SVG de 2 KB servidos desde `public/`, con
+  `alt` vacío porque son decorativas. Optimizar un SVG que ya pesa menos que su propia
+  petición no aporta nada.
+
+La regla sigue en pie para lo que venga —fotos de equipos, adjuntos—; lo que no procede es
+forzarla sobre estos dos casos.
 
 ## Accesibilidad
 
@@ -67,13 +90,21 @@ En español, como todo el dominio. Nada de `core/`, `features/` ni `shared/`.
 
 ```
 src/app/
+├── app.ts, app.html, app.config.ts
+├── app.routes.ts    elige el árbol de rutas según el subdominio
+├── rutas-empresa.ts, rutas-plataforma.ts, rutas-portal.ts
 ├── nucleo/          servicios y reglas transversales, SIN pantallas
 │   ├── ambiente/    de dónde sale la configuración y qué empresa es esta
+│   │                configuracion.ts, sitio.ts, tenant.ts (+ .spec), titulo-pagina.ts
 │   ├── api/         llamadas HTTP, tipos del contrato y traducción de errores
+│   │                api.ts, api-plataforma.ts, contratos*.ts, mensaje-error.ts
 │   └── sesion/      quién entró, qué puede ver y cómo viaja su token
+│                    sesion.ts, sesion-plataforma.ts, guard-sesion.ts,
+│                    guard-plataforma.ts, interceptor-token.ts, acceso.ts (+ .spec)
 ├── disposicion/     los armazones y el menú lateral
 └── paginas/         una carpeta por APLICACIÓN, y dentro una por pantalla
-    ├── acceso/      el marco compartido de las pantallas sin sesión
+    ├── acceso/      lo COMPARTIDO por las pantallas sin sesión — no es una aplicación
+    │                marco-acceso, campo-contrasena, selector-idioma, bandera
     ├── empresa/     lo que se ve en `<slug>.<dominio>`
     │   ├── iniciar-sesion/
     │   ├── inicio/
@@ -110,7 +141,7 @@ Qué va en cada una:
 
 | Carpeta | Qué contiene | Cómo saber si algo va aquí |
 |---|---|---|
-| `ambiente/` | `configuracion.ts`, `tenant.ts` | Responde «¿dónde estoy?»: la URL de la API, el dominio base, qué empresa dice el subdominio |
+| `ambiente/` | `configuracion.ts`, `tenant.ts`, `sitio.ts`, `titulo-pagina.ts` | Responde «¿dónde estoy?»: la URL de la API, el dominio base, qué empresa dice el subdominio, cómo se llama el producto |
 | `api/` | clientes HTTP, `contratos*.ts`, `mensaje-error.ts` | Habla con el backend o describe lo que este devuelve |
 | `sesion/` | almacenes de sesión, guards, interceptor, `acceso.ts` | Depende de quién entró |
 
@@ -119,6 +150,60 @@ Qué va en cada una:
 
 **Nombres de archivo en kebab-case y sin sufijo de tipo**: `guard-sesion.ts`, no
 `sesion.guard.ts`; `sesion-plataforma.ts`, no `platform-session.service.ts`.
+
+### `paginas/acceso/`: lo compartido por las pantallas sin sesión
+
+**Es la excepción a «una carpeta por aplicación»**: `acceso/` no es una aplicación, es la
+carpeta de lo que las tres comparten cuando todavía no hay sesión. No tiene rutas ni un
+`rutas-acceso.ts`, y ninguno de sus componentes es una pantalla: son piezas que las
+pantallas de `empresa/`, `plataforma/` y `portal/` montan dentro de las suyas.
+
+| Componente | Qué es |
+|---|---|
+| `marco-acceso` | El armazón de dos columnas. Cada pantalla proyecta su formulario con `<ng-content>`; el marco no sabe de campos, validaciones ni API |
+| `campo-contrasena` | El campo con el botón de mostrar/ocultar, la etiqueta en `sr-only` y `aria-invalid` |
+| `selector-idioma` | El desplegable de idioma de la barra superior |
+| `bandera` | La banderita de un idioma, como `<img>` |
+
+La razón de que existan es siempre la misma: **el detalle que se copia mal**. El
+alternador de contraseña tiene más partes de las que parece —el `type="button"` del botón,
+la etiqueta que describe la acción y no el estado, el `aria-pressed`, el `aria-controls`—
+y repetirlo en las cuatro pantallas que piden contraseña garantiza que una copia se quede a
+medias. Lo mismo el marco: las cinco pantallas sin sesión repiten estructura, proporciones
+y la desaparición del panel por debajo de `lg`.
+
+> `ilustracion-acceso` sigue en la carpeta pero **ya no lo importa nadie**: el panel de
+> marca pasó a una fotografía de fondo.
+
+### El `FormControl` se pasa como `input()`, no con `formControlName`
+
+`campo-contrasena` recibe el control:
+
+```html
+<app-campo-contrasena [control]="formulario.controls.contrasena" />
+```
+
+```ts
+readonly control = input.required<FormControl<string>>();
+```
+
+Y **no** `formControlName="contrasena"` dentro del componente. Tres razones:
+
+1. **No depende de estar dentro de un `formGroup` concreto.** Un componente con
+   `formControlName` solo funciona si su anfitrión resulta ser el contenedor correcto, y
+   eso es una dependencia invisible que rompe al mover el componente de sitio.
+2. **No hay que reexponer el contenedor con `viewProviders`.** Es el truco habitual para
+   que `formControlName` funcione dentro de un hijo, y es exactamente el tipo de acople
+   que conviene no adquirir.
+3. **El tipo del control se comprueba en la plantilla que lo usa.** Con `formControlName`
+   el vínculo es una cadena y nadie verifica que exista ni de qué tipo es; con `input()`
+   lo comprueba `strictTemplates`.
+
+El mismo criterio aplica a los `input()` que acompañan al control (`campoId`,
+`autocompletado`, `descritoPor`, `invalido`): `invalido` existe porque al mover los campos
+crudos al componente el `aria-invalid` se perdía, y con él la única señal que tiene un
+lector de pantalla de que **ese** campo es el del problema — el `role="alert"` anuncia el
+mensaje, pero no dice a qué campo se refiere.
 
 ## Nomenclatura
 

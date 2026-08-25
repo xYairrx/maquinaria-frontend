@@ -71,8 +71,8 @@ pantalla no es lo mismo que el rótulo que abre una sección.
 
 Hoy la llevan:
 
-- El `<h1>` de las pantallas de acceso (`paginas/acceso/marco-acceso.html`) y, en el panel
-  de marca de ese mismo archivo, el nombre del producto.
+- El `<h1>` de las pantallas de acceso (`paginas/acceso/marco-acceso.html`) y, en la barra
+  superior de ese mismo archivo, el nombre del producto en dos colores.
 - El `<h1>` de la pantalla, cuando es el título de la página entera: la razón social en
   `empresa/inicio`, «Empresas» en `plataforma/empresas`, «Define tu contraseña» en
   `empresa/aceptar-invitacion`.
@@ -109,6 +109,10 @@ El menú ocupa el alto completo y no se desplaza con el contenido. El contenido 
 
 Relleno: tarjetas `p-5`, barra superior `px-6 py-4`, contenido `p-6`, separación entre
 bloques `gap-5`.
+
+**Única desviación admitida**: el botón principal de las pantallas de acceso es una
+**píldora** (`boton-acceso`). Está acotada a esas pantallas y no se extiende al resto; el
+porqué está en §Pantallas de acceso.
 
 ## Menú lateral
 
@@ -155,7 +159,11 @@ bold), una barra de progreso y un pie en `texto-inverso-tenue` (11 px).
 
 **Campo de búsqueda**: `bg-superficie-hover`, `rounded-lg`, **sin borde**, icono de lupa
 en `texto-tenue` a la izquierda, marcador de posición en `texto-apagado`, ancho ~280 px.
-Es la única excepción a la regla del borde de campo, porque el fondo ya lo separa.
+
+Es uno de los dos sitios donde el campo no lleva borde —el otro es `campo-acceso` de las
+pantallas de acceso—, y por la misma razón: la regla de `borde-campo` existe para los
+controles cuyo contorno es el único indicio de que son un control, y aquí el fondo ya los
+separa. **A cambio, el `outline` de foco deja de ser opcional.**
 
 **Acción principal**: `bg-amarillo`, texto `sobre-amarillo` medium, `rounded-lg`,
 `px-4 py-2.5`, hover `amarillo-hover`. Con `+` delante cuando crea algo.
@@ -202,6 +210,20 @@ Celdas `px-4 py-2.5`: la primera columna en `texto` medium, el resto en
 Toda tabla va envuelta en `overflow-x-auto`: el cuerpo de la página nunca hace scroll
 horizontal.
 
+## Campos de formulario dentro de la aplicación
+
+`border border-borde-campo`, `bg-superficie`, `rounded-lg`, `px-3 py-2`, etiqueta **a la
+vista y alineada a la izquierda** en `texto-secundario` 14 px medium, ayuda en
+`texto-apagado` 12 px.
+
+El borde usa `borde-campo` y **no** `borde`: un control necesita 3:1 (WCAG 1.4.11), y
+`borde` es decorativo (1.29:1 contra blanco). `borde-campo` llega a 3.45:1 sobre
+`superficie`.
+
+Los campos rellenos y sin borde son la **excepción**, no la norma: el buscador de la barra
+superior y `campo-acceso` de las pantallas de acceso. Un formulario de alta de datos —dar
+de alta una empresa, editar un equipo— lleva borde y etiqueta visible.
+
 ## Pantallas de acceso
 
 **Dos columnas a pantalla completa.** No llevan menú: todavía no hay sesión ni empresa
@@ -209,41 +231,155 @@ que mostrar.
 
 ```
 ┌───────────────────┬──────────────────────────────────┐
-│                   │                                  │
-│   Formulario      │   Panel de marca                 │
-│   (superficie)    │   (negro-lateral)                │
-│   ~38 %, min 380  │   resto                          │
-│                   │                                  │
+│ RETRO·MAQ    ES ▾ │                                  │
+│                   │   Panel de marca                 │
+│    Formulario     │   (negro-lateral + fotografía)   │
+│    (superficie)   │   resto                          │
+│   ~38 %, min 380  │                                  │
 └───────────────────┴──────────────────────────────────┘
 ```
 
-**Columna del formulario.** `bg-superficie`, alto completo, contenido centrado
-verticalmente, ancho de contenido `max-w-sm`, `px-8`. En este orden:
+La estructura vive en un solo sitio, `paginas/acceso/marco-acceso.html`, y las cinco
+pantallas sin sesión la reciben proyectando su formulario con `<ng-content>`: acceso de
+empresa, acceso de plataforma, portal y las dos del restablecimiento. El marco no sabe
+nada de campos, validaciones ni API.
 
-1. Bloque de identidad **centrado**: el cuadrado amarillo de 32 px con el glifo, y al
-   lado el nombre del producto en `texto` 18 px semibold.
-2. Título de la pantalla, centrado, `texto`, 22 px semibold.
-3. Una línea de apoyo centrada en `texto-apagado`, 13 px.
-4. Los campos, con la etiqueta **alineada a la izquierda** en `texto-secundario`.
-5. Botón principal **a lo ancho** (`w-full`).
-6. Debajo del botón, centrado, el enlace secundario en `texto-secundario` con subrayado
-   y 13 px.
+**Columna del formulario.** `bg-superficie`, alto completo, `px-8 py-8`. Ocupa todo el
+ancho por debajo de `lg` y a partir de ahí se queda en `lg:w-[38%] lg:min-w-95` (380 px),
+que es el ancho por debajo del cual los campos empiezan a apretarse. Tiene dos bloques:
 
-**Columna de marca.** `bg-negro-lateral`, alto completo. Se oculta por debajo de `lg`
-(`hidden lg:flex`) y entonces el formulario ocupa todo el ancho: en un teléfono, media
-pantalla decorativa es media pantalla perdida.
+1. **Arriba, una barra con la marca a la izquierda y el selector de idioma a la derecha**
+   (`flex items-center justify-between`). Va pegada al borde superior y **no** centrada
+   con el formulario, por eso la columna dejó de ser `justify-center`.
+2. **Centrado verticalmente, el bloque del formulario** (`mx-auto w-full max-w-sm flex-1
+   justify-center`): el `<h1>` de la pantalla en `font-titulo` 22 px semibold y centrado,
+   debajo la línea de apoyo centrada en `texto-apagado` 13 px, y a `mt-7` el formulario.
 
-Dentro va la identidad del producto en grande y una frase corta, nada más:
-`texto-inverso` para el nombre, `texto-inverso-suave` para la frase. **Sin ilustración de
-catálogo, sin fotografías de archivo y sin métricas de ejemplo.** Si algún día hay una
-ilustración propia, este es su sitio.
+**La marca va en dos colores**: la primera parte en `texto` y la segunda en `amarillo`,
+19 px, `font-titulo`, `font-extrabold`. Las dos partes salen de `sitio.marca`
+(`nucleo/ambiente/sitio.ts`) y no están escritas en la plantilla, para que el nombre siga
+cambiándose en un solo archivo; si el nombre cambia hay que mover también el corte,
+porque la suma de las dos partes tiene que dar `sitio.nombre`. Los dos `<span>` van
+`aria-hidden` y el párrafo lleva `aria-label` con el nombre completo, para que un lector
+de pantalla lo lea como una palabra en lugar de deletrear «RETRO, MAQ».
 
-**Campos**: `border border-borde-campo`, `bg-superficie`, `rounded-lg`, `px-3 py-2`,
-etiqueta en `texto-secundario` 14 px medium, ayuda en `texto-apagado` 12 px. El borde del
-campo usa `borde-campo` y **no** `borde`: un control necesita 3:1 (WCAG 1.4.11), y `borde`
-es decorativo (1.29:1 contra blanco).
+> **El amarillo de la marca no se «arregla».** Da 1.61:1 sobre blanco, muy por debajo del
+> 4.5:1 de WCAG 1.4.3, pero **la norma exime expresamente los logotipos y nombres de
+> marca** del requisito de contraste. AXE lo va a marcar igual y alguien va a intentar
+> corregirlo: no hay que hacerlo. Y la exención **cubre la marca y solo la marca**: en
+> cualquier otro texto el amarillo sobre fondo claro sigue prohibido, incluido el enlace
+> de «¿Olvidaste tu contraseña?», que por eso va en `texto-secundario`.
 
-**Botón deshabilitado**: `bg-estado-neutro-fondo`, `text-estado-neutro-texto`.
+**Selector de idioma.** Botón con la bandera, las dos letras del idioma y una flecha que
+gira al abrir (`aria-haspopup="listbox"`, `aria-expanded`), y un desplegable
+`role="listbox"` con el nombre de cada idioma **en su propio idioma**. La bandera es un
+`<img>` y no un emoji: Windows no trae banderas de países en su fuente de emoji —es una
+omisión deliberada de Microsoft— y en su lugar dibuja las dos letras del indicador
+regional, así que donde debía verse la bandera de México aparecía «MX». El redondeo lo
+pone el CSS y no el SVG, porque el `rx` de los archivos es proporcional al lienzo y a
+20 px de ancho no se aprecia.
+
+**Ojo: elegir un idioma todavía no traduce nada.** No hay librería de i18n ni un solo
+texto traducido; el selector está montado para conectarlo después y guarda su elección
+solo para sí mismo.
+
+**Columna de marca.** `bg-negro-lateral`, alto completo, `flex-1`. Se oculta por debajo de
+`lg` (`hidden lg:flex`) y entonces el formulario ocupa todo el ancho: en un teléfono,
+media pantalla decorativa es media pantalla perdida. Va `aria-hidden`: es decoración pura,
+no hay nada enfocable dentro y quien usa un lector de pantalla lo que necesita es llegar
+al primer campo.
+
+**Ya no lleva ilustración.** Hoy es una **fotografía a sangre**: `background-size: cover`,
+`background-position: center 42%` —la máquina está en la banda alta de la foto y centrar
+metía muro de más—, `filter: grayscale`, `opacity: 0.4`. Está en la utilidad `foto-marca`
+de `styles.css`.
+
+Es **fondo de CSS y no un `<img>`**, y las dos razones son de peso:
+
+1. `NgOptimizedImage` la detectaba como elemento **LCP** y exigía `priority` (NG02955).
+   Pero marcarla prioritaria la precargaría **siempre**, incluso en un teléfono, donde
+   este panel está oculto y la imagen no se ve nunca. La advertencia pedía justo lo
+   contrario de lo que conviene.
+2. **El navegador no descarga el fondo de un elemento con `display: none`.** Como el panel
+   es `hidden lg:flex`, en móvil la imagen no se pide siquiera. Con un `<img>` eso no se
+   consigue de forma fiable.
+
+Que sea un fondo es además lo correcto semánticamente: no hay nada que describir en un
+`alt`. **La fotografía puede estar ahí porque no afirma ningún dato.** Lo que sigue vetado
+son las métricas de ejemplo: un número inventado se ve igual que uno real y haría creer
+que el sistema ya lo calcula.
+
+> El componente `paginas/acceso/ilustracion-acceso.ts` —el SVG en línea que ocupaba este
+> panel antes— sigue en disco pero **ya no lo usa nadie**. Lo mismo la utilidad
+> `halo-marca` de `styles.css`, que era el degradado que asentaba esa ilustración.
+
+**Campos: rellenos y sin borde.** Es la utilidad `campo-acceso` de `styles.css`:
+`bg-superficie-hover`, `rounded-lg`, 1 rem de relleno, 14 px, marcador de posición en
+`texto-apagado`. **No** llevan `border border-borde-campo` sobre blanco: aquí no aplica la
+regla de `borde-campo`, que existe para los controles cuyo contorno es el único indicio de
+que son un control, y este se distingue por su relleno.
+
+**Sin borde, el `outline` de foco es obligatorio** (WCAG 2.4.7): `outline: 2px solid
+negro-acento` con `outline-offset: 2px`, para que se lea sobre el propio relleno. No es
+negociable, porque no queda ninguna otra señal de dónde está el cursor.
+
+**Botón principal: una píldora.** Es la utilidad `boton-acceso`: a lo ancho,
+`border-radius: calc(infinity * 1px)`, `bg-amarillo` con `sobre-amarillo` encima, 14 px
+medium, hover en `amarillo-hover`, y deshabilitado en `estado-neutro-fondo` /
+`estado-neutro-texto`. **La píldora es una desviación consciente de la escala de radios
+del sistema** —donde un botón es `rounded-lg`— y está **acotada a las pantallas de
+acceso**: son pantallas de un solo botón, sin nada alrededor con lo que desentonar. Fuera
+de los accesos no se usa.
+
+Los dos controles van como utilidades y no como clases sueltas en cada plantilla porque
+**seis** pantallas repiten los mismos dos: las cinco del marco más `aceptar-invitacion`,
+que todavía usa su propia disposición de una columna pero sí los controles. Con las clases
+repetidas, cambiar el alto de un campo eran seis ediciones y la garantía de que una se
+quedaría distinta.
+
+### Las etiquetas van en `sr-only`, con el texto en el `placeholder`
+
+El aspecto es el de la referencia de diseño —el campo solo enseña su marcador de
+posición—, pero la etiqueta **sigue en el marcado**, oculta con `sr-only`.
+
+Dejar el texto únicamente en el `placeholder` falla **WCAG 3.3.2** por dos motivos
+distintos: **desaparece en cuanto se empieza a escribir**, así que quien se distrae ya no
+sabe qué iba en ese campo, y **no sirve como nombre accesible** —muchos lectores de
+pantalla no lo anuncian—. Con `sr-only` el aspecto es idéntico y el campo conserva su
+nombre.
+
+Cuando hay una **instrucción** —«El correo con el que entras a esta empresa. La liga
+caduca en una hora»— esa sí se queda a la vista en `texto-apagado` 12 px, enlazada con
+`aria-describedby`. Una instrucción no es una etiqueta y no se puede meter en el
+`placeholder`.
+
+### El botón de enviar no se deshabilita por formulario inválido
+
+En las dos pantallas de **acceso** —empresa y plataforma— el botón solo se deshabilita
+**mientras se envía**, para evitar el doble clic. Nunca por `formulario.invalid`.
+
+La razón es concreta: **el navegador autocompleta el DOM sin que Angular se entere**, así
+que el control seguía vacío para el formulario reactivo, el botón salía gris y, con las
+credenciales guardadas a la vista en los campos, era imposible entrar. Añadido a eso, un
+botón deshabilitado no explica qué falta.
+
+Lo que se hace en su lugar: al pulsar con el formulario inválido se llama
+`markAllAsTouched()` y **se dice qué falta** («Escribe tu correo y tu contraseña»). Antes
+el clic no producía ningún efecto visible, que es peor que el botón gris.
+
+Las pantallas que **no** reciben autocompletado de credenciales —pedir la liga, definir la
+contraseña nueva, elegir empresa— sí pueden deshabilitar por inválido, y lo hacen.
+
+### Enlaces secundarios
+
+13 px, `texto-secundario`, subrayado con `underline-offset-2`, y con `outline` de foco
+visible. Dónde van depende de a qué se refieren:
+
+- **«¿Olvidaste tu contraseña?»** va **pegado al campo de contraseña y alineado a la
+  izquierda** (`self-start`), no al final de la pantalla: quien lo busca es porque la
+  contraseña no le funcionó, y ahí es donde mira.
+- **«Volver a entrar»**, en cambio, va **centrado y al final** (`mt-5 text-center`): no se
+  refiere a ningún campo, es la salida de la pantalla.
 
 ### Lo que NO va en un acceso de este producto
 
@@ -256,7 +392,15 @@ mentira:
 - **«Recordarme»** — la sesión ya persiste; una casilla que no cambia nada es peor que no
   tenerla.
 
-Lo que sí va: **«¿Olvidaste tu contraseña?»**, debajo del botón y centrado.
+Lo que sí va: **«¿Olvidaste tu contraseña?»**, pegado al campo de contraseña y alineado a
+la izquierda.
+
+Y una cosa que **sí tiene que estar**, aunque la maqueta no la traía: **a qué empresa se
+está entrando**. Va como cola destacada de la línea de apoyo —«Ingresa tus datos para
+gestionar los activos de **Bajío**»—, en `font-medium text-texto`. Desde que la empresa
+sale del subdominio y ya no se escribe, ese nombre es lo único que distingue una pantalla
+de acceso de otra y lo único que le avisa a quien llegó desde una liga vieja que está en
+la empresa equivocada.
 
 ## Lo que no se hace
 
@@ -266,6 +410,9 @@ Lo que sí va: **«¿Olvidaste tu contraseña?»**, debajo del botón y centrado
   mínimo. Para eso está el par `estado-neutro-fondo` / `estado-neutro-texto`.
 - **`amarillo` nunca como texto sobre fondo claro ni como anillo de foco ahí**: da 1.61:1
   contra `superficie`. Solo como relleno con `sobre-amarillo` encima, como filete, o como
-  cifra sobre negro.
+  cifra sobre negro. **La única excepción es el nombre de marca** de la barra superior de
+  los accesos, y no por criterio propio: WCAG exime expresamente los logotipos y nombres
+  de marca del requisito de contraste. La exención cubre la marca y solo la marca — ver
+  §Pantallas de acceso.
 - **`texto-tenue` nunca en texto normal**: 3.45:1. Solo texto grande o elementos no
   textuales.

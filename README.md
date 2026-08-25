@@ -8,7 +8,7 @@ Consume la API del repo hermano [`maquinaria-backend`](https://github.com/xYairr
 
 ## Stack
 
-Versiones realmente instaladas en `node_modules` al 2026-08-20, verificadas contra disco:
+Versiones realmente instaladas en `node_modules` al 2026-08-24, verificadas contra disco:
 
 | Pieza | Rango | Instalado |
 |---|---|---|
@@ -22,7 +22,7 @@ Versiones realmente instaladas en `node_modules` al 2026-08-20, verificadas cont
 | Prettier | `^3.8.1` | 3.9.6 |
 | zone.js | — | **no instalado** |
 
-Tres cosas que conviene saber antes de tocar código: la app es **zoneless**, Tailwind es **v4 sin `tailwind.config.js`**, y el builder es `@angular/build:application` (esbuild/Vite). El detalle está en [convenciones](docs/convenciones.md).
+Cuatro cosas que conviene saber antes de tocar código: la app es **zoneless**, Tailwind es **v4 sin `tailwind.config.js`**, el builder es `@angular/build:application` (esbuild/Vite) y **ningún componente lleva HTML dentro del `.ts`** — todo el marcado va en un `.html` hermano con `templateUrl`. El detalle está en [convenciones](docs/convenciones.md).
 
 > Los documentos de diseño dicen **Angular 22**; en disco es **21.2.21**. Esa y otras divergencias están listadas en [estado y pendientes](docs/estado-y-pendientes.md#divergencias-con-los-documentos-de-diseño). Ante duda, gana el disco.
 
@@ -47,7 +47,10 @@ npm install
 npm start
 ```
 
-El dev server queda en `http://localhost:4200` con recarga en caliente.
+El dev server queda en `http://localhost:4200` con recarga en caliente. **Qué aplicación
+ves depende del anfitrión**: `localhost:4200` es el portal, `admin.localhost:4200` la
+superadministración y `bajio.localhost:4200` la empresa `bajio`. Chrome y Edge resuelven
+`*.localhost` solos, sin tocar el archivo `hosts`.
 
 ## Scripts
 
@@ -58,7 +61,7 @@ Solo estos cinco existen hoy:
 | `npm start` | `ng serve` | Dev server en `:4200`, configuración `development` |
 | `npm run build` | `ng build` | Build de producción |
 | `npm run watch` | `ng build --watch --configuration development` | Build incremental sin dev server |
-| `npm test` | `ng test` | Pruebas unitarias con Vitest + jsdom |
+| `npm test` | `ng test` | Pruebas unitarias con Vitest + jsdom — hoy **39, todas pasan** |
 | `npm run ng` | `ng` | Paso directo al CLI, p. ej. `npm run ng -- generate component x` |
 
 No hay script de lint, formato, `e2e` ni `api:sync`.
@@ -69,26 +72,30 @@ La salida del build es **`dist/maquinaria-frontend/browser`** — la ruta que ha
 
 ```
 maquinaria-frontend/
-├── docs/                    # guías de este repo
-├── public/favicon.ico
+├── docs/                       # guías de este repo
+├── public/                     # favicon, ilustración del acceso, banderas
 ├── src/
 │   ├── app/
-│   │   ├── app.config.ts    # provideRouter + provideBrowserGlobalErrorListeners
-│   │   ├── app.css          # vacío
-│   │   ├── app.html         # plantilla de bienvenida de Angular (placeholder)
-│   │   ├── app.routes.ts    # routes: Routes = []
-│   │   ├── app.spec.ts
-│   │   └── app.ts
+│   │   ├── app.config.ts        # providers: router, http, título de pestaña
+│   │   ├── app.routes.ts        # elige el árbol de rutas según el subdominio
+│   │   ├── rutas-empresa.ts     # <slug>.<dominio>
+│   │   ├── rutas-plataforma.ts  # admin.<dominio>
+│   │   ├── rutas-portal.ts      # el dominio pelado y login.<dominio>
+│   │   ├── nucleo/              # ambiente/ · api/ · sesion/
+│   │   ├── disposicion/         # armazones y menú lateral
+│   │   └── paginas/             # acceso/ · empresa/ · plataforma/ · portal/
 │   ├── index.html
-│   ├── main.ts              # bootstrapApplication(App, appConfig)
-│   └── styles.css           # @import 'tailwindcss'
-├── AGENTS.md                # reglas del repo (idéntico a .claude/CLAUDE.md)
+│   ├── main.ts                  # bootstrapApplication(App, appConfig)
+│   └── styles.css               # fuentes, Tailwind v4 y los tokens de @theme
+├── AGENTS.md                    # reglas del repo (idéntico a .claude/CLAUDE.md)
 ├── angular.json
 ├── .postcssrc.json
-└── tsconfig.json            # strict y strictTemplates
+└── tsconfig.json                # strict y strictTemplates
 ```
 
-Todavía no existen `src/app/core/`, `src/app/features/`, `src/app/shared/` ni `src/environments/`.
+No hay `src/app/core/`, `features/`, `shared/` ni `src/environments/`: la configuración de
+ambiente es un solo archivo, `nucleo/ambiente/configuracion.ts`. El desglose carpeta por
+carpeta está en [estado y pendientes](docs/estado-y-pendientes.md#cómo-está-organizado-srcapp).
 
 ## Guías
 
@@ -97,7 +104,7 @@ Todavía no existen `src/app/core/`, `src/app/features/`, `src/app/shared/` ni `
 | [Integración con el backend](docs/integracion-backend.md) | Puertos, OpenAPI, cliente generado, dominios, acceso por subdominio, permisos |
 | [Sistema de diseño](docs/sistema-de-diseno.md) | Menú lateral, barra superior, tarjetas, tablas y accesos. La referencia visual del producto |
 | [Convenciones de código](docs/convenciones.md) | Las reglas de `AGENTS.md` en forma operativa, zoneless y Tailwind v4 |
-| [Estado y pendientes](docs/estado-y-pendientes.md) | Qué hay, los 16 pendientes, las fases y las divergencias con los docs |
+| [Estado y pendientes](docs/estado-y-pendientes.md) | Qué hay en disco, los 17 pendientes, las fases y las divergencias con los docs |
 
 ## Cómo se trabaja
 
