@@ -1,5 +1,7 @@
 import type { Routes } from '@angular/router';
 
+import { t } from './nucleo/i18n/i18n';
+
 /**
  * La puerta de entrada: el dominio pelado y `login.<dominio>`.
  *
@@ -9,7 +11,7 @@ import type { Routes } from '@angular/router';
 export const rutasPortal: Routes = [
   {
     path: 'entrar',
-    title: 'Entrar a tu empresa',
+    title: () => t().titulos.portal,
     loadComponent: () =>
       import('./paginas/portal/seleccionar-empresa/seleccionar-empresa').then(
         (m) => m.SeleccionarEmpresa,

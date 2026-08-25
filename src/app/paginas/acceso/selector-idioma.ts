@@ -1,30 +1,19 @@
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 
+import { IDIOMAS, elegirIdioma, idioma, t, type Idioma } from '../../nucleo/i18n/i18n';
 import { Bandera } from './bandera';
 
 /**
  * Selector de idioma de las pantallas de acceso.
  *
- * OJO: ELEGIR UN IDIOMA TODAVÍA NO TRADUCE NADA. El proyecto no tiene i18n —ni librería
- * ni un solo texto traducido— y el inglés está en la lista porque así se pidió, para
- * dejar la interfaz montada antes de conectarla.
+ * Ya traduce: `elegir()` cambia el idioma de toda la aplicación y lo recuerda entre
+ * visitas. El estado NO vive aquí —vive en `nucleo/i18n/i18n.ts`— porque el idioma no es
+ * de este componente: el menú lateral, los errores de la API y `<html lang>` leen el
+ * mismo.
  *
- * Cuando se conecte, lo que falta es que `elegir()` avise a la librería que se elija y
- * que el idioma se recuerde entre visitas. La lista y el estado ya están.
+ * La lista tampoco está escrita aquí, por lo mismo: un ajuste de perfil necesitará los
+ * mismos idiomas sin pasar por este desplegable.
  */
-interface Idioma {
-  readonly codigo: string;
-  /** Lo que se enseña plegado: dos letras. */
-  readonly corto: string;
-  /** El nombre en su propio idioma, como manda la convención de los selectores. */
-  readonly nombre: string;
-}
-
-const IDIOMAS: readonly Idioma[] = [
-  { codigo: 'es-MX', corto: 'ES', nombre: 'Español' },
-  { codigo: 'en-US', corto: 'EN', nombre: 'English' },
-];
-
 @Component({
   selector: 'app-selector-idioma',
   imports: [Bandera],
@@ -32,10 +21,11 @@ const IDIOMAS: readonly Idioma[] = [
   templateUrl: './selector-idioma.html',
 })
 export class SelectorIdioma {
+  protected readonly t = t;
   protected readonly idiomas = IDIOMAS;
+  protected readonly codigoActual = idioma;
 
   protected readonly abierto = signal(false);
-  protected readonly codigoActual = signal(IDIOMAS[0].codigo);
 
   protected readonly actual = computed(
     () => this.idiomas.find((i) => i.codigo === this.codigoActual()) ?? this.idiomas[0],
@@ -45,10 +35,8 @@ export class SelectorIdioma {
     this.abierto.update((v) => !v);
   }
 
-  protected elegir(codigo: string): void {
-    // De momento solo cambia lo que muestra el propio selector. Aquí es donde habrá que
-    // avisar a la librería de i18n y guardar la preferencia.
-    this.codigoActual.set(codigo);
+  protected elegir(codigo: Idioma['codigo']): void {
+    elegirIdioma(codigo);
     this.abierto.set(false);
   }
 }

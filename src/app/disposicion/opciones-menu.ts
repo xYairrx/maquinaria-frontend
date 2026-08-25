@@ -6,6 +6,8 @@
  * Aquí agregar un módulo es una línea, y la visibilidad se resuelve sola.
  */
 
+import { t } from '../nucleo/i18n/i18n';
+
 export interface OpcionMenu {
   readonly titulo: string;
 
@@ -54,21 +56,29 @@ const ICONOS = {
  * Hoy solo el inicio: las pantallas de los módulos son la Fase 1 en adelante. Para
  * agregar una, se añade su ruta en `rutas-empresa.ts` y una entrada aquí con la
  * `clave` del módulo; el filtrado por plan y permisos ya funciona.
+ *
+ * Es una FUNCIÓN y no una constante desde que hay dos idiomas: una constante se
+ * evaluaría al cargar el módulo y el menú se quedaría en el idioma de ese instante.
+ * Llamada dentro de un `computed`, se rehace sola al cambiar de idioma.
  */
-export const MENU_EMPRESA: readonly GrupoMenu[] = [
-  {
-    titulo: '',
-    opciones: [{ titulo: 'Inicio', ruta: '/inicio', icono: ICONOS.inicio }],
-  },
-  {
-    titulo: 'Operación',
-    opciones: [
-      { titulo: 'Equipos', ruta: '/equipos', modulo: 'equipos', icono: ICONOS.maquina },
-      { titulo: 'Clientes', ruta: '/clientes', modulo: 'clientes', icono: ICONOS.usuarios },
-      { titulo: 'Rentas', ruta: '/rentas', modulo: 'rentas', icono: ICONOS.documento },
-    ],
-  },
-];
+export function menuEmpresa(): readonly GrupoMenu[] {
+  const m = t().menu;
+
+  return [
+    {
+      titulo: '',
+      opciones: [{ titulo: m.inicio, ruta: '/inicio', icono: ICONOS.inicio }],
+    },
+    {
+      titulo: m.operacion,
+      opciones: [
+        { titulo: m.equipos, ruta: '/equipos', modulo: 'equipos', icono: ICONOS.maquina },
+        { titulo: m.clientes, ruta: '/clientes', modulo: 'clientes', icono: ICONOS.usuarios },
+        { titulo: m.rentas, ruta: '/rentas', modulo: 'rentas', icono: ICONOS.documento },
+      ],
+    },
+  ];
+}
 
 /**
  * Menú de la superadministración.
@@ -77,9 +87,11 @@ export const MENU_EMPRESA: readonly GrupoMenu[] = [
  * superadministrador no es de ninguna empresa. Su acceso lo decide la policy de ámbito
  * `plataforma` en la API.
  */
-export const MENU_PLATAFORMA: readonly GrupoMenu[] = [
-  {
-    titulo: '',
-    opciones: [{ titulo: 'Empresas', ruta: '/empresas', icono: ICONOS.edificios }],
-  },
-];
+export function menuPlataforma(): readonly GrupoMenu[] {
+  return [
+    {
+      titulo: '',
+      opciones: [{ titulo: t().menu.empresas, ruta: '/empresas', icono: ICONOS.edificios }],
+    },
+  ];
+}

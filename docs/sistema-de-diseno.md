@@ -279,9 +279,10 @@ regional, así que donde debía verse la bandera de México aparecía «MX». El
 pone el CSS y no el SVG, porque el `rx` de los archivos es proporcional al lienzo y a
 20 px de ancho no se aprecia.
 
-**Ojo: elegir un idioma todavía no traduce nada.** No hay librería de i18n ni un solo
-texto traducido; el selector está montado para conectarlo después y guarda su elección
-solo para sí mismo.
+**Elegir un idioma traduce toda la interfaz**, en vivo y sin recargar, y la elección se
+recuerda entre visitas. No hay librería de i18n: los textos viven en
+`nucleo/i18n/textos.ts` y TypeScript obliga a que los dos idiomas estén completos. Ver
+[internacionalización](convenciones.md#internacionalización).
 
 **Columna de marca.** `bg-negro-lateral`, alto completo, `flex-1`. Se oculta por debajo de
 `lg` (`hidden lg:flex`) y entonces el formulario ocupa todo el ancho: en un teléfono,

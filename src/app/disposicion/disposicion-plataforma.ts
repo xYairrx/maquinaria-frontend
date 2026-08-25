@@ -4,9 +4,10 @@ import { Router, RouterOutlet } from '@angular/router';
 
 import { ApiPlataforma } from '../nucleo/api/api-plataforma';
 import { SesionPlataformaStore } from '../nucleo/sesion/sesion-plataforma';
-import { MENU_PLATAFORMA } from './opciones-menu';
+import { menuPlataforma } from './opciones-menu';
 import { MenuLateral } from './menu-lateral';
 import { sitio } from '../nucleo/ambiente/sitio';
+import { t } from '../nucleo/i18n/i18n';
 
 /**
  * El armazón de la superadministración.
@@ -28,12 +29,13 @@ import { sitio } from '../nucleo/ambiente/sitio';
 export class DisposicionPlataforma {
   /** El nombre y la descripción del producto, en un solo sitio. */
   protected readonly sitio = sitio;
+  protected readonly t = t;
 
   private readonly sesion = inject(SesionPlataformaStore);
   private readonly api = inject(ApiPlataforma);
   private readonly router = inject(Router);
 
-  protected readonly menu = MENU_PLATAFORMA;
+  protected readonly menu = computed(() => menuPlataforma());
 
   protected readonly nombre = computed(() => this.sesion.identidad()?.nombre ?? '');
   protected readonly correo = computed(() => this.sesion.identidad()?.correo ?? '');

@@ -3,6 +3,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 
 import { Api } from '../../../nucleo/api/api';
+import { t } from '../../../nucleo/i18n/i18n';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { Sesion } from '../../../nucleo/sesion/sesion';
 import { tenantActual } from '../../../nucleo/ambiente/tenant';
@@ -49,6 +50,8 @@ export class IniciarSesion {
    */
   protected readonly empresa = tenantActual() ?? '';
 
+  protected readonly t = t;
+
   protected readonly error = signal<string | null>(null);
   protected readonly enviando = signal(false);
 
@@ -67,7 +70,7 @@ export class IniciarSesion {
     // no producia ningun efecto visible.
     if (this.formulario.invalid) {
       this.formulario.markAllAsTouched();
-      this.error.set('Escribe tu correo y tu contraseña.');
+      this.error.set(t().comun.faltanCredenciales);
       return;
     }
 

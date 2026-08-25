@@ -3,6 +3,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 
 import { Api } from '../../../nucleo/api/api';
+import { t } from '../../../nucleo/i18n/i18n';
 import type { InvitacionVigente } from '../../../nucleo/api/contratos';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { tenantActual } from '../../../nucleo/ambiente/tenant';
@@ -37,6 +38,7 @@ export class AceptarInvitacion {
   private readonly router = inject(Router);
   private readonly fb = inject(NonNullableFormBuilder);
 
+  protected readonly t = t;
   protected readonly largoMinimo = LARGO_MINIMO;
 
   protected readonly estado = signal<'cargando' | 'lista' | 'invalida'>('cargando');
@@ -58,7 +60,7 @@ export class AceptarInvitacion {
 
       if (empresa === '' || token === '') {
         this.estado.set('invalida');
-        this.error.set('La liga está incompleta.');
+        this.error.set(t().invitacion.ligaIncompleta);
         return;
       }
 

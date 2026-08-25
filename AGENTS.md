@@ -57,3 +57,23 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Design services around a single responsibility
 - Use the `providedIn: 'root'` option for singleton services
 - Use the `inject()` function instead of constructor injection
+
+## Internationalization
+
+- NEVER hardcode UI text in a template or a `.ts` file. Every user-facing string goes
+  through `t()` from `src/app/nucleo/i18n/i18n.ts`, and both `es-MX` and `en-US` must be
+  filled in `nucleo/i18n/textos.ts` — a missing translation is a compile error, so this
+  is not optional.
+- In a component: `protected readonly t = t;`, then `{{ t().seccion.clave }}` in the
+  template. Angular cannot call an imported function from markup.
+- Text with a value inside goes in the dictionary as a FUNCTION —
+  `permisos: (n: number) => ...` — never as a template with placeholders.
+- Do NOT translate text that comes from the API. The `detail` of a `ProblemDetails` is
+  worded on the server to be uniform (it must not reveal whether an account exists);
+  rewriting it here would undo that.
+- A text `input()` default cannot BE the text: it would freeze in whatever language was
+  active at construction. Use `input('')` plus a `computed` that resolves the fallback.
+- A menu or data list goes in a function, not a module constant: a constant is evaluated
+  at module load and stays in that language.
+
+See `docs/convenciones.md#internacionalización` for the reasoning and the two traps.

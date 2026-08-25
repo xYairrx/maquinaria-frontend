@@ -4,7 +4,7 @@
     (click)="alternar()"
     aria-haspopup="listbox"
     [attr.aria-expanded]="abierto()"
-    [attr.aria-label]="'Idioma: ' + actual().nombre"
+    [attr.aria-label]="t().idioma.etiqueta(actual().nombre)"
     class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
   >
     <app-bandera [codigo]="actual().codigo" />

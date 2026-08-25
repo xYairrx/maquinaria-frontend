@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
+import { t } from '../nucleo/i18n/i18n';
 import type { GrupoMenu } from './opciones-menu';
 
 /**
@@ -40,5 +41,14 @@ export class MenuLateral {
    * navegación bastaría «Principal», pero nombrarlo por producto evita ambigüedad si
    * mañana hay un menú secundario.
    */
-  readonly etiquetaNavegacion = input<string>('Navegación principal');
+  readonly etiquetaNavegacion = input<string>('');
+
+  /**
+   * Vacío es «la de por defecto», no «sin etiqueta»: un `<nav>` sin nombre accesible es
+   * justo lo que este input existe para evitar. El texto no puede ser el valor por
+   * defecto del input porque se congelaría en el idioma del momento de construir.
+   */
+  protected readonly etiquetaFinal = computed(
+    () => this.etiquetaNavegacion() || t().menu.navegacionPrincipal,
+  );
 }

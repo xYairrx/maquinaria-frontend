@@ -4,17 +4,14 @@
   cuenta de superadministrador se restablece por consola, no por correo. La tabla
   `token_acceso` vive en la base de cada empresa y la base central no la tiene.
 -->
-<app-marco-acceso
-  titulo="Panel administrativo"
-  apoyo="Controla y gestiona las empresas del sistema."
->
+<app-marco-acceso [titulo]="t().entrarPlataforma.titulo" [apoyo]="t().entrarPlataforma.apoyo">
   <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4">
     <div>
       <!--
         Etiqueta oculta a la vista pero presente en el marcado: el placeholder solo no
         sirve como nombre de campo (WCAG 3.3.2). Ver el acceso de empresa.
       -->
-      <label for="correo" class="sr-only">Correo electrónico</label>
+      <label for="correo" class="sr-only">{{ t().comun.correo }}</label>
       <input
         id="correo"
         type="email"
@@ -22,7 +19,7 @@
         autocomplete="username"
         autocapitalize="off"
         spellcheck="false"
-        placeholder="Tu correo electrónico"
+        [placeholder]="t().comun.marcadorCorreo"
         class="campo-acceso"
       />
     </div>
@@ -46,7 +43,7 @@
       qué falta; ahora se pulsa y el formulario lo dice.
     -->
     <button type="submit" [disabled]="enviando()" class="boton-acceso">
-      {{ enviando() ? 'Entrando…' : 'Entrar' }}
+      {{ enviando() ? t().comun.entrando : t().comun.entrar }}
     </button>
   </form>
 </app-marco-acceso>

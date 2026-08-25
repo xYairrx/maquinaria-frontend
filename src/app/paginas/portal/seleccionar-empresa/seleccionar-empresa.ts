@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { FORMATO_SLUG, urlDeEmpresa } from '../../../nucleo/ambiente/tenant';
+import { idioma, t } from '../../../nucleo/i18n/i18n';
 import { MarcoAcceso } from '../../acceso/marco-acceso';
 
 /**
@@ -30,6 +31,8 @@ import { MarcoAcceso } from '../../acceso/marco-acceso';
 export class SeleccionarEmpresa {
   private readonly fb = inject(NonNullableFormBuilder);
 
+  protected readonly t = t;
+
   protected readonly invalido = signal(false);
 
   protected readonly formulario = this.fb.group({
@@ -46,7 +49,8 @@ export class SeleccionarEmpresa {
 
     this.invalido.set(false);
 
-    // Cambio de origen: no es una navegación del router, es otra aplicación.
-    window.location.assign(urlDeEmpresa(empresa));
+    // Cambio de origen: no es una navegación del router, es otra aplicación. El idioma
+    // va en la URL porque `localStorage` es por origen y no cruza.
+    window.location.assign(urlDeEmpresa(empresa, idioma()));
   }
 }

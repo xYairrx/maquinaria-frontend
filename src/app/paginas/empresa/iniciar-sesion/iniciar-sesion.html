@@ -9,8 +9,8 @@
   quien llega desde una liga vieja hacia el subdominio equivocado no tendría cómo notarlo.
 -->
 <app-marco-acceso
-  titulo="Iniciar sesión"
-  apoyo="Ingresa tus datos para gestionar los activos de"
+  [titulo]="t().entrarEmpresa.titulo"
+  [apoyo]="t().entrarEmpresa.apoyo"
   [apoyoDestacado]="empresa"
 >
   @if (activada() === '1') {
@@ -18,7 +18,7 @@
       class="mb-4 rounded-lg border border-borde border-l-4 border-l-negro-acento bg-superficie px-3 py-2.5 text-sm text-texto"
       role="status"
     >
-      Tu cuenta quedó activada. Entra con tu correo y tu contraseña nueva.
+      {{ t().entrarEmpresa.activada }}
     </p>
   }
 
@@ -27,7 +27,7 @@
       class="mb-4 rounded-lg border border-borde border-l-4 border-l-negro-acento bg-superficie px-3 py-2.5 text-sm leading-relaxed text-texto"
       role="status"
     >
-      Tu contraseña quedó cambiada y se cerraron las demás sesiones. Entra con la nueva.
+      {{ t().entrarEmpresa.restablecida }}
     </p>
   }
 
@@ -40,7 +40,7 @@
         como nombre del campo. Con `sr-only` el aspecto es idéntico y el campo conserva
         su nombre accesible.
       -->
-      <label for="correo" class="sr-only">Correo electrónico</label>
+      <label for="correo" class="sr-only">{{ t().comun.correo }}</label>
       <input
         id="correo"
         type="email"
@@ -48,7 +48,7 @@
         autocomplete="username"
         autocapitalize="off"
         spellcheck="false"
-        placeholder="Tu correo electrónico"
+        [placeholder]="t().comun.marcadorCorreo"
         class="campo-acceso"
       />
     </div>
@@ -70,7 +70,7 @@
       routerLink="/recuperar"
       class="-mt-1 self-start text-[13px] text-texto-secundario underline underline-offset-2 hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
     >
-      ¿Olvidaste tu contraseña?
+      {{ t().entrarEmpresa.olvidaste }}
     </a>
 
     @if (error()) {
@@ -90,7 +90,7 @@
       qué falta; ahora se pulsa y el formulario lo dice.
     -->
     <button type="submit" [disabled]="enviando()" class="boton-acceso">
-      {{ enviando() ? 'Entrando…' : 'Entrar' }}
+      {{ enviando() ? t().comun.entrando : t().comun.entrar }}
     </button>
   </form>
 </app-marco-acceso>

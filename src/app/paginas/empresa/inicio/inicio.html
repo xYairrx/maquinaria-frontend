@@ -14,36 +14,37 @@
   <div>
     @if (identidad(); as id) {
       <section class="mb-6 rounded-md border border-borde bg-superficie p-4">
-        <h2 class="text-sm font-semibold text-texto">Tu acceso</h2>
+        <h2 class="text-sm font-semibold text-texto">{{ t().inicio.tuAcceso }}</h2>
 
         <dl class="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
           <div>
-            <dt class="text-texto-apagado">Autorización</dt>
+            <dt class="text-texto-apagado">{{ t().inicio.autorizacion }}</dt>
             <dd class="font-medium text-texto">
               {{
-                id.accesoTotal ? 'Acceso total (rol de sistema)' : id.permisos.length + ' permisos'
+                id.accesoTotal ? t().inicio.accesoTotal : t().inicio.permisos(id.permisos.length)
               }}
             </dd>
           </div>
           <div>
-            <dt class="text-texto-apagado">Módulos contratados</dt>
-            <dd class="font-medium text-texto">{{ id.modulos.length }} de 26</dd>
+            <dt class="text-texto-apagado">{{ t().inicio.modulosContratados }}</dt>
+            <dd class="font-medium text-texto">
+              {{ t().inicio.deTotal(id.modulos.length, totalModulos) }}
+            </dd>
           </div>
           <div>
-            <dt class="text-texto-apagado">Implementados</dt>
+            <dt class="text-texto-apagado">{{ t().inicio.implementados }}</dt>
             <dd class="font-medium text-texto">{{ implementados() }}</dd>
           </div>
         </dl>
 
         @if (id.accesoTotal) {
           <p class="mt-3 text-xs text-texto-apagado">
-            Tu rol salta la verificación de permisos. No se puede editar ni borrar, y no se asigna
-            desde la interfaz.
+            {{ t().inicio.avisoAccesoTotal }}
           </p>
         }
       </section>
 
-      <h2 class="mb-3 text-sm font-semibold text-texto">Módulos</h2>
+      <h2 class="mb-3 text-sm font-semibold text-texto">{{ t().inicio.modulos }}</h2>
 
       <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         @for (modulo of modulos(); track modulo.clave) {
@@ -70,13 +71,13 @@
               [class.text-texto-apagado]="modulo.listo"
               [class.text-estado-neutro-texto]="!modulo.listo"
             >
-              {{ modulo.listo ? 'Disponible' : 'Por construir' }}
+              {{ modulo.listo ? t().inicio.disponible : t().inicio.porConstruir }}
             </p>
           </li>
         }
       </ul>
     } @else {
-      <p class="text-sm text-texto-secundario" role="status">Cargando tu sesión…</p>
+      <p class="text-sm text-texto-secundario" role="status">{{ t().inicio.cargandoSesion }}</p>
     }
   </div>
 </div>

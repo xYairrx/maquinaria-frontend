@@ -70,6 +70,71 @@ para que nadie lo tome por descuido:
 La regla sigue en pie para lo que venga —fotos de equipos, adjuntos—; lo que no procede es
 forzarla sobre estos dos casos.
 
+## Internacionalización
+
+Dos idiomas: `es-MX` (el del producto) y `en-US`. El cambio es **en vivo**, sin recargar,
+y la elección se guarda en `localStorage` bajo `maquinaria.idioma`.
+
+**No hay librería de i18n, y es a propósito.** El repo no tiene una sola dependencia de
+terceros, y lo que hacía falta lo da TypeScript: en `nucleo/i18n/textos.ts`, el
+diccionario español define la FORMA y el inglés se declara con ese tipo, así que una
+traducción que falte —o una clave inventada— **no compila**, y el error nombra la clave.
+Con claves de texto (`'entrar.titulo'`) eso solo se descubre viendo la clave cruda en
+pantalla. `@angular/localize` se descartó por ser de tiempo de compilación: un bundle por
+idioma obligaría al selector a recargar en `/en-US/` en vez de cambiar en vivo.
+
+### Cómo se usa
+
+En el componente, un miembro; en la plantilla, `t()`. El miembro es obligatorio porque
+Angular no puede llamar a una función importada desde el marcado:
+
+```ts
+import { t } from '../../nucleo/i18n/i18n';
+
+export class MiPantalla {
+  protected readonly t = t;
+}
+```
+
+```html
+<h1>{{ t().inicio.tuAcceso }}</h1>
+```
+
+### Las cinco reglas
+
+1. **Ningún texto de interfaz se escribe en una plantilla ni en un `.ts`.** Todo pasa por
+   `t()`. Lo que no es texto —el nombre del producto, que es marca— sigue en `sitio.ts`.
+2. **Lo que lleva un dato dentro va como función**, no como plantilla con marcadores:
+   `permisos: (n) => ...`. Así el dato se comprueba de tipo y no hay que interpretar
+   cadenas en tiempo de ejecución.
+3. **Un texto que viene de la API no se traduce.** Los mensajes de `/restablecimientos` y
+   los de error de login están redactados en el servidor para ser uniformes —no delatar si
+   una cuenta existe— y reescribirlos aquí desharía esa uniformidad sin que se note.
+4. **El valor por defecto de un `input()` de texto no puede ser el texto.** Se evaluaría
+   al construir el componente y se quedaría congelado en el idioma de ese momento. El
+   patrón es `input('')` más un `computed` que resuelve el defecto:
+   `this.etiqueta() || t().campoContrasena.etiqueta`. Ver `campo-contrasena.ts` y
+   `menu-lateral.ts`.
+5. **Un menú o una lista de datos va en una función, no en una constante de módulo.** Una
+   constante se evalúa al cargar el módulo y se queda en el idioma de ese instante. Ver
+   `menuEmpresa()` en `disposicion/opciones-menu.ts`.
+
+### Las dos trampas que ya costaron un rato
+
+**El título de la pestaña.** Los `title` de las rutas son funciones
+(`title: () => t().titulos.entrar`), pero el router las invoca **una sola vez, al
+navegar**, y guarda la cadena resultante en el snapshot. `TitleStrategy.buildTitle` lee
+esa cadena, así que al cambiar de idioma devolvía el título viejo ya resuelto. Por eso
+`titulo-pagina.ts` no usa `buildTitle`: recorre el snapshot leyendo `routeConfig.title`,
+que sí conserva la función original, y la vuelve a llamar. En una pantalla de acceso,
+donde no se navega a ninguna parte, sin esto la pestaña se quedaba en el idioma anterior
+para siempre.
+
+**`LOCALE_ID` no cambia en vivo.** Se resuelve al construirse el inyector, así que fechas,
+números y moneda se quedan con el idioma con el que se cargó la página. Hoy no se nota
+porque no hay un solo `| date` en la aplicación. Está anotado con un comentario
+`ponytail:` en `i18n.ts`, con las dos salidas.
+
 ## Accesibilidad
 
 Requisito, no aspiración:
@@ -96,6 +161,8 @@ src/app/
 ├── nucleo/          servicios y reglas transversales, SIN pantallas
 │   ├── ambiente/    de dónde sale la configuración y qué empresa es esta
 │   │                configuracion.ts, sitio.ts, tenant.ts (+ .spec), titulo-pagina.ts
+│   ├── i18n/        los textos de la interfaz en los dos idiomas y el idioma activo
+│   │                textos.ts, i18n.ts (+ .spec)
 │   ├── api/         llamadas HTTP, tipos del contrato y traducción de errores
 │   │                api.ts, api-plataforma.ts, contratos*.ts, mensaje-error.ts
 │   └── sesion/      quién entró, qué puede ver y cómo viaja su token

@@ -2,7 +2,7 @@
   href="#contenido"
   class="sr-only rounded-lg bg-negro-tarjeta px-4 py-2 text-texto-inverso focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
 >
-  Ir al contenido
+  {{ t().comun.irAlContenido }}
 </a>
 
 <div class="flex h-dvh bg-fondo-app">
@@ -12,10 +12,10 @@
     NO va ahí: la línea se muestra en mayúsculas de 10 px y un correo queda ilegible.
   -->
   <app-menu-lateral
-    [grupos]="menu"
+    [grupos]="menu()"
     [producto]="sitio.nombre"
-    descripcion="Superadministración"
-    etiquetaNavegacion="Navegación de la plataforma"
+    [descripcion]="t().menu.superadministracion"
+    [etiquetaNavegacion]="t().menu.navegacionPlataforma"
   />
 
   <div class="flex min-w-0 flex-1 flex-col">
@@ -32,7 +32,7 @@
         (click)="salir()"
         class="rounded-lg border border-borde-campo px-3 py-1.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
       >
-        Salir
+        {{ t().comun.salir }}
       </button>
     </header>
 

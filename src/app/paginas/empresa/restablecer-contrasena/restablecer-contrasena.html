@@ -6,7 +6,9 @@
 <app-marco-acceso [titulo]="titulo()" [apoyo]="apoyo()" [apoyoDestacado]="apoyoDestacado()">
   @switch (estado()) {
     @case ('cargando') {
-      <p role="status" class="text-center text-sm text-texto-apagado">Comprobando la liga…</p>
+      <p role="status" class="text-center text-sm text-texto-apagado">
+        {{ t().restablecer.comprobando }}
+      </p>
     }
 
     @case ('invalida') {
@@ -23,14 +25,14 @@
       </div>
 
       <p class="mt-4 text-sm leading-relaxed text-texto-secundario">
-        Las ligas de restablecimiento duran una hora y sirven una sola vez. Puedes pedir otra.
+        {{ t().restablecer.duranUnaHora }}
       </p>
 
       <a
         routerLink="/recuperar"
         class="mt-5 block w-full rounded-lg bg-amarillo px-4 py-2.5 text-center text-sm font-medium text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
       >
-        Pedir una liga nueva
+        {{ t().restablecer.pedirOtra }}
       </a>
     }
 
@@ -49,8 +51,7 @@
       </div>
 
       <p class="mt-4 text-sm leading-relaxed text-texto-secundario">
-        No se pudo comprobar la liga. Vuelve a abrirla en un momento: sigue siendo válida hasta que
-        caduque.
+        {{ t().restablecer.noSePudoComprobar }}
       </p>
     }
 
@@ -68,24 +69,23 @@
         <div class="flex flex-col gap-1.5">
           <app-campo-contrasena
             [control]="formulario.controls.contrasena"
-            etiqueta="Contraseña nueva"
+            [etiqueta]="t().restablecer.etiquetaNueva"
             campoId="contrasena"
             [invalido]="contrasenaInvalida()"
             autocompletado="new-password"
             descritoPor="ayuda-contrasena aviso-sesiones"
-            marcador="Tu contraseña nueva"
+            [marcador]="t().restablecer.marcadorNueva"
           />
           <!--
             Esto NO es la etiqueta: es la instrucción que dice qué se espera, y es el
             destino de `aria-describedby`. Se queda a la vista.
           -->
           <p id="ayuda-contrasena" class="text-xs text-texto-apagado">
-            Al menos {{ largoMinimo }} caracteres. No se exigen mayúsculas ni símbolos: lo que
-            cuenta es la longitud.
+            {{ t().comun.largoMinimo(largoMinimo) }}
           </p>
           @if (contrasenaInvalida()) {
             <p role="alert" class="text-xs text-alerta-texto">
-              La contraseña necesita al menos {{ largoMinimo }} caracteres.
+              {{ t().restablecer.muyCorta(largoMinimo) }}
             </p>
           }
         </div>
@@ -93,14 +93,14 @@
         <div class="flex flex-col gap-1.5">
           <app-campo-contrasena
             [control]="formulario.controls.confirmacion"
-            etiqueta="Repítela"
+            [etiqueta]="t().restablecer.etiquetaRepetir"
             campoId="confirmacion"
             [invalido]="noCoinciden()"
             autocompletado="new-password"
-            marcador="Repite la contraseña"
+            [marcador]="t().restablecer.marcadorRepetir"
           />
           @if (noCoinciden()) {
-            <p role="alert" class="text-xs text-alerta-texto">Las dos contraseñas no coinciden.</p>
+            <p role="alert" class="text-xs text-alerta-texto">{{ t().comun.noCoinciden }}</p>
           }
         </div>
 
@@ -114,8 +114,7 @@
           id="aviso-sesiones"
           class="rounded-lg border border-borde border-l-4 border-l-negro-acento bg-superficie px-3 py-2.5 text-[13px] leading-relaxed text-texto"
         >
-          Al guardarla se cerrarán las demás sesiones abiertas de tu cuenta. Tendrás que entrar de
-          nuevo en los otros dispositivos.
+          {{ t().restablecer.avisoSesiones }}
         </p>
 
         @if (error()) {
@@ -128,7 +127,7 @@
         }
 
         <button type="submit" [disabled]="!puedeEnviar()" class="boton-acceso">
-          {{ enviando() ? 'Guardando…' : 'Guardar y cerrar las otras sesiones' }}
+          {{ enviando() ? t().restablecer.guardando : t().restablecer.guardar }}
         </button>
       </form>
     }

@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 
 import { tenantActual } from '../../../nucleo/ambiente/tenant';
 import { Api } from '../../../nucleo/api/api';
+import { t } from '../../../nucleo/i18n/i18n';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { MarcoAcceso } from '../../acceso/marco-acceso';
 
@@ -38,6 +39,8 @@ import { MarcoAcceso } from '../../acceso/marco-acceso';
 export class SolicitarRestablecimiento {
   private readonly api = inject(Api);
   private readonly fb = inject(NonNullableFormBuilder);
+
+  protected readonly t = t;
 
   protected readonly empresa = tenantActual() ?? '';
 
@@ -88,7 +91,7 @@ export class SolicitarRestablecimiento {
    */
   private textoDeError(e: unknown): string {
     if (e instanceof HttpErrorResponse && e.status === 429) {
-      return 'Se pidieron demasiadas ligas desde aquí. Espera 15 minutos e inténtalo de nuevo.';
+      return t().recuperar.demasiadas;
     }
 
     return mensajeDeError(e);

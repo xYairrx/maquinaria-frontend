@@ -4,8 +4,8 @@
   se añade ninguno de los dos.
 -->
 <app-marco-acceso
-  titulo="Recuperar tu contraseña"
-  apoyo="Recuperando el acceso a"
+  [titulo]="t().recuperar.titulo"
+  [apoyo]="t().recuperar.apoyo"
   [apoyoDestacado]="empresa"
 >
   @if (enviado(); as mensaje) {
@@ -33,7 +33,7 @@
           Etiqueta oculta a la vista pero presente en el marcado: el placeholder solo no
           sirve como nombre de campo (WCAG 3.3.2). Ver el acceso de empresa.
         -->
-        <label for="correo" class="sr-only">Correo</label>
+        <label for="correo" class="sr-only">{{ t().recuperar.etiquetaCorreo }}</label>
         <input
           id="correo"
           type="email"
@@ -42,7 +42,7 @@
           autocapitalize="off"
           spellcheck="false"
           aria-describedby="ayuda-correo"
-          placeholder="Tu correo"
+          [placeholder]="t().recuperar.marcadorCorreo"
           class="campo-acceso"
         />
         <!--
@@ -50,7 +50,7 @@
           que sigue a la vista. Además es el destino de `aria-describedby`.
         -->
         <p id="ayuda-correo" class="text-xs text-texto-apagado">
-          El correo con el que entras a esta empresa. La liga caduca en una hora.
+          {{ t().recuperar.ayudaCorreo }}
         </p>
       </div>
 
@@ -68,7 +68,7 @@
       }
 
       <button type="submit" [disabled]="formulario.invalid || enviando()" class="boton-acceso">
-        {{ enviando() ? 'Enviando…' : 'Enviarme la liga' }}
+        {{ enviando() ? t().recuperar.enviando : t().recuperar.enviar }}
       </button>
     </form>
   }
@@ -83,7 +83,7 @@
       routerLink="/entrar"
       class="text-[13px] text-texto-secundario underline underline-offset-2 hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
     >
-      Volver a entrar
+      {{ t().recuperar.volver }}
     </a>
   </p>
 </app-marco-acceso>

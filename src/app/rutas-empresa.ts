@@ -1,5 +1,7 @@
 import type { Routes } from '@angular/router';
 
+import { t } from './nucleo/i18n/i18n';
+
 import { guardSesion } from './nucleo/sesion/guard-sesion';
 
 /**
@@ -16,7 +18,7 @@ import { guardSesion } from './nucleo/sesion/guard-sesion';
 export const rutasEmpresa: Routes = [
   {
     path: 'invitacion',
-    title: 'Define tu contraseña',
+    title: () => t().titulos.invitacion,
     loadComponent: () =>
       import('./paginas/empresa/aceptar-invitacion/aceptar-invitacion').then(
         (m) => m.AceptarInvitacion,
@@ -24,7 +26,7 @@ export const rutasEmpresa: Routes = [
   },
   {
     path: 'entrar',
-    title: 'Entrar',
+    title: () => t().titulos.entrar,
     loadComponent: () =>
       import('./paginas/empresa/iniciar-sesion/iniciar-sesion').then((m) => m.IniciarSesion),
   },
@@ -34,7 +36,7 @@ export const rutasEmpresa: Routes = [
   // así que no hay menú que dibujar ni identidad que cargar.
   {
     path: 'recuperar',
-    title: 'Recuperar tu contraseña',
+    title: () => t().titulos.recuperar,
     loadComponent: () =>
       import('./paginas/empresa/solicitar-restablecimiento/solicitar-restablecimiento').then(
         (m) => m.SolicitarRestablecimiento,
@@ -42,7 +44,7 @@ export const rutasEmpresa: Routes = [
   },
   {
     path: 'restablecer',
-    title: 'Tu contraseña nueva',
+    title: () => t().titulos.restablecer,
     loadComponent: () =>
       import('./paginas/empresa/restablecer-contrasena/restablecer-contrasena').then(
         (m) => m.RestablecerContrasena,
@@ -56,7 +58,7 @@ export const rutasEmpresa: Routes = [
     children: [
       {
         path: 'inicio',
-        title: 'Inicio',
+        title: () => t().titulos.inicio,
         loadComponent: () => import('./paginas/empresa/inicio/inicio').then((m) => m.Inicio),
       },
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },

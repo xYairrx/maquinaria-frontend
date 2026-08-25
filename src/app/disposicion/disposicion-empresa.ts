@@ -5,9 +5,10 @@ import { Router, RouterOutlet } from '@angular/router';
 import { Api } from '../nucleo/api/api';
 import { puedeVerModulo } from '../nucleo/sesion/acceso';
 import { Sesion } from '../nucleo/sesion/sesion';
-import { MENU_EMPRESA } from './opciones-menu';
+import { menuEmpresa } from './opciones-menu';
 import { MenuLateral } from './menu-lateral';
 import { sitio } from '../nucleo/ambiente/sitio';
+import { t } from '../nucleo/i18n/i18n';
 
 /**
  * El armazón de la aplicación de una empresa: menú lateral fijo y el contenido de la
@@ -26,6 +27,7 @@ import { sitio } from '../nucleo/ambiente/sitio';
 export class DisposicionEmpresa {
   /** El nombre y la descripción del producto, en un solo sitio. */
   protected readonly sitio = sitio;
+  protected readonly t = t;
 
   private readonly sesion = inject(Sesion);
   private readonly api = inject(Api);
@@ -46,10 +48,12 @@ export class DisposicionEmpresa {
   protected readonly menu = computed(() => {
     const yo = this.identidad();
 
-    return MENU_EMPRESA.map((grupo) => ({
-      ...grupo,
-      opciones: grupo.opciones.filter((opcion) => puedeVerModulo(yo, opcion.modulo)),
-    })).filter((grupo) => grupo.opciones.length > 0);
+    return menuEmpresa()
+      .map((grupo) => ({
+        ...grupo,
+        opciones: grupo.opciones.filter((opcion) => puedeVerModulo(yo, opcion.modulo)),
+      }))
+      .filter((grupo) => grupo.opciones.length > 0);
   });
 
   constructor() {

@@ -1,5 +1,7 @@
 import type { Routes } from '@angular/router';
 
+import { t } from './nucleo/i18n/i18n';
+
 import { guardPlataforma } from './nucleo/sesion/guard-plataforma';
 
 /**
@@ -14,7 +16,7 @@ import { guardPlataforma } from './nucleo/sesion/guard-plataforma';
 export const rutasPlataforma: Routes = [
   {
     path: 'entrar',
-    title: 'Superadministración',
+    title: () => t().titulos.superadministracion,
     loadComponent: () =>
       import('./paginas/plataforma/iniciar-sesion/iniciar-sesion').then(
         (m) => m.IniciarSesionPlataforma,
@@ -28,7 +30,7 @@ export const rutasPlataforma: Routes = [
     children: [
       {
         path: 'empresas',
-        title: 'Empresas',
+        title: () => t().titulos.empresas,
         loadComponent: () =>
           import('./paginas/plataforma/empresas/empresas').then((m) => m.Empresas),
       },

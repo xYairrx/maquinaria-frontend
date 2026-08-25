@@ -3,7 +3,7 @@
     Etiqueta oculta a la vista pero presente en el marcado: el campo tiene que conservar
     su nombre accesible aunque el texto viva en el `placeholder` (WCAG 3.3.2).
   -->
-  <label [for]="campoId()" class="sr-only">{{ etiqueta() }}</label>
+  <label [for]="campoId()" class="sr-only">{{ etiquetaFinal() }}</label>
 
   <div class="relative">
     <!--
@@ -16,7 +16,7 @@
       [formControl]="control()"
       [autocomplete]="autocompletado()"
       [attr.aria-describedby]="descritoPor() || null"
-      [attr.placeholder]="marcador()"
+      [attr.placeholder]="marcadorFinal()"
       [attr.aria-invalid]="invalido() ? 'true' : null"
       class="campo-acceso pr-11"
     />

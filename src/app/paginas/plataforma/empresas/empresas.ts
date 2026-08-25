@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
+import { t } from '../../../nucleo/i18n/i18n';
 import { configuracion } from '../../../nucleo/ambiente/configuracion';
 import {
   EstadoAprovisionamiento,
@@ -25,6 +26,8 @@ export class Empresas {
   private readonly api = inject(ApiPlataforma);
   private readonly sesion = inject(SesionPlataformaStore);
   private readonly fb = inject(NonNullableFormBuilder);
+
+  protected readonly t = t;
 
   protected readonly lista = EstadoAprovisionamiento.Lista;
   protected readonly fallida = EstadoAprovisionamiento.Fallida;
@@ -61,29 +64,36 @@ export class Empresas {
     );
   }
 
+  // Los dos `switch` siguen siendo exhaustivos a propósito: sin `default`, agregar un
+  // valor al enum del contrato es un error de compilación aquí, que es donde tiene que
+  // doler. Lo único que cambió es de dónde sale el texto.
   protected nombreEstado(estado: EstadoTenant): string {
+    const e = t().empresas.estado;
+
     switch (estado) {
       case EstadoTenant.Prueba:
-        return 'Prueba';
+        return e.prueba;
       case EstadoTenant.Activo:
-        return 'Activo';
+        return e.activo;
       case EstadoTenant.Suspendido:
-        return 'Suspendido';
+        return e.suspendido;
       case EstadoTenant.Cancelado:
-        return 'Cancelado';
+        return e.cancelado;
     }
   }
 
   protected nombreAprovisionamiento(estado: EstadoAprovisionamiento): string {
+    const a = t().empresas.aprovisionamiento;
+
     switch (estado) {
       case EstadoAprovisionamiento.Pendiente:
-        return 'Pendiente';
+        return a.pendiente;
       case EstadoAprovisionamiento.Creando:
-        return 'Creando…';
+        return a.creando;
       case EstadoAprovisionamiento.Lista:
-        return 'Lista';
+        return a.lista;
       case EstadoAprovisionamiento.Fallida:
-        return 'Fallida';
+        return a.fallida;
     }
   }
 

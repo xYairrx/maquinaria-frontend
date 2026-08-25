@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { ReactiveFormsModule, type FormControl } from '@angular/forms';
 
+import { t } from '../../nucleo/i18n/i18n';
+
 /**
  * Campo de contraseña con alternador de visibilidad.
  *
@@ -21,7 +23,14 @@ import { ReactiveFormsModule, type FormControl } from '@angular/forms';
 export class CampoContrasena {
   readonly control = input.required<FormControl<string>>();
 
-  readonly etiqueta = input('Contraseña');
+  /**
+   * Vacío significa «el de por defecto», no «sin etiqueta».
+   *
+   * El valor por defecto NO puede ser el texto: se evaluaría al construir el componente
+   * y se quedaría congelado en el idioma de ese momento. Quien no pasa nada recibe el
+   * texto del idioma activo, que sí es reactivo.
+   */
+  readonly etiqueta = input('');
 
   /** El `id` del campo. Se separa por si una pantalla llega a tener dos. */
   readonly campoId = input('contrasena');
@@ -37,7 +46,16 @@ export class CampoContrasena {
    * sustituye, porque un placeholder desaparece al escribir y no sirve como nombre del
    * campo.
    */
-  readonly marcador = input('Tu contraseña');
+  readonly marcador = input('');
+
+  /** Los dos textos por defecto, resueltos en el idioma activo. */
+  protected readonly etiquetaFinal = computed(
+    () => this.etiqueta() || t().campoContrasena.etiqueta,
+  );
+
+  protected readonly marcadorFinal = computed(
+    () => this.marcador() || t().campoContrasena.marcador,
+  );
 
   /**
    * Si el campo está en error. Se refleja como `aria-invalid`.
@@ -59,7 +77,7 @@ export class CampoContrasena {
    * contraseña, presionado» —contradictorio— si aquí se nombrara el estado también.
    */
   protected readonly etiquetaBoton = computed(() =>
-    this.visible() ? 'Ocultar la contraseña' : 'Mostrar la contraseña',
+    this.visible() ? t().campoContrasena.ocultar : t().campoContrasena.mostrar,
   );
 
   protected alternar(): void {

@@ -1,36 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 
+import { idioma, nombreModulo, t } from '../../../nucleo/i18n/i18n';
 import { Sesion } from '../../../nucleo/sesion/sesion';
 
-/** Nombres para mostrar de los módulos. El backend manda la clave. */
-const NOMBRES: Readonly<Record<string, string>> = {
-  dashboard: 'Dashboard',
-  equipos: 'Equipos',
-  disponibilidad: 'Disponibilidad',
-  clientes: 'Clientes',
-  cotizaciones: 'Cotizaciones',
-  contratos: 'Contratos',
-  rentas: 'Rentas',
-  logistica: 'Logística y fletes',
-  'inspeccion-salida': 'Inspección de salida',
-  'inspeccion-devolucion': 'Inspección de devolución',
-  evidencias: 'Evidencias',
-  horometros: 'Horómetros',
-  mantenimiento: 'Mantenimiento',
-  'ordenes-trabajo': 'Órdenes de trabajo',
-  'proximo-servicio': 'Próximo servicio',
-  refacciones: 'Refacciones',
-  compras: 'Compras',
-  proveedores: 'Proveedores',
-  pagos: 'Pagos y cobranza',
-  facturacion: 'Facturación',
-  sucursales: 'Sucursales y patios',
-  usuarios: 'Usuarios y permisos',
-  notificaciones: 'Notificaciones',
-  reportes: 'Reportes',
-  qr: 'QR de equipos',
-  subrenta: 'Subrentas',
-};
+/**
+ * Total de módulos del catálogo, para el «X de 26». Sale de la base central
+ * (`ClavesModulo`), no de lo que esta empresa contrató.
+ */
+const MODULOS_DEL_CATALOGO = 26;
 
 /** Lo que ya se puede construir. El resto se muestra apagado. */
 const IMPLEMENTADOS = new Set(['usuarios']);
@@ -45,6 +22,9 @@ export class Inicio {
   // Pedirla también aquí duplicaba la petición en cada navegación al inicio.
   protected readonly identidad = inject(Sesion).identidad;
 
+  protected readonly t = t;
+  protected readonly totalModulos = MODULOS_DEL_CATALOGO;
+
   /**
    * Se ordenan por nombre y se marca lo que ya existe.
    *
@@ -55,10 +35,13 @@ export class Inicio {
     (this.identidad()?.modulos ?? [])
       .map((clave) => ({
         clave,
-        nombre: NOMBRES[clave] ?? clave,
+        nombre: nombreModulo(clave),
         listo: IMPLEMENTADOS.has(clave),
       }))
-      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
+      // El orden se recalcula con el idioma: alfabético en español no es alfabético en
+      // inglés, y `localeCompare` con el locale correcto es lo que coloca la «Ó» de
+      // «Órdenes» donde la espera quien lee en español.
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, idioma())),
   );
 
   protected readonly implementados = computed(() => this.modulos().filter((m) => m.listo).length);

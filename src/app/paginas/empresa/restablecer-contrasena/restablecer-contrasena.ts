@@ -13,6 +13,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { tenantActual } from '../../../nucleo/ambiente/tenant';
 import { Api } from '../../../nucleo/api/api';
+import { t } from '../../../nucleo/i18n/i18n';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { CampoContrasena } from '../../acceso/campo-contrasena';
 import { MarcoAcceso } from '../../acceso/marco-acceso';
@@ -59,6 +60,7 @@ export class RestablecerContrasena {
   private readonly router = inject(Router);
   private readonly fb = inject(NonNullableFormBuilder);
 
+  protected readonly t = t;
   protected readonly largoMinimo = LARGO_MINIMO;
 
   /**
@@ -77,11 +79,11 @@ export class RestablecerContrasena {
    * añadir un encabezado por rama: una pantalla, un solo `<h1>`.
    */
   protected readonly titulo = computed(() =>
-    this.estado() === 'invalida' ? 'La liga ya no sirve' : 'Tu contraseña nueva',
+    this.estado() === 'invalida' ? t().restablecer.tituloInvalida : t().restablecer.titulo,
   );
 
   protected readonly apoyo = computed(() =>
-    this.estado() === 'lista' || this.estado() === 'cargando' ? 'Restableciendo el acceso a' : '',
+    this.estado() === 'lista' || this.estado() === 'cargando' ? t().restablecer.apoyo : '',
   );
 
   /** La empresa se resalta solo cuando acompaña a esa línea de apoyo. */
@@ -108,7 +110,7 @@ export class RestablecerContrasena {
 
       if (empresa === '' || token === '') {
         this.estado.set('invalida');
-        this.error.set('La liga está incompleta.');
+        this.error.set(t().restablecer.ligaIncompleta);
         return;
       }
 

@@ -3,6 +3,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 
 import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
+import { t } from '../../../nucleo/i18n/i18n';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { SesionPlataformaStore } from '../../../nucleo/sesion/sesion-plataforma';
 import { CampoContrasena } from '../../acceso/campo-contrasena';
@@ -22,6 +23,8 @@ export class IniciarSesionPlataforma {
   private readonly sesion = inject(SesionPlataformaStore);
   private readonly fb = inject(NonNullableFormBuilder);
 
+  protected readonly t = t;
+
   protected readonly error = signal<string | null>(null);
   protected readonly enviando = signal(false);
 
@@ -40,7 +43,7 @@ export class IniciarSesionPlataforma {
     // no producia ningun efecto visible.
     if (this.formulario.invalid) {
       this.formulario.markAllAsTouched();
-      this.error.set('Escribe tu correo y tu contraseña.');
+      this.error.set(t().comun.faltanCredenciales);
       return;
     }
 

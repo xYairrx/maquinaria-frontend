@@ -77,12 +77,23 @@ export function tenantActual(): string | null {
   return slugDelAnfitrion(window.location.hostname, configuracion.dominioBase);
 }
 
-/** La URL donde vive el acceso de una empresa. */
-export function urlDeEmpresa(slug: string): string {
+/**
+ * La URL donde vive el acceso de una empresa.
+ *
+ * `idioma` viaja en la cadena de consulta porque el salto al subdominio es un CAMBIO DE
+ * ORIGEN, y `localStorage` es por origen: quien deja el portal en inglés llegaría a
+ * `bajio.<dominio>` en español, y el portal no existe para otra cosa que para ese salto.
+ * Lo recoge `nucleo/i18n/i18n.ts` al arrancar y lo borra de la URL.
+ *
+ * Se pasa por parámetro y no se lee de `i18n` aquí para que este módulo siga siendo puro
+ * y probable sin navegador.
+ */
+export function urlDeEmpresa(slug: string, idioma?: string): string {
   const { protocol, port } = window.location;
   const puerto = port.length > 0 ? ':' + port : '';
+  const consulta = idioma === undefined ? '' : `?idioma=${encodeURIComponent(idioma)}`;
 
-  return `${protocol}//${slug}.${configuracion.dominioBase}${puerto}/entrar`;
+  return `${protocol}//${slug}.${configuracion.dominioBase}${puerto}/entrar${consulta}`;
 }
 
 /**

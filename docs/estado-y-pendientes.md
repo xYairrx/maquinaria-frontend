@@ -110,15 +110,28 @@ Ordenados de "rompe algo" a "hay que decidirlo".
 
 ### Internacionalización y metadatos
 
-5. **El selector de idioma no traduce nada.** La lista, el estado y las banderas están;
-   el inglés aparece porque se pidió dejar la interfaz montada antes de conectarla.
-   Falta lo de fondo: **elegir librería de i18n**, traducir los textos y recordar la
-   preferencia entre visitas. Hoy `elegir()` solo cambia lo que muestra el propio
-   selector.
-6. **No hay locale de Angular configurado** (`es-MX`) para fechas, números y moneda: no
-   hay `LOCALE_ID` ni `registerLocaleData` en `src/`. El backend guarda todo en UTC con
-   zona horaria de presentación **por tenant**, así que el formateo del front tiene que
-   respetar esa zona, no la del navegador.
+5. ~~El selector de idioma no traduce nada.~~ **HECHO (2026-08-25).** Español y
+   México-inglés completos, cambio en vivo y preferencia recordada en
+   `maquinaria.idioma`. Ver [internacionalización](convenciones.md#internacionalización)
+   en las convenciones.
+6. ~~No hay locale de Angular configurado.~~ **HECHO (2026-08-25).** `LOCALE_ID` sale del
+   idioma guardado y se registran los datos de `es-MX` y `en` en `app.config.ts`.
+
+   **Lo que queda de esta parte**, y no es poco:
+
+   - **`LOCALE_ID` se fija al arrancar**, así que cambiar de idioma en vivo NO mueve
+     fechas, números ni moneda. Hoy no se nota porque no hay un solo `| date` ni
+     `| number` en la aplicación; el primero que se escriba tiene que decidir entre
+     pasarle el locale al pipe o recargar al cambiar de idioma. Anotado con un comentario
+     `ponytail:` en `nucleo/i18n/i18n.ts`.
+   - **La zona horaria por tenant sigue sin resolverse.** El backend guarda en UTC con
+     zona de presentación **por empresa**, y el locale no la lleva: `es-MX` no dice
+     si la empresa opera en Tijuana o en Cancún. Eso es un dato de `IdentidadEmpresa`
+     que la API todavía no manda.
+   - **Los textos que vienen de la API siguen en español**, siempre. `mensaje-error.ts`
+     traduce lo que genera el front, pero el `detail` del `ProblemDetails` se muestra
+     tal cual y la API no lee `Accept-Language`. Es la costura visible del inglés y se
+     arregla en el backend, no aquí.
 
 ### Falta de tooling
 

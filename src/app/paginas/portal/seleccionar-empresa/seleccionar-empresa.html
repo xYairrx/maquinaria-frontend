@@ -3,17 +3,14 @@
   `paginas/acceso/marco-acceso.html`. Sin enlace de contraseña olvidada: aquí todavía no
   se sabe de qué empresa es la cuenta, y esa pantalla vive dentro del subdominio.
 -->
-<app-marco-acceso
-  titulo="Entrar a tu empresa"
-  apoyo="Cada empresa tiene su propia página de acceso. Te llevamos a la tuya."
->
+<app-marco-acceso [titulo]="t().portal.titulo" [apoyo]="t().portal.apoyo">
   <form [formGroup]="formulario" (ngSubmit)="continuar()" class="flex flex-col gap-4">
     <div class="flex flex-col gap-1.5">
       <!--
         Etiqueta oculta a la vista pero presente en el marcado: el placeholder solo no
         sirve como nombre de campo (WCAG 3.3.2). Ver el acceso de empresa.
       -->
-      <label for="empresa" class="sr-only">Empresa</label>
+      <label for="empresa" class="sr-only">{{ t().portal.etiquetaEmpresa }}</label>
       <input
         id="empresa"
         type="text"
@@ -23,7 +20,7 @@
         spellcheck="false"
         aria-describedby="ayuda-empresa"
         [attr.aria-invalid]="invalido() ? 'true' : null"
-        placeholder="El identificador de tu empresa"
+        [placeholder]="t().portal.marcadorEmpresa"
         class="campo-acceso"
       />
       <!--
@@ -32,7 +29,7 @@
         referencia colgando.
       -->
       <p id="ayuda-empresa" class="text-xs text-texto-apagado">
-        El identificador que te dieron. Te llevaremos a la página de tu empresa.
+        {{ t().portal.ayudaEmpresa }}
       </p>
     </div>
 
@@ -41,10 +38,12 @@
         role="alert"
         class="rounded-lg border border-amarillo bg-alerta-fondo px-3 py-2.5 text-sm text-alerta-texto"
       >
-        Usa solo letras minúsculas, números y guiones.
+        {{ t().portal.formatoInvalido }}
       </p>
     }
 
-    <button type="submit" [disabled]="formulario.invalid" class="boton-acceso">Continuar</button>
+    <button type="submit" [disabled]="formulario.invalid" class="boton-acceso">
+      {{ t().portal.continuar }}
+    </button>
   </form>
 </app-marco-acceso>
