@@ -9,7 +9,7 @@ import { guardSesion } from './nucleo/sesion/guard-sesion';
  *
  * El acceso queda FUERA del armazón —no tiene menú— y todo lo demás cuelga de una ruta
  * padre con `children`. Esa forma es lo que hace que agregar una de las 26 pantallas
- * previstas sea una entrada en `children` y una línea en `MENU_EMPRESA`, sin tocar el
+ * previstas sea una entrada en `children` y una línea en `menuEmpresa()`, sin tocar el
  * armazón ni repetir el menú en cada pantalla.
  *
  * Cada `loadComponent` es un chunk aparte. Con 26 módulos, un bundle único es inviable,

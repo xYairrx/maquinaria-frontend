@@ -71,7 +71,13 @@
         }
       </ul>
     } @else {
-      <p class="text-sm text-texto-secundario" role="status">{{ t().inicio.cargandoSesion }}</p>
+      <!--
+        Esqueleto, no un «Cargando tu sesion…». El texto no dice nada de la forma de lo que
+        viene, asi que al llegar la identidad la pantalla salta de una linea a una tarjeta
+        mas una rejilla de tarjetas, y ese salto se lee como un error. El anuncio para
+        lectores de pantalla no se pierde: va dentro, en `sr-only` con `role="status"`.
+      -->
+      <app-inicio-esqueleto />
     }
   </div>
 </div>

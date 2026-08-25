@@ -10,13 +10,26 @@
  * —la URL de la API, el dominio base— y esto responde «¿qué producto es este?». Cambian
  * por motivos distintos y en momentos distintos.
  *
+ * HAY UNA COPIA A MANO, Y ES OBLIGATORIO ACTUALIZARLA: el `<title>` de `src/index.html`.
+ * Ese archivo es HTML estático servido antes de que arranque Angular, así que no puede
+ * importar este módulo ni leer nada de él; la sincronización es manual y no hay compilador
+ * que la vigile. Ya se desincronizó dos veces —el `<title>` se quedó en «Maquinaria»— y
+ * las dos costó lo mismo notarlo: solo se ve el primer instante, hasta que el router
+ * navega, pero es el nombre que sale al compartir la pestaña o al guardarla en favoritos.
+ * Lo mismo aplica al `<html lang>` de ese archivo y al campo `idioma` de aquí abajo.
+ *
  * Ojo con lo que NO se centraliza aquí: el nombre del remitente de los correos vive en
  * `Correo:NombreRemitente` del backend, y `package.json` lleva el nombre del paquete.
  * Un cambio de marca tiene que tocar esos dos también.
  */
 export const sitio = {
-  /** El nombre del producto. Se ve en el menú, en los accesos y en la pestaña. */
-  nombre: 'RETROMAQ',
+  /**
+   * El nombre del producto. Se ve en el menú, en los accesos y en la pestaña.
+   *
+   * Si cambia, cambia también el `<title>` de `src/index.html` a mano. Ver la nota de
+   * arriba: es la única copia que ningún compilador comprueba.
+   */
+  nombre: 'MAQUINON',
 
   /**
    * El nombre partido en dos, para pintarlo con dos colores.
@@ -27,9 +40,9 @@ export const sitio = {
    */
   marca: {
     /** Primera parte, en el color de texto. */
-    inicio: 'RETRO',
+    inicio: 'PIT',
     /** Segunda parte, en amarillo. */
-    fin: 'MAQ',
+    fin: 'ON',
   },
 
   /**

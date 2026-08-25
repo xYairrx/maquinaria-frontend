@@ -73,14 +73,14 @@ export function menuEmpresa(): readonly GrupoMenu[] {
       titulo: '',
       opciones: [{ titulo: m.inicio, ruta: '/inicio', icono: ICONOS.inicio }],
     },
-    {
-      titulo: m.operacion,
-      opciones: [
-        { titulo: m.equipos, ruta: '/equipos', modulo: 'equipos', icono: ICONOS.maquina },
-        { titulo: m.clientes, ruta: '/clientes', modulo: 'clientes', icono: ICONOS.usuarios },
-        { titulo: m.rentas, ruta: '/rentas', modulo: 'rentas', icono: ICONOS.documento },
-      ],
-    },
+    // ponytail: aqui iba un grupo `Operacion` con /equipos, /clientes y /rentas. Se
+    // retiro el 2026-08-25: `rutas-empresa.ts` no registra ninguna de las tres, asi que
+    // para un plan que las contratara la opcion se dibujaba y al pulsarla caia en el
+    // `path: '**'` y regresaba a /inicio. Un menu que no lleva a ningun lado es peor que
+    // un menu corto. Sus textos `menu.equipos`, `menu.clientes` y `menu.rentas` se quedan
+    // en `textos.ts` a proposito: vuelven en cuanto exista la pantalla, junto con su
+    // entrada aqui y su ruta alla, igual que `menu.operacion`, el titulo del grupo. Las
+    // dos mitades se agregan JUNTAS o no se agregan.
   ];
 }
 

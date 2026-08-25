@@ -1,0 +1,49 @@
+<!--
+  Espejo de `inicio.html`: la tarjeta de «Tu acceso» con su rejilla de tres datos, el rotulo
+  de «Modulos» y la rejilla de tarjetas con los mismos cortes responsivos —una columna en
+  telefono, dos desde `sm` y tres desde `lg`—.
+
+  El esqueleto es DECORACION y va `aria-hidden`; lo que sustituye al «Cargando tu sesion…»
+  es el `role="status"` en `sr-only`, y `aria-busy` dice que lo de dentro esta a medias.
+
+  LAS ALTURAS SON LA CAJA DE LINEA DEL TEXTO, no su tamano de fuente, y de ahi salen los
+  numeros raros: un `<h2>` de 14 px ocupa 20 —`h-5`—, y los dos textos de una tarjeta de
+  modulo suman 20 + 16 = 36, que aqui se reparten como `h-4` + `mt-1` + `h-4` para que los
+  dos bloques no se lean como uno solo sin cambiar el alto total.
+-->
+<div aria-busy="true">
+  <p role="status" class="sr-only">{{ t().inicio.cargandoSesion }}</p>
+
+  <div aria-hidden="true">
+    <section class="mb-6 rounded-md border border-borde bg-superficie p-4">
+      <div class="esqueleto h-5 w-24"></div>
+
+      <dl class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        @for (dato of datos; track dato) {
+          <div>
+            <!-- `dt` y `dd` van pegados en la tabla de verdad: 20 + 20 = 40 px. -->
+            <div class="esqueleto h-4 w-28 max-w-full"></div>
+            <div class="esqueleto mt-1 h-5 w-20"></div>
+          </div>
+        }
+      </dl>
+
+      <!--
+        El aviso de acceso total NO tiene esqueleto: solo se pinta si la sesion resulta ser
+        de un administrador con acceso total, y no hay forma de saberlo antes de que llegue
+        la identidad. Reservarle sitio dejaria un hueco vacio en el caso normal.
+      -->
+    </section>
+
+    <div class="esqueleto mb-3 h-5 w-20"></div>
+
+    <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      @for (modulo of modulos; track modulo) {
+        <li class="rounded-md border border-borde p-3">
+          <div class="esqueleto h-4 w-32 max-w-full"></div>
+          <div class="esqueleto mt-1 h-4 w-20"></div>
+        </li>
+      }
+    </ul>
+  </div>
+</div>

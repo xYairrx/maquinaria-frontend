@@ -1,5 +1,17 @@
 {
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  //
+  // NO HAY CONFIGURACION DE `ng test`, y no es un olvido.
+  //
+  // Aqui habia una que abria `http://localhost:9876/debug.html`. Ese puerto y esa pagina
+  // son de KARMA, que servia las pruebas en un navegador de verdad; este proyecto corre
+  // con VITEST sobre jsdom (`@angular/build:unit-test` en `angular.json`), que no levanta
+  // ningun servidor ni tiene URL que abrir, asi que la configuracion lanzaba un Chrome
+  // contra la nada. Una configuracion de depuracion que no funciona es peor que ninguna:
+  // se prueba, falla, y lo que se pone en duda es la prueba y no el atajo del editor.
+  //
+  // Para depurar una prueba: `npx ng test --watch` y el depurador de Vitest, o la
+  // extension de Vitest para VS Code. Ninguno de los dos necesita una entrada aqui.
   "version": "0.2.0",
   "configurations": [
     {
@@ -8,13 +20,6 @@
       "request": "launch",
       "preLaunchTask": "npm: start",
       "url": "http://localhost:4200/"
-    },
-    {
-      "name": "ng test",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "npm: test",
-      "url": "http://localhost:9876/debug.html"
     }
   ]
 }

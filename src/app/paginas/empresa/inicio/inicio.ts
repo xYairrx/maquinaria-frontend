@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@a
 import { Barra } from '../../../disposicion/barra';
 import { idioma, nombreModulo, t } from '../../../nucleo/i18n/i18n';
 import { Sesion } from '../../../nucleo/sesion/sesion';
+import { InicioEsqueleto } from './esqueleto';
 
 /**
  * Total de módulos del catálogo, para el «X de 26». Sale de la base central
@@ -15,6 +16,7 @@ const IMPLEMENTADOS = new Set(['usuarios']);
 
 @Component({
   selector: 'app-inicio',
+  imports: [InicioEsqueleto],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inicio.html',
 })

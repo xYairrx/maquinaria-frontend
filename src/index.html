@@ -4,6 +4,11 @@
   a mano: este archivo es HTML estático y no puede leer `nucleo/ambiente/sitio.ts`. Si
   cambia el nombre o el idioma allí, hay que cambiarlo aquí. Está anotado en sitio.ts.
 
+  YA SE DESINCRONIZÓ DOS VECES, las dos quedándose en «Maquinaria». Para que la próxima
+  revisión no tenga que deducirlo, los dos valores que tienen que coincidir están escritos
+  aquí al lado: `<title>` = `sitio.nombre` = `RETROMAQ`, y `<html lang>` = `sitio.idioma` =
+  `es-MX`. Comprobarlo es un grep, no una lectura.
+
   El idioma tiene que estar en el documento y no ponerse desde Angular: los lectores de
   pantalla eligen la voz antes de que arranque la aplicación, y con `en` leerían todo el
   español con fonética inglesa (WCAG 3.1.1).

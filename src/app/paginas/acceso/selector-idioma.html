@@ -1,9 +1,16 @@
 <div class="relative">
+  <!--
+    `aria-haspopup="true"` y no `"listbox"`: lo que se abre es una lista de botones
+    normales. Declarar `listbox` obligaría a implementar flechas, Home y End; el porqué
+    está en el componente y en `docs/convenciones.md#aria-de-divulgación-no-de-menú`.
+  -->
   <button
+    #disparador
     type="button"
     (click)="alternar()"
-    aria-haspopup="listbox"
+    aria-haspopup="true"
     [attr.aria-expanded]="abierto()"
+    aria-controls="panel-idioma"
     [attr.aria-label]="t().idioma.etiqueta(actual().nombre)"
     class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
   >
@@ -29,14 +36,21 @@
 
   @if (abierto()) {
     <ul
-      role="listbox"
+      id="panel-idioma"
       class="absolute right-0 z-10 mt-1 min-w-40 rounded-lg border border-borde bg-superficie py-1 shadow-sm"
     >
       @for (idioma of idiomas; track idioma.codigo) {
-        <li role="option" [attr.aria-selected]="idioma.codigo === codigoActual()">
+        <li>
+          <!--
+            `aria-current` en lugar del `aria-selected` que pedía el `role="option"`: dice
+            cuál es el idioma activo sin prometer el contrato de teclado de un `listbox`.
+            Va como `null` cuando no lo es, y no como `"false"`, para que el atributo
+            desaparezca del marcado en vez de anunciarse en cada opción.
+          -->
           <button
             type="button"
             (click)="elegir(idioma.codigo)"
+            [attr.aria-current]="idioma.codigo === codigoActual() ? 'true' : null"
             class="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-negro-acento"
           >
             <app-bandera [codigo]="idioma.codigo" />
