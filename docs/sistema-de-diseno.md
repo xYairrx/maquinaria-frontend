@@ -212,8 +212,27 @@ Encabezado `bg-superficie-sutil`, `border-b border-borde`, texto 11 px mayúscul
 Celdas `px-4 py-2.5`: la primera columna en `texto` medium, el resto en
 `texto-secundario`. Cifras con `tabular-nums`.
 
-Toda tabla va envuelta en `overflow-x-auto`: el cuerpo de la página nunca hace scroll
-horizontal.
+Toda tabla va envuelta en `overflow-x-auto` y lleva `min-w-*` en la propia `<table>`: el
+cuerpo de la página nunca hace scroll horizontal, y sin el `min-w` la tabla envuelve el texto
+de sus celdas en un teléfono en lugar de desplazarse.
+
+**En uso**, y ya con código: `paginas/plataforma/empresas/` y `paginas/plataforma/planes/`,
+las dos con `min-w-160` y su esqueleto espejo al lado.
+
+**La primera columna se FIJA** (`sticky left-0`). Es la que identifica la fila —el slug de la
+empresa, el nombre del plan— y sin fijarla, tres columnas a la derecha ya no se sabe qué se
+está leyendo. Lo que la celda fija necesita, y sin lo cual falla en silencio:
+
+- **Fondo propio y opaco**, o el contenido que pasa por debajo se transparenta. Y el fondo es
+  el de **su** fila: `bg-superficie-sutil` en el `<th>` cuando la cabecera lo lleva
+  (`empresas`) y `bg-superficie` cuando la cabecera va sin relleno (`planes`, hoy).
+- **`border-r border-borde`**, para que el corte se lea como una columna fijada y no como un
+  error de maquetado.
+
+**Menos columnas antes que más columnas fijas.** La tabla de planes tenía seis y se quedó en
+cinco metiendo la píldora de estado **dentro** de la celda del plan, pegada al nombre, donde
+además se lee mejor. El detalle está en
+[convenciones](convenciones.md#la-primera-columna-de-una-tabla-ancha-se-fija).
 
 ## Campos de formulario dentro de la aplicación
 
@@ -276,13 +295,35 @@ de pantalla lo lea como una palabra en lugar de deletrear «RETRO, MAQ».
 > de «¿Olvidaste tu contraseña?», que por eso va en `texto-secundario`.
 
 **Selector de idioma.** Botón con la bandera, las dos letras del idioma y una flecha que
-gira al abrir (`aria-haspopup="listbox"`, `aria-expanded`), y un desplegable
-`role="listbox"` con el nombre de cada idioma **en su propio idioma**. La bandera es un
-`<img>` y no un emoji: Windows no trae banderas de países en su fuente de emoji —es una
+gira al abrir, y un panel con el nombre de cada idioma **en su propio idioma**. La bandera
+es un `<img>` y no un emoji: Windows no trae banderas de países en su fuente de emoji —es una
 omisión deliberada de Microsoft— y en su lugar dibuja las dos letras del indicador
 regional, así que donde debía verse la bandera de México aparecía «MX». El redondeo lo
 pone el CSS y no el SVG, porque el `rx` de los archivos es proporcional al lienzo y a
 20 px de ancho no se aprecia.
+
+**Es ARIA de divulgación, NO de `listbox`, y esto cambió.** Antes declaraba
+`aria-haspopup="listbox"` con un desplegable `role="listbox"`, sus `role="option"` y
+`aria-selected`, y era una promesa vacía: un `listbox` obliga a mover la selección con las
+flechas —más Home y End— y anunciar el papel sin implementar su contrato de teclado es peor
+que no anunciarlo. Se bajó al mismo patrón que `disposicion/menu-usuario`:
+`aria-haspopup="true"` + `aria-expanded` + `aria-controls`, y el panel es una lista de botones
+normales. Cuál es el idioma activo se sigue anunciando, ahora con **`aria-current`**, que no
+promete nada de teclado; va como `null` cuando no lo es —y no como `"false"`— para que el
+atributo **desaparezca** del marcado en lugar de anunciarse en cada opción.
+
+Y se le agregó la conducta que faltaba entera, que es obligatoria sea cual sea el ARIA:
+
+- **Escape cierra y devuelve el foco al disparador.** Sin lo segundo, cerrar con el foco en
+  una opción lo deja en la nada: el elemento enfocado desaparece y el foco cae al `<body>`.
+- **Un clic fuera cierra**, con guarda de contención — sin ella, el propio clic del disparador,
+  que también burbujea hasta el documento, lo cerraría en el mismo gesto que lo abre. Ese no
+  mueve el foco: quien usa el ratón ya está mirando a otra parte.
+- **Al elegir un idioma, el foco vuelve al disparador.** El botón que se pulsó se desmonta con
+  el panel, así que sin esto el foco caía al `<body>` y había que recorrer la pantalla de
+  acceso entera para volver (WCAG 2.4.3).
+
+El porqué largo está en [convenciones](convenciones.md#aria-de-divulgación-no-de-menú).
 
 **Elegir un idioma traduce toda la interfaz**, en vivo y sin recargar, y la elección se
 recuerda entre visitas. No hay librería de i18n: los textos viven en

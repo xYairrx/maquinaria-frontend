@@ -78,6 +78,26 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 
 See `docs/convenciones.md#internacionalización` for the reasoning and the two traps.
 
+## A new screen is FOUR edits, not two
+
+**A menu entry and its route ship TOGETHER, or neither ships.** `menuEmpresa()` used to return
+an `Operación` group with `/equipos`, `/clientes` and `/rentas` while `rutas-empresa.ts`
+registered none of them: the option rendered, and pressing it fell through to `path: '**'` and
+bounced back to `/inicio`. All three were removed.
+
+1. The route in `rutas-empresa.ts` / `rutas-plataforma.ts`, with its own `loadComponent`.
+2. The line in `menuEmpresa()` / `menuPlataforma()` (`disposicion/opciones-menu.ts`), with the
+   module `clave` if it belongs to one.
+3. `titulos.<clave>` in BOTH language blocks of `nucleo/i18n/textos.ts` — the route `title`
+   reads it.
+4. `menu.<clave>`, both languages too.
+
+Missing 3 or 4 does not COMPILE, which is the safety net. And there is no `MENU_EMPRESA`
+constant, whatever a stale docblock says: it is the function `menuEmpresa()`, a function on
+purpose so it re-evaluates when the language changes.
+
+See `docs/convenciones.md#el-andamiaje-de-una-pantalla-nueva`.
+
 ## Responsive
 
 **Every screen is responsive from its first commit.** This is not a later pass — retrofitting
@@ -89,6 +109,12 @@ costs more than writing it adaptive, because fixed widths leak into three places
 - **The `<body>` never scrolls horizontally.** Anything too wide scrolls inside its own box
   with `overflow-x-auto`. A wide table scrolls; it does NOT get rebuilt as cards (that
   duplicates the markup and the copies drift apart).
+- **A wide table pins its first column** (`sticky left-0`) and carries a `min-w-*`: scrolled
+  sideways there is otherwise nothing telling you which row you are reading. The sticky cell
+  needs its OWN opaque background — the header's in the `<th>`, the surface's in the `<td>` —
+  plus a `border-r`, or content shows through and the seam reads as a layout bug. Prefer
+  dropping a column (fold its badge into the pinned cell) over pinning a second one. A table
+  with no `min-w-*` wraps its cells on a phone, and then its skeleton cannot mirror it.
 - **No fixed widths on content.** `max-w-*` and `min-w-0` yes, `w-[720px]` no. `min-w-0` on
   a flex child is what makes `truncate` work.
 - **Button and chip groups wrap** (`flex-wrap`); they do not overflow or squash.
@@ -118,6 +144,11 @@ and primary action belong to the screen.
   an `<a>` (openable in a new tab); `alPulsar` makes it a `<button>`. Not cosmetic: announcing
   "link" for something that opens a sheet on the same screen lies to a screen reader. Declare
   no action if there is neither.
+- **A primary action may open a SHEET** (`alPulsar` + `disposicion/hoja.ts`) — that is the
+  pattern for any "new X" form, not something specific to Planes. What does NOT go inside the
+  sheet is the confirmation: it carries the invitation link, which has to be readable and
+  copyable, and a sheet is dismissed by the same gesture that opened it. Close the sheet and
+  leave the notice on the SCREEN.
 - Why a service and not `<ng-content>`: projected content does not cross a
   `<router-outlet>`. Same reasoning as `opciones-menu.ts`, where the menu is data too.
 
@@ -201,6 +232,40 @@ TanStack Query was evaluated and deferred. Revisit when a mutation must invalida
 lists across screens, when you find yourself writing a cache with a TTL, or when you need
 server-side pagination. See `docs/convenciones.md#datos-httpresource-y-el-recurso-compartido`.
 
+## Token refresh must be SINGLE-FLIGHT
+
+The backend's refresh token **ROTATES and has no grace window**: two concurrent exchanges of
+the same token are read as a stolen-token replay and **revoke the user's whole session chain**.
+Unserialized refresh does not degrade the experience, it signs out someone who was working.
+`nucleo/sesion/refresco-sesion.ts` exists for nothing else.
+
+- **`enVuelo` + `shareReplay({ bufferSize: 1, refCount: false })`, both halves.** `HttpClient`
+  observables are COLD, so without sharing the subscription two subscribers of the "same"
+  observable fire two POSTs — that is the bug itself, not a nicety.
+- **`finalize` goes BEFORE `shareReplay`**, so it runs once when the source completes instead
+  of once per subscriber. It is what releases `enVuelo`.
+- **`refCount: false` is not decoration.** With `true`, a request cancelled because its screen
+  was destroyed tears the exchange down half-done — token already rotated on the server,
+  nothing saved on the client — and the next refresh sends a token the backend considers spent.
+- **No loop, by construction:** the refresh POST goes out through `HttpBackend` (outside the
+  interceptor chain, so no `Bearer` and it cannot trigger itself), and the retry is launched
+  INSIDE `catchError`, which does not catch what its own handler returns — a second 401 reaches
+  the screen.
+- **Session teardown lives on the SHARED source**, so it runs once even with ten requests
+  waiting; the error still propagates to every subscriber, or their screens stay "sending"
+  forever.
+- **Interceptor order is load-bearing:** `[interceptorRefresco, interceptorToken]`. The refresh
+  one is outermost, so the request it retries passes through the token one again and goes out
+  with the NEW `Bearer` without touching headers here.
+- **Platform is out:** there is no `sesion_refresh` for `/api/plataforma/**`, so that 401
+  propagates untouched. Only the header is shared, in `interceptor-token`.
+- **No proactive refresh from `expiraEn`** — a timer adds clock skew, timers to clean up and a
+  second path that can race the reactive one. The 401 is the signal.
+
+Regression tests: `nucleo/sesion/interceptor-refresco.spec.ts` (11), the load-bearing one being
+"two concurrent 401s produce ONE refresh".
+See `docs/convenciones.md#sesión-el-refresco-del-token-va-serializado`.
+
 ## Route inputs can be `undefined` despite their type
 
 `withComponentInputBinding` assigns `undefined` when a query param is absent from the URL,
@@ -231,10 +296,22 @@ viewport height, as many as you need).
 
 **What makes it a sheet and not a modal is that it MOVES.** Grab the handle, snap up, snap
 down, drag down far enough (or flick) to dismiss. A panel that only appears and disappears is
-a modal with rounded corners. And **a sheet is never centred** — it stays at the bottom at
-every width, floating with all four corners rounded.
+a modal with rounded corners. And **a sheet is never centred** — it is pinned to the bottom and
+to both sides with no gaps (`inset: auto 0 0`), with only the TOP corners rounded and the shadow
+cast upwards.
 
-Five gesture decisions, each one a bug that already happened or was avoided:
+**The gesture is ASYMMETRIC: dragging up GROWS, dragging down TRANSLATES.** Because the sheet is
+pinned to the bottom, a NEGATIVE `translate` **detaches it from the bottom edge** and shows the
+backdrop underneath, with the footer and its primary action riding up — a real bug, 200 px of
+drag for 200 px of gap. Up goes into the max-height, `min(98dvh, calc(<snap>dvh + <drag>px))`;
+down stays in the `translate`, which is exactly what dismissal should look like. Keep the `min()`
+in CSS, never in JS: it mixes `dvh` with `px` and only the browser knows what a `dvh` measures
+right now. No rubber band past the top snap either — damping it meant lifting the sheet off the
+bottom again, and there is nothing left to grow into. And since it is a max-height, if the
+content already fits, dragging up moves nothing. `disposicion/hoja.spec.ts` (6) locks the rule:
+**the `translate` is never negative, on any path.**
+
+Five more gesture decisions, each one a bug that already happened or was avoided:
 
 - **Drag only from the handle and header.** Dragging from the body forces you to disambiguate
   "move the sheet" from "scroll the content". Restricting the zone removes the conflict.

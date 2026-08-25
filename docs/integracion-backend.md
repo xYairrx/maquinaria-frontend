@@ -2,9 +2,10 @@
 
 ## Estado real: el primer flujo ya corre
 
-**Actualizado el 2026-08-24.** La integración existe y el ciclo completo —invitación,
-definir contraseña, iniciar sesión, pantalla protegida— funciona de punta a punta contra
-la API real. El restablecimiento de contraseña también está implementado en los dos lados.
+**Actualizado el 2026-08-25.** La integración existe y el ciclo completo —invitación,
+definir contraseña, iniciar sesión, pantalla protegida, **y el token renovándose solo
+cuando caduca**— funciona de punta a punta contra la API real. El restablecimiento de
+contraseña también está implementado en los dos lados.
 
 Lo que ya está en disco:
 
@@ -15,13 +16,14 @@ Lo que ya está en disco:
 | Identidad del producto | `src/app/nucleo/ambiente/sitio.ts` — el nombre y la marca, escritos una sola vez |
 | Cliente HTTP | `src/app/nucleo/api/api.ts` y `api-plataforma.ts`, con los tipos en `api/contratos.ts` y `api/contratos-plataforma.ts` |
 | Traducción de errores | `src/app/nucleo/api/mensaje-error.ts` — saca el `detail` del `ProblemDetails` |
-| `provideHttpClient()` | `src/app/app.config.ts`, con `withInterceptors` |
+| `provideHttpClient()` | `src/app/app.config.ts`, con `withInterceptors([interceptorRefresco, interceptorToken])` — **ese orden importa**, ver §Refresco |
 | Interceptor de token | `src/app/nucleo/sesion/interceptor-token.ts` |
+| Interceptor de refresco | `src/app/nucleo/sesion/interceptor-refresco.ts` (+ `.spec.ts`, 11 pruebas) y el canje serializado en `refresco-sesion.ts` |
 | Guards de sesión | `src/app/nucleo/sesion/guard-sesion.ts` y `guard-plataforma.ts` |
-| Estado de sesión | `src/app/nucleo/sesion/sesion.ts` — signals + `localStorage` |
+| Estado de sesión | `src/app/nucleo/sesion/sesion.ts` — signals + `localStorage`, con `datosDeRefresco()` |
 | Qué puede ver quien entró | `src/app/nucleo/sesion/acceso.ts` — permisos del rol ∩ módulos del plan |
 | Pantallas de empresa | `src/app/paginas/empresa/{aceptar-invitacion,iniciar-sesion,inicio,solicitar-restablecimiento,restablecer-contrasena}`, con carga diferida |
-| Pantallas de plataforma | `src/app/paginas/plataforma/{iniciar-sesion,empresas}` |
+| Pantallas de plataforma | `src/app/paginas/plataforma/{iniciar-sesion,dashboard,empresas,planes,salud-esquemas}` |
 | Pantalla del portal | `src/app/paginas/portal/seleccionar-empresa` |
 | Sesión de plataforma | `src/app/nucleo/sesion/sesion-plataforma.ts` — **llave de almacenamiento separada** |
 
@@ -44,14 +46,22 @@ Lo que **sigue faltando**:
 
 - **`api:sync`.** Los tipos de `contratos.ts` están escritos a mano. El plan sigue siendo
   generarlos desde `/openapi/v1.json` y commitear el resultado, para que un cambio de
-  contrato salga como diff en la revisión y no como error en tiempo de ejecución.
-- **Interceptor de refresco.** El login ya devuelve un token de refresco y la API lo
-  guarda en `sesion_refresh`, pero el front todavía no lo usa: cuando el token de 15
-  minutos caduca, hay que volver a entrar.
-- **Pruebas, casi todas.** Ya no es cero: `npm test` (builder `@angular/build:unit-test`,
-  con `vitest` y `jsdom`) corre **2 archivos y 39 pruebas** en verde — `tenant.spec.ts` y
-  `acceso.spec.ts`, las dos funciones puras que deciden a qué empresa se llama y qué
-  módulos se dibujan. Ninguna pantalla ni ningún servicio con HTTP tiene prueba todavía.
+  contrato salga como diff en la revisión y no como error en tiempo de ejecución. Ya hay
+  una prueba de que hace falta: `SaludEsquemas.versionDisponible` está tipado `string` y el
+  servidor puede mandar `null` — ver §Salud de esquemas.
+- **Refresco de la sesión de PLATAFORMA.** No existe en ningún lado: el backend no tiene
+  `sesion_refresh` para plataforma y ningún endpoint bajo `/api/plataforma` canjea nada.
+  Es una decisión de esquema pendiente del backend, no un pendiente de este repo, y el
+  front la respeta explícitamente: un 401 de ese ámbito se propaga tal cual.
+- **Interceptor de manejo de errores.** Cada pantalla llama a `mensajeDeError` a mano.
+- **El token de refresco en `localStorage`** en vez de cookie `HttpOnly`. Ver
+  §Divergencia consciente, que es el único pendiente de seguridad abierto de esta parte.
+- **Pruebas de lo que toca la red, a medias.** `npm test` (builder
+  `@angular/build:unit-test`, con `vitest` y `jsdom`) corre **9 archivos y 116 pruebas** en
+  verde. De esta integración ya tienen red `api.spec.ts` (9), `api-plataforma.spec.ts` (10,
+  con `HttpTestingController` y `http.verify()` para fijar que un recurso compartido se pide
+  UNA vez) y `interceptor-refresco.spec.ts` (11). Siguen sin una sola prueba los dos guards,
+  `interceptor-token`, los dos almacenes de sesión y `mensaje-error`.
 
 ## Puertos y documento OpenAPI
 
@@ -195,9 +205,16 @@ El dominio concreto todavía no se ha registrado, así que la configuración de 
 
 ### Divergencia consciente: hoy el refresh token está en `localStorage`
 
-**Decidido el 2026-08-24.** El párrafo de arriba, `guias/convenciones.md` §Seguridad del login y `01-arquitectura.md` §6.1 dicen `HttpOnly` **nunca `localStorage`**. `src/app/nucleo/sesion/sesion.ts` hace lo contrario: guarda el token de refresco bajo la llave `maquinaria.refresco` en `localStorage`.
+**Decidido el 2026-08-24, y SIGUE ABIERTO al 2026-08-25.** El párrafo de arriba, `guias/convenciones.md` §Seguridad del login y `01-arquitectura.md` §6.1 dicen `HttpOnly` **nunca `localStorage`**. `src/app/nucleo/sesion/sesion.ts` hace lo contrario: guarda el token de refresco bajo la llave `maquinaria.refresco` en `localStorage`.
 
 No es un descuido —el propio archivo lo declara en un comentario— pero hasta hoy la divergencia no estaba registrada en ningún documento, así que quien leyera solo los docs asumiría lo contrario de lo que hace el código.
+
+**Y es de los dos lados, no solo del front.** El backend tampoco lo manda por cookie: la
+respuesta del login y la del refresco devuelven el token **en el cuerpo**, en el
+`SesionEmpresa`. Así que el día que se cambie, se cambia a la vez en los dos repos —el
+backend emitiendo `Set-Cookie` y dejando de devolverlo, el front dejando de leerlo y
+mandando `withCredentials`— y por la regla de expandir → migrar → contraer eso son tres
+despliegues, no uno.
 
 **Se mantiene `localStorage` mientras dure el desarrollo.** La regla de `HttpOnly` sigue siendo la meta y no se relaja: es el estado objetivo, no una recomendación descartada.
 
@@ -207,9 +224,22 @@ No es un descuido —el propio archivo lo declara en un comentario— pero hasta
 | CSRF | No aplica | Hay que resolverlo (es el costo del cambio) |
 | Riesgo | Un XSS se lleva un token de 30 días | Un XSS no alcanza la cookie |
 
-**Condición de cierre, no fecha:** esto se resuelve **antes del primer despliegue con datos de un cliente real**, y en la misma tanda de trabajo que el interceptor de refresco (pendiente de §Lo que falta), porque ambos tocan el mismo código de sesión. Hacerlos por separado significa escribir dos veces el manejo del refresco.
+**Condición de cierre, no fecha:** esto se resuelve **antes del primer despliegue con datos de un cliente real**.
 
-Nota de coherencia pendiente: el comentario de `sesion.ts` habla de un refresco de **30 días** y este documento fija el token de acceso en **15 minutos**. Al implementar el refresco hay que confirmar cuál es la vigencia real que emite el backend y dejar un solo número escrito.
+**Lo que se planeó y no se cumplió, escrito para que no se repita la promesa:** este documento
+decía que se resolvería «en la misma tanda de trabajo que el interceptor de refresco, porque
+ambos tocan el mismo código de sesión». El interceptor se implementó el 2026-08-25 y el token
+se quedó en `localStorage`, así que sí, el manejo del refresco habrá que tocarlo dos veces.
+Lo que costó de más es acotado —`Sesion.datosDeRefresco()` y el cuerpo de
+`Api.refrescarSesion` desaparecen cuando la cookie viaje sola, y el resto del single-flight
+sigue igual porque la rotación no cambia—, pero el patrón sí: **una condición de cierre
+amarrada a otra tarea se rompe cuando esa tarea entra sola.** La condición de cierre real es
+la de arriba, el despliegue con datos reales.
+
+La nota de coherencia sobre las vigencias **queda resuelta**: no había contradicción, eran
+piezas distintas —15 minutos el acceso de empresa, 60 el de plataforma, 30 días el refresco—.
+Los tres números están en la tabla de §Refresco de la sesión de empresa, leídos de
+`OpcionesJwt.cs`.
 
 ## Acceso: dos campos, porque la empresa sale del subdominio
 
@@ -265,6 +295,188 @@ El `GET` del token responde 204 o 404 y **nada más**: ni el correo ni el nombre
 
 Tras restablecer **no se inicia sesión automáticamente**: el backend acaba de revocar todas las sesiones de esa cuenta, así que entrar a mano con la contraseña nueva es lo que toca. Se vuelve a `/entrar?restablecida=1`, con un aviso distinto del de `?activada=1`: el restablecimiento acaba de cerrar las demás sesiones y un texto que sirviera para los dos casos no diría ninguno de los dos.
 
+## Refresco de la sesión de empresa
+
+**Implementado en los dos lados el 2026-08-25.** Con esto el token de acceso de 15 minutos
+deja de obligar a volver a entrar, y se cierra la Fase 0 del frontend.
+
+| Método y ruta | Auth | Cuerpo | Respuesta |
+|---|---|---|---|
+| `POST /api/empresas/{slug}/sesion/refresco` | **anónimo** | `{ tokenRefresco }` | **200** con `SesionEmpresa`, **401** o **429** |
+
+Las vigencias están en `Maquinaria.Infraestructura/Seguridad/OpcionesJwt.cs`, y verlas
+juntas zanja la nota de coherencia que este documento arrastraba —`sesion.ts` hablaba de 30
+días y el documento de 15 minutos—: **no se contradecían, son piezas distintas**.
+
+| Pieza | Vigencia |
+|---|---|
+| Token de acceso de empresa | **15 minutos** (`MinutosEmpresa`) — corto a propósito: los permisos viajan dentro |
+| Token de acceso de plataforma | **60 minutos** (`MinutosPlataforma`) |
+| Token de refresco | **30 días** (`DiasRefresco`) |
+
+### Es el contrato del login, reusado a propósito
+
+La respuesta es **idéntica en forma** a la del login: el mismo `SesionEmpresa`. Por eso no
+se escribió un contrato nuevo — el backend lo declara en el comentario del endpoint— y por
+eso el cliente puede sustituir lo que tenía guardado sin traducir nada. **Guardar el token
+de refresco NUEVO no es opcional**: el canje rota el viejo y lo revoca.
+
+Es **anónimo**, y también a propósito: se refresca precisamente porque el token de acceso ya
+caducó, así que exigir uno válido dejaría el endpoint inservible. Lo que autentica aquí es el
+token de refresco. El **slug va en la ruta** igual que en el login, y eso es lo que hace que
+el middleware de tenant resuelva la empresa sin claim: la sesión se busca en la base de ESA
+empresa. Sin slug no hay tenant y el caso de uso rechaza.
+
+Del lado del front eso obliga a **salir por el `HttpBackend`**: `Api.refrescarSesion` usa un
+`httpSinInterceptores = new HttpClient(inject(HttpBackend))`. No puede llevar `Authorization`
+—el token ya caducó— y, sobre todo, no puede pasar por el interceptor de refresco, porque su
+propio 401 pediría otro refresco sin fin. Estar fuera de la cadena lo hace imposible por
+construcción y no por una bandera que alguien pueda olvidar.
+
+### Un solo 401, para seis motivos, y sin reintento posible
+
+El 401 tapa **token inexistente, caducado, revocado, reusado, usuario que ya no está activo
+y empresa que no puede operar**, todos con el mismo `detail`
+(`MotivoRefrescoUniforme`: «La sesion no es valida o expiro.»). Distinguirlos le diría a
+quien prueba tokens y slugs cuáles existen — es la misma regla anti-enumeración del acceso.
+
+**Y sin sesión abierta un 401 no es un token caducado**, así que el interceptor no refresca:
+es el login contestando que las credenciales no sirven, o una liga que ya no vale. Refrescar
+ahí sería pedir un canje sin nada que canjear.
+
+La consecuencia para el cliente es directa: **ninguno de los seis se arregla volviendo a
+pedirlo**, así que ante un fallo del canje no hay reintento. Se limpia la sesión y se navega
+a `/entrar?expirada=1`, y eso corre **una vez** aunque hubiera diez peticiones esperando,
+porque está en la cadena de la fuente y no en la de cada suscriptor. El error sí se propaga a
+quien esperaba: cada petición tiene que fallar de verdad para que su pantalla salga de
+«enviando».
+
+### El 429 no es un 401
+
+El endpoint hereda la política de acceso de empresa: **10 peticiones por minuto, ventana
+fija, partición por `slug|IP` y sin cola** (`Program.cs`, `PoliticaAcceso`). Un token de
+refresco es un secreto de 256 bits que no se adivina, pero el endpoint es anónimo y escribe
+en la base.
+
+**Un 429 NO se trata como un token caducado.** El interceptor solo reacciona a `401` con
+sesión abierta; cualquier otro código se propaga. Confundirlos quemaría un refresco por cada
+rechazo del limitador y, con la rotación de por medio, el cliente se echaría a sí mismo
+fuera.
+
+### La rotación no tiene ventana de gracia: el cliente ESTÁ OBLIGADO a serializar
+
+Esta es la parte del contrato que hay que respetar aunque el compilador no lo pida. El token
+de refresco **rota en cada canje y el anterior queda revocado al instante**, sin periodo de
+tolerancia. Dos refrescos concurrentes con el mismo token se leen en el servidor como **reuso
+de token robado**, y la respuesta a eso no es un 401 y ya: **se revoca toda la cadena de
+sesiones del usuario**.
+
+O sea que un refresco sin serializar no degrada la experiencia: **echa a la calle a quien
+estaba trabajando**, y justo cuando más peticiones hay en vuelo, que es cuando el token
+caduca en medio de una pantalla que pide tres cosas a la vez.
+
+Por eso el canje vive en `RefrescoSesion` y no en el interceptor: un `enVuelo` +
+`shareReplay` que garantiza **un solo canje en vuelo**, con todas las peticiones esperando el
+mismo. El detalle de por qué hacen falta las dos mitades —y por qué `refCount: false`— está
+en [convenciones](convenciones.md#sesión-el-refresco-del-token-va-serializado); aquí lo que
+importa es que **es una exigencia del servidor, no una optimización del cliente**.
+
+### El refresco de plataforma NO existe
+
+No hay `sesion_refresh` para plataforma en el backend ni endpoint que lo canjee bajo
+`/api/plataforma`. Es una decisión de esquema pendiente, y mientras siga así el front la
+respeta en voz alta: `interceptorRefresco` descarta `/api/plataforma/**` en su primera línea
+—`peticion.url.includes(RUTAS_DE_PLATAFORMA)`, la constante que exporta `interceptor-token.ts`
+para no escribir la ruta dos veces— y hay una prueba de que un 401 de ese ámbito **se propaga
+tal cual**. Con 60 minutos de vigencia, el superadministrador vuelve a entrar.
+
+### El orden de los interceptores es parte del diseño
+
+`withInterceptors([interceptorRefresco, interceptorToken])`, y el refresco va **primero**.
+Su `siguiente` es el resto de la cadena, así que la petición que se reintenta tras refrescar
+vuelve a pasar por el interceptor del token y sale con el `Bearer` **nuevo** sin que el
+refresco toque ninguna cabecera. Al revés, el reintento saldría con el token ya caducado y
+daría otro 401.
+
+Y no puede haber bucle: el reintento se lanza DENTRO del `catchError`, y un `catchError` no
+atrapa lo que devuelve su propio manejador. Si el reintento vuelve a dar 401, ese 401 sale a
+la pantalla.
+
+## Salud de esquemas: `GET /api/plataforma/salud/esquemas`
+
+**Implementado en los dos lados.** Solo plataforma, con la misma policy que el resto del
+panel: el estado de las bases de todos los clientes no es asunto de ningún cliente.
+
+Existe porque las migraciones de empresa se aplican **N veces, una por base**, y un fallo
+parcial deja versiones desalineadas sin que nada lo diga. Ya pasó: `demo` y `bajio`
+quedaron una migración atrás de la plantilla y nadie se enteró.
+
+```
+SaludEsquemas {
+  versionDisponible: string      // la migración más avanzada DEL BINARIO que respondió
+  totalEmpresas: number
+  desfasadas: number
+  empresas: EmpresaEnSalud[]     // id, slug, razonSocial, estado, aprovisionamiento,
+}                                // versionAplicada, migracionesPendientes,
+                                 // desfasada, versionReconocida
+```
+
+**`versionDisponible` es del binario, no de la empresa más adelantada**, y esa distinción es
+la razón de ser del endpoint. Deducir la referencia de la lista de empresas —que es lo que
+hacía el dashboard hasta hoy— da **cero desfase cuando TODAS van una migración atrás**, que
+es exactamente el estado en el que suele estar el sistema.
+
+**Cuidado con el tipo**: el backend lo calcula como `disponibles.Count > 0 ? disponibles[^1]
+: null`, así que el contrato admite `null` y `contratos-plataforma.ts` lo declara `string`.
+En producción no puede pasar —un ensamblado sin ninguna migración—, pero es una divergencia
+real del contrato escrito a mano y está anotada como pendiente 18 en
+[estado y pendientes](estado-y-pendientes.md#integración-con-la-api).
+
+### Tres estados, y el tercero es el que importa
+
+`desfasada` **la calcula el servidor**: la regla de qué es estar atrasado vive en un solo
+lado. Lo único que decide el front es cuál de los tres estados aplica, en la función pura
+`estadoDeEsquema()`, que leen **el dashboard y la pantalla de esquemas**:
+
+| Estado | Cuándo |
+|---|---|
+| al día | `versionReconocida` y no `desfasada` |
+| desfasada | `versionReconocida` y `desfasada` — se arregla migrando |
+| **sin comparar** | `versionReconocida: false`, y **gana sobre todo lo demás** |
+
+`versionReconocida: false` significa que **no se pudo comparar**: la versión aplicada es
+nula, o es una migración que este binario no conoce —el caso típico es una base **por delante
+del código desplegado**—. En ese estado `desfasada` y `migracionesPendientes` no dicen nada
+útil y **no se leen**: pintarlos sería afirmar un dato que nadie calculó. Colapsarlo a dos
+estados esconde el caso peligroso detrás del mismo color que «al día», y su arreglo no es
+migrar: puede ser desplegar.
+
+### Lo que el endpoint NO hace, y la pantalla lo dice
+
+**Lee `version_esquema` de la base central y no se conecta a las bases de las empresas.** Es
+una simplificación deliberada —consultar `__EFMigrationsHistory` de N bases en una petición
+HTTP son N conexiones y N puntos de falla— y el dato lo mantienen los dos únicos caminos que
+aplican migraciones: el aprovisionamiento y `migrar-empresas`.
+
+Consecuencia aceptada: **si alguien migra a mano sin actualizar la central, el reporte miente
+hasta la siguiente corrida de `migrar-empresas`**, que la corrige. La pantalla lo escribe en
+su nota de limitación en lugar de dejar que se lea como infalible.
+
+El comando existe y es la salida del aviso:
+`dotnet run --project src/Maquinaria.Api -- migrar-empresas`.
+
+### En el front es un recurso compartido, y sin `defaultValue`
+
+Lo leen el dashboard —para el aviso de desfase— y la pantalla `/esquemas`, así que va en
+`ApiPlataforma.saludEsquemas` y entre las dos hacen **una** petición, fijado con
+`http.verify()` en `api-plataforma.spec.ts`.
+
+**Sin `defaultValue`, al contrario que las listas**: aquí el vacío no es `[]` sino «todavía
+no hay reporte», y eso se dice con `null`. Un reporte de relleno con cero desfasadas se
+pintaría como un reporte de verdad diciendo que no hay nada que atender. Por lo mismo,
+`resumir()` del dashboard recibe el reporte como parámetro **opcional**: sin reporte no
+afirma nada del esquema de nadie.
+
 ## Las ligas de correo van al subdominio de la empresa
 
 **Cambió, y rompe las ligas viejas.** `PlantillasCorreoWeb` del backend ya no manda `?empresa=`: el slug va en el **subdominio**.
@@ -300,8 +512,14 @@ El front debe autorizar contra **la cadena de permiso, nunca contra el nombre de
 |---|---|
 | **JWT** | Existe: `nucleo/sesion/interceptor-token.ts` |
 | **`tenant`** | **Ya no hace falta.** El slug va en la URL de cada endpoint (`/api/empresas/{slug}/…`), no en una cabecera, y sale del subdominio. No hay nada que interceptar |
-| **Refresh automático** | Pendiente. Es lo que falta para que el token de 15 minutos deje de obligar a volver a entrar |
+| **Refresh automático** | **Existe (2026-08-25)**: `interceptor-refresco.ts` + `refresco-sesion.ts`, **solo para la sesión de empresa**. Ver §Refresco de la sesión de empresa |
 | **Manejo de errores** | Pendiente. Hoy cada pantalla llama a `mensajeDeError` a mano |
+
+Y son **dos** interceptores y no un `if` más dentro del de token, por dos razones: poner el
+`Authorization` correcto es cosa de las dos sesiones y ahí está bien compartido, mientras
+refrescar es cosa de una sola; y son dos momentos distintos del ciclo —uno toca la petición
+al salir, el otro la respuesta al volver—, así que mezclarlos obligaría a leer un archivo con
+dos vidas.
 
 El de JWT hace **dos** comprobaciones, y las dos importan:
 

@@ -8,7 +8,7 @@ Consume la API del repo hermano [`maquinaria-backend`](https://github.com/xYairr
 
 ## Stack
 
-Versiones realmente instaladas en `node_modules` al 2026-08-24, verificadas contra disco:
+Versiones realmente instaladas en `node_modules` al 2026-08-25, verificadas contra disco:
 
 | Pieza | Rango | Instalado |
 |---|---|---|
@@ -61,19 +61,21 @@ Solo estos cinco existen hoy:
 | `npm start` | `ng serve` | Dev server en `:4200`, configuración `development` |
 | `npm run build` | `ng build` | Build de producción |
 | `npm run watch` | `ng build --watch --configuration development` | Build incremental sin dev server |
-| `npm test` | `ng test` | Pruebas unitarias con Vitest + jsdom — hoy **39, todas pasan** |
+| `npm test` | `ng test` | Pruebas unitarias con Vitest + jsdom — hoy **116 en 9 archivos, todas pasan** |
 | `npm run ng` | `ng` | Paso directo al CLI, p. ej. `npm run ng -- generate component x` |
 
 No hay script de lint, formato, `e2e` ni `api:sync`.
 
 La salida del build es **`dist/maquinaria-frontend/browser`** — la ruta que hay que configurar en Cloudflare Pages. `angular.json` no declara `outputPath`, así que sale del nombre del proyecto. Budgets: `initial` avisa a 500 kB y falla a 1 MB.
 
+El paquete inicial de hoy es **373.59 kB crudos / 103.85 kB transferidos**, cómodamente por debajo del aviso. Cada pantalla va en su propio chunk perezoso, así que lo que crece con una pantalla nueva no es esta cifra.
+
 ## Estructura
 
 ```
 maquinaria-frontend/
 ├── docs/                       # guías de este repo
-├── public/                     # favicon, ilustración del acceso, banderas
+├── public/                     # favicon, fotografía del panel de marca, banderas
 ├── src/
 │   ├── app/
 │   │   ├── app.config.ts        # providers: router, http, título de pestaña

@@ -135,6 +135,35 @@ números y moneda se quedan con el idioma con el que se cargó la página. Hoy n
 porque no hay un solo `| date` en la aplicación. Está anotado con un comentario
 `ponytail:` en `i18n.ts`, con las dos salidas.
 
+## El andamiaje de una pantalla nueva
+
+**La entrada del menú y su ruta se agregan JUNTAS, o no se agregan.** La regla sale de un
+fallo que estuvo en disco: `menuEmpresa()` devolvía un grupo `Operación` con `/equipos`,
+`/clientes` y `/rentas`, y **`rutas-empresa.ts` no registraba ninguna de las tres**. Para una
+empresa cuyo plan las contratara, la opción se dibujaba, se pulsaba, caía en el `path: '**'` y
+volvía a `/inicio`. Un menú que no lleva a ningún lado es peor que un menú corto: quien lo
+pulsa cree que la pantalla existe y que algo se rompió. Las tres se retiraron el 2026-08-25, y
+sus textos —`menu.equipos`, `menu.clientes`, `menu.rentas` y `menu.operacion`, el título del
+grupo— se quedan en `textos.ts` a propósito, para volver el día que exista la pantalla.
+
+Y el andamiaje es **un paso más largo** de lo que parecía. Son cuatro cosas, no dos:
+
+1. La ruta en `rutas-empresa.ts` o `rutas-plataforma.ts`, con su `loadComponent` —un chunk
+   por pantalla.
+2. La línea en `menuEmpresa()` o `menuPlataforma()` (`disposicion/opciones-menu.ts`), con la
+   `clave` del módulo si pertenece a alguno; el filtrado por plan y permisos ya funciona.
+3. `titulos.<clave>` en los DOS bloques de idioma de `nucleo/i18n/textos.ts`: es lo que lee
+   el `title` de la ruta.
+4. `menu.<clave>`, también en los dos idiomas.
+
+Faltando 3 o 4 **no compila**, y eso es la red: el diccionario español define la forma y el
+inglés se declara con ese tipo. Ver [internacionalización](#internacionalización).
+
+**No existe ninguna constante `MENU_EMPRESA`**, por si algún comentario la nombra —el docblock
+de `rutas-empresa.ts` todavía lo hace—: es la función `menuEmpresa()`. Y es función a
+propósito, porque una constante se evaluaría al cargar el módulo y el menú se quedaría en el
+idioma de ese instante.
+
 ## La barra superior
 
 **Hay UNA sola barra por pantalla, y la dibuja el armazón.** Mezcla dos ámbitos a
@@ -169,7 +198,7 @@ maquinaria para mover marcado; describir la barra como datos deja al armazón di
 entera y a la pantalla diciendo solo qué pone. Es el mismo criterio que
 `opciones-menu.ts`, donde el menú también es datos.
 
-### Tres reglas
+### Cuatro reglas
 
 1. **El `<h1>` lo pinta la barra.** Una pantalla no añade el suyo: habría dos.
 2. **La señal de búsqueda se pasa, no se copia.** `valor` es la señal escribible de la
@@ -179,6 +208,15 @@ entera y a la pantalla diciendo solo qué pone. Es el mismo criterio que
    un `<a>` —se puede abrir en otra pestaña— y con `alPulsar` un `<button>`. No es cosmético:
    anunciar «enlace» algo que abre una hoja en la misma pantalla es mentirle a un lector de
    pantalla. Y si no hay ni una cosa ni la otra, no se declara acción.
+
+4. **Una acción principal puede ABRIR UNA HOJA, y entonces la confirmación se queda en la
+   PANTALLA.** El alta de empresa se mudó al patrón de planes: la barra declara
+   `accion: { etiqueta, alPulsar }`, el armazón pinta un `<button>` y el formulario vive en la
+   hoja inferior. Antes esa pantalla no tenía acción principal, porque un botón amarillo que
+   apuntara al formulario de más abajo no lleva a ninguna parte. Lo que **no** se mete en la
+   hoja es la confirmación: lleva la liga de invitación —justo lo que hay que poder leer con
+   calma y copiar— y dentro de una hoja que se descarta con un gesto desaparecería con el mismo
+   movimiento que la abrió. La hoja se cierra al terminar y el aviso queda en la pantalla.
 
 ### El avatar es un desplegable
 
@@ -348,6 +386,107 @@ volver a mirarlo**: cuando una mutación tenga que invalidar varias listas de pa
 distintas, cuando haya que escribir una caché propia con TTL, o cuando haga falta paginación
 de servidor con `keepPreviousData`. Hasta entonces, no.
 
+## Sesión: el refresco del token va SERIALIZADO
+
+El token de refresco del backend **ROTA en cada canje y no tiene ventana de gracia**, y de ese
+único hecho sale todo lo demás. Dos peticiones que caducan a la vez canjearían el MISMO token;
+el backend lee el segundo canje como **reuso de token robado y revoca toda la cadena de
+sesiones del usuario**. Un refresco sin serializar no degrada la experiencia: **echa a la calle
+a quien estaba trabajando.** Por eso hay una clase entera para esto
+—`nucleo/sesion/refresco-sesion.ts`— y su única obligación es que nunca haya dos refrescos en
+vuelo.
+
+Las piezas son cuatro archivos: `refresco-sesion.ts` (el canje serializado),
+`interceptor-refresco.ts` (el 401 que lo dispara y el reintento), `interceptor-token.ts` (la
+cabecera, compartida por las dos sesiones) y el orden en `app.config.ts`.
+
+### Las tres piezas del single-flight, y por qué las tres hacen falta
+
+```ts
+this.enVuelo = this.api.refrescarSesion(datos.empresa, datos.tokenRefresco).pipe(
+  map((sesion) => { this.sesion.abrir(sesion); return sesion.token; }),
+  catchError((error: unknown) => { this.terminarSesion(); return throwError(() => error); }),
+  finalize(() => (this.enVuelo = null)),
+  shareReplay({ bufferSize: 1, refCount: false }),
+);
+```
+
+1. **El campo `enVuelo`** hace que el segundo que llega reciba el MISMO observable en vez de
+   crear otro. Es la mitad evidente, y por sí sola no sirve de nada.
+2. **`shareReplay({ bufferSize: 1, refCount: false })` es la mitad que de verdad serializa.**
+   Los observables de `HttpClient` son **fríos**: sin compartir la suscripción, dos
+   suscriptores del «mismo» observable disparan **dos POST** — exactamente el fallo que se
+   está evitando. Quien quite esta línea creyendo que `enVuelo` ya lo resuelve, lo reintroduce.
+3. **`finalize` va ANTES del `shareReplay`.** Así corre una vez, al terminar la fuente, y no
+   una vez por suscriptor. Es lo que libera `enVuelo` para que el siguiente 401 —que ya tendrá
+   el token rotado— pueda pedir un canje nuevo.
+
+**Y `refCount: false` no es un adorno.** Con `true`, una petición cancelada porque su pantalla
+se destruyó desmontaría el canje **a medias**: el token ya rotado en el servidor y sin guardar
+en el cliente. El siguiente refresco iría con un token que el backend ya considera canjeado —
+revocación de toda la cadena. Con `false` el canje se termina siempre y lo que se guarda es lo
+que se emitió.
+
+### Sin bucle por CONSTRUCCIÓN, no por bandera
+
+Las dos mitades están cerradas sin que nadie tenga que acordarse de nada:
+
+- **La petición de refresco sale por `HttpBackend`** (`Api.refrescarSesion`), fuera de la
+  cadena de interceptores. No lleva `Bearer` —el token de acceso ya caducó y el endpoint es
+  anónimo— y no puede dispararse a sí misma.
+- **El reintento se lanza DENTRO del `catchError`**, y un `catchError` no atrapa lo que
+  devuelve su propio manejador. Si el reintento vuelve a dar 401, ese 401 **sale a la
+  pantalla** en lugar de pedir otro canje.
+
+### Fallo limpio: una vez para todos, error para cada uno
+
+`terminarSesion()` —limpiar la sesión y navegar a `/entrar?expirada=1`— vive en el
+`catchError` de la **fuente compartida**, así que corre **una sola vez** aunque estén
+esperando diez peticiones. Ante un fallo del canje no hay reintento posible: el 401 del
+endpoint de refresco tapa seis motivos —inexistente, caducado, revocado, reusado, usuario
+inactivo, empresa que no puede operar— y ninguno se arregla volviéndolo a pedir.
+
+El error **sí** se propaga a cada suscriptor, y eso es deliberado: una petición que no falla
+deja su pantalla en «enviando» para siempre.
+
+### El orden de los interceptores es carga funcional
+
+```ts
+provideHttpClient(withInterceptors([interceptorRefresco, interceptorToken]))
+```
+
+`interceptorRefresco` va **por fuera**, así que su `siguiente(peticion)` vuelve a pasar por
+`interceptorToken` y el reintento sale con el `Bearer` **nuevo** sin que aquí haya que tocar
+ninguna cabecera. Al revés, el reintento saldría con el token ya caducado y daría otro 401.
+
+Son además dos momentos distintos del ciclo —uno toca la petición al salir, el otro la
+respuesta al volver—, y por eso son dos archivos y no un `if` más.
+
+### Plataforma queda FUERA
+
+El backend **no tiene `sesion_refresh` para plataforma**, así que `interceptor-refresco`
+descarta `/api/plataforma/**` en su primera línea y un 401 de ese ámbito se propaga tal cual.
+Lo que sí sigue compartido es la cabecera: `interceptor-token` elige entre el token de
+plataforma y el de empresa **por la ruta**, y sirve a las dos sesiones.
+
+### Lo que se dejó FUERA a propósito
+
+- **No hay refresco proactivo por `expiraEn`.** Un temporizador agrega desfase de reloj,
+  timers que limpiar y un segundo camino que puede colarse en paralelo con el reactivo. El 401
+  ya es la señal, y llega del único sitio que sabe la verdad.
+- **Una petición lenta que da 401 después de que otra ya refrescó dispara un canje de más**,
+  con el token NUEVO. Eso es un refresco desperdiciado, **no** reuso: la cadena no se revoca.
+  Está probado, no supuesto.
+
+### Las pruebas
+
+`nucleo/sesion/interceptor-refresco.spec.ts`, **11 pruebas**. La que más importa es
+«dos peticiones concurrentes que dan 401 producen UN SOLO refresco»; el resto es la red
+alrededor: que se guarde el token rotado, que la navegación al acceso ocurra una vez, que el
+429 del limitador no se confunda con un 401, que un reintento con 401 no se reintente otra
+vez, que plataforma no dispare nada, y que dos 401 separados en el tiempo sí canjeen dos veces
+con el token rotado.
+
 ## Capas: hoja inferior y globo de ayuda
 
 Las dos usan **elementos nativos**, y esa es la razon de que ocupen tan poco codigo.
@@ -420,11 +559,46 @@ Las tres dieron fallos reales, y ninguna avisa: no hay error, solo algo que se v
 La regla general: al usar `<dialog>` para algo que no es un cuadro centrado, **hay que anular
 sus valores por defecto uno por uno**, y comprobar el estado CERRADO además del abierto.
 
+#### El gesto es ASIMÉTRICO: subir es CRECER, bajar es DESPLAZARSE
+
+**Esta guía lo documentaba al revés, y lo que documentaba era el fallo.** El arrastre se
+aplicaba entero al `translate`, y la hoja está clavada al fondo con `inset: auto 0 0`: un
+`translate` **negativo** la **despega del borde inferior** y deja ver el velo debajo, con el
+pie y su acción principal subiendo con ella; al soltar volvía de golpe. Medido en navegador
+real sobre una ventana de **720 px** de alto: **200 px de arrastre daban 200 px de hueco.**
+
+Una hoja inferior no se mueve hacia arriba, **crece** hacia arriba. El reparto que hay escrito:
+
+| Dirección | Dónde va | Por qué |
+|---|---|---|
+| **Arriba** | el tope de alto: `min(98dvh, calc(<anclaje>dvh + <subida>px))` | Su borde de abajo no se separa nunca del de la pantalla |
+| **Abajo** | el `translate`, y solo positivo | Ahí sí es un desplazamiento de verdad: la hoja se va **por debajo** del borde, que es lo que tiene que parecer al descartarla |
+
+Medido después del arreglo, misma ventana de 720: **360 px en reposo, 560 px con 200 px de
+arrastre y 0 de hueco**, y 706 px con un arrastre enorme — que es el freno de `98dvh`
+haciendo su trabajo.
+
+**El `min()` va en CSS y no en JavaScript**, y no por gusto: mezcla unidades —`dvh` del
+anclaje con `px` del dedo— y solo el navegador sabe cuánto mide un `dvh` en este instante.
+Calcularlo en JS obligaría a leer `innerHeight` en cada `pointermove`.
+
+**Se quitó la goma elástica** del anclaje más alto. Amortiguaba el tirón a un cuarto para dar
+el efecto de las hojas de móvil, pero lo conseguía **levantando la hoja del fondo**: el mismo
+fallo en pequeño. Ahora subir es crecer, y por encima del anclaje más alto no hay nada que
+crecer, así que el tirón se ignora en lugar de fingir movimiento.
+
+Lo fija `disposicion/hoja.spec.ts`, **6 pruebas**, y la regla que fijan es una sola: **el
+`translate` nunca es negativo, en ningún recorrido.** Si alguien vuelve a mandar el arrastre
+completo al `translate`, esas pruebas fallan.
+
 #### El anclaje es un TOPE de alto, no un alto fijo
 
 Aparte de lo del `max-height` de arriba, un alto fijo deja hueco vacío cuando el contenido es
 más corto que el anclaje. Con el tope, la hoja mide lo que mide su contenido hasta donde el
-anclaje la deje, y de ahí desplaza.
+anclaje la deje.
+
+**La consecuencia honesta, que hay que escribir:** si el contenido **ya cabe entero**,
+arrastrar hacia arriba no mueve nada, porque no hay nada más que descubrir. Es tope, no alto.
 
 #### Accesibilidad: el arrastre nunca es el único camino
 
@@ -441,6 +615,10 @@ la sombra hacia arriba, que es por donde se separa del contenido. El velo es **n
 entra a la vez que la hoja, o aparece de golpe y la hoja llega después. La entrada es `translateY(100%)` —desde fuera de la pantalla, no unos píxeles— y
 solo hay animación de entrada: la de salida necesita `transition-behavior: allow-discrete`,
 que aún no está en todos los motores.
+
+La transición cubre **las dos mitades del gesto** —`translate` y `max-height`— justamente
+porque subir y bajar se expresan en propiedades distintas; declarar solo `translate` dejaría
+el crecimiento a saltos.
 
 #### El clic en el velo NO lo da el navegador
 
@@ -557,6 +735,15 @@ Lo de altura fija coincide exacto. **Lo que no puede coincidir es una lista cuyo
 desconoce hasta que llegan los datos**: el esqueleto pinta tres avisos y llegaron cuatro. Se
 elige un número plausible y se acepta la diferencia; fingir precisión ahí no se puede.
 
+**Y un desajuste que aquí se daba por inevitable ya no lo es.** El esqueleto de `empresas` no
+podía coincidir en altura por debajo de `sm`: la tabla era de reparto automático y **sin
+`min-w-*`**, así que en un teléfono envolvía el texto de sus celdas, sus filas crecían de alto
+y el espejo se quedaba corto. Con `min-w-160` la tabla ya no envuelve —se desplaza dentro de su
+caja— así que **las alturas coinciden a cualquier ancho**. El `min-w` tiene que estar también
+en el esqueleto, o es él el que se encoge donde la tabla no lo hace. La regla general que sale
+de esto: **una tabla de reparto automático no se puede espejar**; si hay esqueleto, hay
+`min-w-*`.
+
 Dos detalles que sí se afinan y valen la pena:
 
 - **Los bloques miden la CAJA DE LÍNEA del texto, no su tamaño de fuente.** Un texto de 12 px
@@ -604,7 +791,8 @@ columna fija: por debajo de `lg` el contenido tiene todo el ancho.
    comprobación más barata de todas y la que más se rompe.
 2. **Una tabla ancha se desplaza, no se convierte en tarjetas.** Convertirla duplica el
    marcado y las dos copias se desincronizan. La tabla va en un `overflow-x-auto` con
-   `min-w-*` para que las columnas no se aplasten.
+   `min-w-*` para que las columnas no se aplasten, y **su primera columna se fija** — el
+   porqué, más abajo.
 3. **Nada de anchos fijos en el contenido.** `max-w-*` y `min-w-0` sí; `w-[720px]` no. El
    `min-w-0` en un hijo de flex es lo que permite que `truncate` funcione: sin él, el hijo
    se niega a encogerse y desborda al padre.
@@ -612,6 +800,43 @@ columna fija: por debajo de `lg` el contenido tiene todo el ancho.
    comprimen.
 5. **Lo que se oculta en móvil no puede ser la única forma de hacer algo.** Ocultar es
    para lo redundante —un avatar cuando el nombre ya está al lado—, nunca para una acción.
+
+### La primera columna de una tabla ancha se FIJA
+
+La regla 2 dice que una tabla ancha se desplaza. Lo que falta es lo que se descubrió al
+usarla: **desplazándose en horizontal se pierde de vista de qué fila se está leyendo.** La
+tabla de planes tenía **seis** columnas y era exactamente el síntoma que se reportó — tres
+columnas a la derecha, ya no se sabe de qué plan se habla.
+
+Dos cambios, y el segundo importa tanto como el primero:
+
+1. **La columna del identificador se fija** con `sticky left-0` — el plan en `planes`, el slug
+   en `empresas`.
+2. **La columna del estado se mudó DENTRO de la celda del plan**, como píldora pegada al
+   nombre, donde de hecho se lee mejor. De seis columnas a **cinco**: una columna menos que
+   desplazar es mejor que una columna más que fijar. Esto es de `planes`; `empresas` ya tenía
+   cinco y solo recibió la columna fija.
+
+Tres detalles que **fallan en silencio** si se olvidan, porque no dan error, solo se ven mal:
+
+- **Fondo propio y opaco** en la celda fija, o el contenido que pasa por debajo se
+  transparenta.
+- **Un filete a la derecha** (`border-r border-borde`), o el corte se lee como un error de
+  maquetado en vez de como una columna fijada.
+- **El fondo tiene que ser el de SU fila**: el del `<thead>` en el `<th>` —`bg-superficie-sutil`
+  en `empresas`, y `bg-superficie` en `planes`, cuya cabecera hoy va sin relleno— y el de la
+  superficie en el `<td>`. Un solo color para las dos deja la cabecera con el tono del cuerpo.
+
+Verificado en navegador real a **375 px**: 640 px de contenido en una caja de 375, se desplaza
+dentro de su caja, `position: sticky` en el estilo calculado, fondo opaco, y tras desplazar
+265 px la primera columna seguía en `left: 0`. El documento no se desplaza en horizontal.
+
+Sigue vigente la regla dura de siempre: `overflow-x-auto` **en la tabla y nunca en la
+página**, y la tabla **no** se reconstruye como tarjetas.
+
+Y el `min-w-*` que exige la regla 2 tiene un efecto de rebote que vale la pena conocer: con la
+tabla fijada a `min-w-160` sus celdas ya no envuelven en un teléfono, así que **su esqueleto
+vuelve a poder espejarla a cualquier ancho**. Ver [esqueletos](#qué-puede-coincidir-y-qué-no).
 
 ### Ocultar de verdad, no solo de la vista
 
@@ -652,6 +877,7 @@ En los tres anchos, y son tres números concretos: **375** (teléfono), **768** 
 | El menú cerrado | Algún enlace suyo sigue siendo alcanzable con Tab |
 | Los grupos de tarjetas | Cifras o pies cortados |
 | La tabla | Se desplaza la página en vez de la tabla |
+| La columna fija | Se va con el desplazamiento, o el contenido se le transparenta por debajo |
 
 ## Accesibilidad
 
@@ -685,8 +911,11 @@ src/app/
 │   │                api.ts, api-plataforma.ts, contratos*.ts, mensaje-error.ts
 │   └── sesion/      quién entró, qué puede ver y cómo viaja su token
 │                    sesion.ts, sesion-plataforma.ts, guard-sesion.ts,
-│                    guard-plataforma.ts, interceptor-token.ts, acceso.ts (+ .spec)
-├── disposicion/     los armazones y el menú lateral
+│                    guard-plataforma.ts, interceptor-token.ts, acceso.ts (+ .spec),
+│                    refresco-sesion.ts, interceptor-refresco.ts (+ .spec)
+├── disposicion/     los armazones, el menú lateral, la barra y la hoja inferior
+│                    disposicion-empresa.ts, disposicion-plataforma.ts, menu-lateral.ts,
+│                    menu-usuario.ts, opciones-menu.ts, barra.ts, hoja.ts (+ .spec)
 └── paginas/         una carpeta por APLICACIÓN, y dentro una por pantalla
     ├── acceso/      lo COMPARTIDO por las pantallas sin sesión — no es una aplicación
     │                marco-acceso, campo-contrasena, selector-idioma, bandera
@@ -702,7 +931,11 @@ src/app/
     │   │                dashboard.{ts,html}, esqueleto.{ts,html}, resumen.ts (+ .spec)
     │   ├── planes/     el catalogo comercial: lista y creacion
     │   │                planes.{ts,html}, esqueleto.{ts,html}
-    │   └── empresas/
+    │   ├── empresas/   el alta en hoja inferior y la tabla de columna fija
+    │   │                empresas.{ts,html}, esqueleto.{ts,html}
+    │   └── salud-esquemas/  en qué versión de esquema va cada empresa
+    │                     salud-esquemas.{ts,html}, esqueleto.{ts,html},
+    │                     esquema.ts (+ .spec)
     └── portal/      lo que se ve en el dominio pelado y en `login.<dominio>`
         └── seleccionar-empresa/
 ```
@@ -732,7 +965,7 @@ Qué va en cada una:
 |---|---|---|
 | `ambiente/` | `configuracion.ts`, `tenant.ts`, `sitio.ts`, `titulo-pagina.ts` | Responde «¿dónde estoy?»: la URL de la API, el dominio base, qué empresa dice el subdominio, cómo se llama el producto |
 | `api/` | clientes HTTP, `contratos*.ts`, `mensaje-error.ts` | Habla con el backend o describe lo que este devuelve |
-| `sesion/` | almacenes de sesión, guards, interceptor, `acceso.ts` | Depende de quién entró |
+| `sesion/` | almacenes de sesión, guards, los dos interceptores, el refresco serializado, `acceso.ts` | Depende de quién entró |
 
 **Los archivos de prueba viven junto a lo que prueban**, no en una carpeta aparte:
 `tenant.spec.ts` al lado de `tenant.ts`.
