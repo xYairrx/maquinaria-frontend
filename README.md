@@ -4,7 +4,7 @@ Frontend Angular del **Sistema Integral de Operación y Rentabilidad de Activos*
 
 Consume la API del repo hermano [`maquinaria-backend`](https://github.com/xYairrx/maquinaria-backend) (.NET 10). Rama de trabajo: `develop`.
 
-> **Estado: scaffolding de `ng new`.** Compila y las pruebas pasan, pero no hay código de negocio ni integración con la API. Ver [estado y pendientes](docs/estado-y-pendientes.md).
+> **Estado: tres aplicaciones en pie, separadas por subdominio.** `admin.<dominio>` es la superadministración, `<slug>.<dominio>` la aplicación de una empresa y el dominio pelado el portal de entrada. Cada una con su armazón y su menú lateral. Ver [estado y pendientes](docs/estado-y-pendientes.md).
 
 ## Stack
 
@@ -94,7 +94,8 @@ Todavía no existen `src/app/core/`, `src/app/features/`, `src/app/shared/` ni `
 
 | Guía | Para qué |
 |---|---|
-| [Integración con el backend](docs/integracion-backend.md) | Puertos, OpenAPI, cliente generado, dominios, login de tres campos, permisos |
+| [Integración con el backend](docs/integracion-backend.md) | Puertos, OpenAPI, cliente generado, dominios, acceso por subdominio, permisos |
+| [Sistema de diseño](docs/sistema-de-diseno.md) | Menú lateral, barra superior, tarjetas, tablas y accesos. La referencia visual del producto |
 | [Convenciones de código](docs/convenciones.md) | Las reglas de `AGENTS.md` en forma operativa, zoneless y Tailwind v4 |
 | [Estado y pendientes](docs/estado-y-pendientes.md) | Qué hay, los 16 pendientes, las fases y las divergencias con los docs |
 

@@ -7,7 +7,12 @@ Las reglas del repo están en [`AGENTS.md`](../AGENTS.md), y `.claude/CLAUDE.md`
 - Standalone siempre; **no** poner `standalone: true` en el decorador — es el valor por omisión desde v20.
 - `changeDetection: ChangeDetectionStrategy.OnPush` en todo `@Component`.
 - `input()` / `output()` como funciones, no `@Input()` / `@Output()`.
-- Plantilla inline para componentes pequeños. Con archivos externos, rutas relativas al `.ts`.
+- **NUNCA HTML dentro del `.ts`.** Nada de `template:` con backticks, ni siquiera de una
+  línea: el marcado de cada componente va en un `.html` hermano, referenciado con
+  `templateUrl` y con **ruta relativa al `.ts`**. Meter la plantilla dentro del TypeScript
+  convierte el archivo en un muro de marcado donde la lógica no se encuentra; para eso
+  existen tipos de archivo distintos. Esta regla **anula** el consejo habitual de Angular
+  de incrustar las plantillas pequeñas.
 - Componentes chicos y con una sola responsabilidad.
 
 ## Estado
@@ -55,6 +60,65 @@ Requisito, no aspiración:
 - Evitar `any`; usar `unknown` cuando el tipo es incierto.
 
 Flags activos en `tsconfig.json`: `strict`, `noImplicitOverride`, `noPropertyAccessFromIndexSignature`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `isolatedModules`. Del compilador de Angular: `strictTemplates`, `strictInjectionParameters`, `strictInputAccessModifiers`.
+
+## Estructura de carpetas
+
+En español, como todo el dominio. Nada de `core/`, `features/` ni `shared/`.
+
+```
+src/app/
+├── nucleo/          servicios y reglas transversales, SIN pantallas
+│   ├── ambiente/    de dónde sale la configuración y qué empresa es esta
+│   ├── api/         llamadas HTTP, tipos del contrato y traducción de errores
+│   └── sesion/      quién entró, qué puede ver y cómo viaja su token
+├── disposicion/     los armazones y el menú lateral
+└── paginas/         una carpeta por APLICACIÓN, y dentro una por pantalla
+    ├── acceso/      el marco compartido de las pantallas sin sesión
+    ├── empresa/     lo que se ve en `<slug>.<dominio>`
+    │   ├── iniciar-sesion/
+    │   ├── inicio/
+    │   ├── aceptar-invitacion/
+    │   ├── solicitar-restablecimiento/
+    │   └── restablecer-contrasena/
+    ├── plataforma/  lo que se ve en `admin.<dominio>`
+    │   ├── iniciar-sesion/
+    │   └── empresas/
+    └── portal/      lo que se ve en el dominio pelado y en `login.<dominio>`
+        └── seleccionar-empresa/
+```
+
+**`paginas/` se agrupa por aplicación porque el subdominio decide qué árbol de rutas se
+carga.** Cada subcarpeta corresponde a un archivo `rutas-*.ts`: `empresa/` a
+`rutas-empresa.ts`, `plataforma/` a `rutas-plataforma.ts` y `portal/` a `rutas-portal.ts`.
+Con las pantallas sueltas no se sabía a cuál de las tres aplicaciones pertenecía cada una.
+
+**Cada pantalla se llama por lo que hace, no por su URL.** La ruta `/entrar` la sirve
+`iniciar-sesion/`, y `/recuperar` la sirve `solicitar-restablecimiento/`: las URL son
+visibles para quien usa el sistema y hay ligas ya emitidas que apuntan a ellas, así que
+se quedan como están aunque el archivo se llame de otro modo.
+
+**Cuando dos aplicaciones tienen la misma pantalla, la clase las distingue**: el acceso
+de empresa es `IniciarSesion` y el de plataforma `IniciarSesionPlataforma`, aunque los
+dos archivos se llamen `iniciar-sesion.ts`. Leer un import y no saber de qué aplicación
+es, es justo lo que se evita.
+
+**`nucleo/` va por subcarpetas y no plano.** Con quince archivos sueltos ya no se
+encuentra nada, y van a ser muchos más: la regla es que si una carpeta pasa de unos ocho
+archivos, se agrupa por responsabilidad.
+
+Qué va en cada una:
+
+| Carpeta | Qué contiene | Cómo saber si algo va aquí |
+|---|---|---|
+| `ambiente/` | `configuracion.ts`, `tenant.ts` | Responde «¿dónde estoy?»: la URL de la API, el dominio base, qué empresa dice el subdominio |
+| `api/` | clientes HTTP, `contratos*.ts`, `mensaje-error.ts` | Habla con el backend o describe lo que este devuelve |
+| `sesion/` | almacenes de sesión, guards, interceptor, `acceso.ts` | Depende de quién entró |
+
+**Los archivos de prueba viven junto a lo que prueban**, no en una carpeta aparte:
+`tenant.spec.ts` al lado de `tenant.ts`.
+
+**Nombres de archivo en kebab-case y sin sufijo de tipo**: `guard-sesion.ts`, no
+`sesion.guard.ts`; `sesion-plataforma.ts`, no `platform-session.service.ts`.
 
 ## Nomenclatura
 

@@ -28,7 +28,11 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Use `input()` and `output()` functions instead of decorators
 - Use `computed()` for derived state
 - Set `changeDetection: ChangeDetectionStrategy.OnPush` in `@Component` decorator
-- Prefer inline templates for small components
+- NEVER put HTML inside the `.ts` file. No `template:` with backticks, not even a
+  one-liner: every component's markup goes in a sibling `.html` file referenced with
+  `templateUrl`. Inline templates turn component files into walls of markup where the
+  logic is impossible to find; that is what separate file types are for. This rule
+  overrides the usual Angular advice to inline small templates.
 - Prefer Reactive forms instead of Template-driven ones
 - Do NOT use `ngClass`, use `class` bindings instead
 - Do NOT use `ngStyle`, use `style` bindings instead

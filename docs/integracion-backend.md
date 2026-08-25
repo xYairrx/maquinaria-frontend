@@ -16,8 +16,8 @@ Lo que ya está en disco:
 | Interceptor de token | `src/app/nucleo/interceptor-token.ts` |
 | Guard de sesión | `src/app/nucleo/guard-sesion.ts` |
 | Estado de sesión | `src/app/nucleo/sesion.ts` — signals + `localStorage` |
-| Pantallas de empresa | `src/app/paginas/{invitacion,entrar,inicio}`, con carga diferida |
-| Pantallas de plataforma | `src/app/paginas/plataforma/{entrar-plataforma,panel}` |
+| Pantallas de empresa | `src/app/paginas/empresa/{aceptar-invitacion,iniciar-sesion,inicio,solicitar-restablecimiento,restablecer-contrasena}`, con carga diferida |
+| Pantallas de plataforma | `src/app/paginas/plataforma/{iniciar-sesion,empresas}` |
 | Sesión de plataforma | `src/app/nucleo/sesion-plataforma.ts` — **llave de almacenamiento separada** |
 
 ### Dos sesiones, separadas a propósito
@@ -118,6 +118,24 @@ No es cosmética: son subdominios del **mismo dominio registrable a propósito**
 **No usar los dominios por omisión** de Pages y Railway (`*.pages.dev`, `*.up.railway.app`): son dominios registrables distintos, la cookie sería de terceros y obligaría a `SameSite=None`, que los navegadores restringen cada vez más.
 
 El dominio concreto todavía no se ha registrado, así que la configuración de Cloudflare Pages está pendiente. La ruta de salida del build que hay que darle es `dist/maquinaria-frontend/browser`.
+
+### Divergencia consciente: hoy el refresh token está en `localStorage`
+
+**Decidido el 2026-08-24.** El párrafo de arriba, `guias/convenciones.md` §Seguridad del login y `01-arquitectura.md` §6.1 dicen `HttpOnly` **nunca `localStorage`**. `src/app/nucleo/sesion.ts` hace lo contrario: guarda el token de refresco bajo la llave `maquinaria.refresco` en `localStorage`.
+
+No es un descuido —el propio archivo lo declara en un comentario— pero hasta hoy la divergencia no estaba registrada en ningún documento, así que quien leyera solo los docs asumiría lo contrario de lo que hace el código.
+
+**Se mantiene `localStorage` mientras dure el desarrollo.** La regla de `HttpOnly` sigue siendo la meta y no se relaja: es el estado objetivo, no una recomendación descartada.
+
+| | Hoy | Antes de producción |
+|---|---|---|
+| Refresh token | `localStorage`, llave `maquinaria.refresco` | Cookie `HttpOnly` + `SameSite=Lax` |
+| CSRF | No aplica | Hay que resolverlo (es el costo del cambio) |
+| Riesgo | Un XSS se lleva un token de 30 días | Un XSS no alcanza la cookie |
+
+**Condición de cierre, no fecha:** esto se resuelve **antes del primer despliegue con datos de un cliente real**, y en la misma tanda de trabajo que el interceptor de refresco (pendiente de §Lo que falta), porque ambos tocan el mismo código de sesión. Hacerlos por separado significa escribir dos veces el manejo del refresco.
+
+Nota de coherencia pendiente: el comentario de `sesion.ts` habla de un refresco de **30 días** y este documento fija el token de acceso en **15 minutos**. Al implementar el refresco hay que confirmar cuál es la vigencia real que emite el backend y dejar un solo número escrito.
 
 ## Login: tres campos
 
