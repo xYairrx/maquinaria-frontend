@@ -19,7 +19,15 @@
           class="flex items-start justify-between gap-4 border-b border-borde-fila px-4 py-3 last:border-0 md:px-5"
         >
           <div class="min-w-0 flex-1">
-            <div class="esqueleto h-3.5 w-40 max-w-full"></div>
+            <!--
+              El nombre y, a su lado, la pildora de estado: dejo de tener columna propia y
+              se mudo aqui cuando la tabla paso de seis columnas a cinco. Si el espejo la
+              dejara a la derecha, al llegar los datos saltaria de un lado al otro.
+            -->
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <div class="esqueleto h-3.5 w-40 max-w-full"></div>
+              <div class="esqueleto h-5 w-16 shrink-0 rounded-full"></div>
+            </div>
             <div class="esqueleto mt-1.5 h-2.5 w-20"></div>
 
             <!-- Las píldoras de los módulos: es lo que da altura a la fila. -->
@@ -32,7 +40,6 @@
 
           <div class="esqueleto hidden h-3.5 w-20 shrink-0 sm:block"></div>
           <div class="esqueleto hidden h-3 w-16 shrink-0 lg:block"></div>
-          <div class="esqueleto h-6 w-16 shrink-0 rounded-full"></div>
           <div class="esqueleto h-8 w-20 shrink-0 rounded-lg"></div>
         </div>
       }

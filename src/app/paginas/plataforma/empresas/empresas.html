@@ -2,122 +2,172 @@
   Sin <header> ni <main> propios: los aporta DisposicionPlataforma, que es la ruta
   padre. Anidar un <main> dentro de otro es HTML inválido y lo marca AXE, y repetir
   la cabecera duplicaría el botón de salir.
+
+  El <h1> lo pinta la barra del armazón, y el botón amarillo de «Nueva empresa» también:
+  la pantalla solo declara la acción y abre la hoja. Mismo trato que en planes.
+
+  Responsivo desde el primer commit. Ver `docs/convenciones.md#responsivo`.
 -->
-<!-- El <h1> lo pinta la barra del armazon: una pantalla, un solo <h1>. -->
-<div class="mx-auto flex max-w-5xl flex-col gap-6">
-  <div class="flex flex-col gap-6">
-    @if (error()) {
-      <p
-        class="rounded-md border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
-        role="alert"
-      >
-        {{ error() }}
-      </p>
-    }
+<div class="mx-auto flex flex-col gap-5">
+  @if (error(); as mensaje) {
+    <p
+      class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+      role="alert"
+    >
+      {{ mensaje }}
+    </p>
+  }
 
-    @if (reciente(); as r) {
-      <!--
-        Confirmación. La paleta es monocroma + amarillo y no tiene verde, así que el
-        aviso positivo se marca como el de 'entrar': filete negro a la izquierda sobre
-        superficie blanca, en vez de un bloque de color.
-      -->
-      <section
-        class="rounded-md border border-borde border-l-4 border-l-negro-acento bg-superficie p-4"
-        role="status"
-      >
-        <h2 class="text-sm font-semibold text-texto">{{ t().empresas.aprovisionada(r.slug) }}</h2>
-        <p class="mt-1 text-sm text-texto-secundario">
-          {{ t().empresas.baseYEsquema(r.nombreBd, r.versionEsquema) }}
-          @if (r.invitacionEnviada) {
-            {{ t().empresas.invitacionEnviada }}
-          } @else {
-            <strong class="text-alerta-texto">{{ t().empresas.invitacionNoEnviada }}</strong>
-            {{ t().empresas.hayQueReenviar }}
-          }
-        </p>
+  @if (reciente(); as r) {
+    <!--
+      Confirmación. La paleta es monocroma + amarillo y no tiene verde, así que el aviso
+      positivo se marca como el de 'entrar': filete negro a la izquierda sobre superficie
+      blanca, en vez de un bloque de color.
 
-        @if (r.ligaInvitacion) {
-          <p class="mt-2 break-all text-xs text-texto-secundario">
-            {{ t().empresas.ligaSoloDesarrollo }}
-            <a
-              [href]="r.ligaInvitacion"
-              class="text-texto underline focus:outline-none focus:ring-2 focus:ring-negro-acento"
-              >{{ r.ligaInvitacion }}</a
-            >
-          </p>
+      Vive en la PANTALLA y no dentro de la hoja, a propósito: lleva la liga de invitación,
+      que es justo lo que hay que poder leer con calma y copiar. Dentro de una hoja que se
+      descarta con un gesto, desaparecería con el mismo movimiento que la abrió.
+    -->
+    <section
+      class="rounded-lg border border-borde border-l-4 border-l-negro-acento bg-superficie p-4"
+      role="status"
+    >
+      <h2 class="text-sm font-semibold text-texto">{{ t().empresas.aprovisionada(r.slug) }}</h2>
+      <p class="mt-1 text-sm text-texto-secundario">
+        {{ t().empresas.baseYEsquema(r.nombreBd, r.versionEsquema) }}
+        @if (r.invitacionEnviada) {
+          {{ t().empresas.invitacionEnviada }}
+        } @else {
+          <strong class="text-alerta-texto">{{ t().empresas.invitacionNoEnviada }}</strong>
+          {{ t().empresas.hayQueReenviar }}
         }
-      </section>
-    }
+      </p>
 
-    <section class="rounded-md border border-borde bg-superficie">
-      <h2 class="border-b border-borde px-4 py-3 text-sm font-semibold text-texto">
-        {{ t().empresas.conteo(empresas().length) }}
-      </h2>
-
-      @if (cargando()) {
-        <p class="p-4 text-sm text-texto-secundario" role="status">{{ t().comun.cargando }}</p>
-      } @else if (empresas().length === 0) {
-        <p class="p-4 text-sm text-texto-secundario">{{ t().empresas.ninguna }}</p>
-      } @else {
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead
-              class="border-b border-borde bg-superficie-sutil text-xs uppercase text-texto-apagado"
-            >
-              <tr>
-                <th scope="col" class="px-4 py-2">{{ t().empresas.colEmpresa }}</th>
-                <th scope="col" class="px-4 py-2">{{ t().empresas.colRazonSocial }}</th>
-                <th scope="col" class="px-4 py-2">{{ t().empresas.colEstado }}</th>
-                <th scope="col" class="px-4 py-2">{{ t().empresas.colBase }}</th>
-                <th scope="col" class="px-4 py-2">{{ t().empresas.colPlan }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (e of empresas(); track e.id) {
-                <tr class="border-b border-borde-fila last:border-0">
-                  <td class="px-4 py-2 font-medium text-texto">{{ e.slug }}</td>
-                  <td class="px-4 py-2 text-texto-secundario">{{ e.razonSocial }}</td>
-                  <td class="px-4 py-2 text-texto-secundario">
-                    {{ nombreEstado(e.estado) }}
-                  </td>
-                  <td class="px-4 py-2">
-                    <!--
-                      El color solo refuerza: la celda ya dice "Lista", "Fallida" o
-                      "Pendiente". Sin verde ni rojo en la paleta, el fallo va con el
-                      marrón de aviso y lo que sigue en curso, en neutro.
-                    -->
-                    <span
-                      class="font-medium"
-                      [class.text-texto]="e.aprovisionamiento === lista"
-                      [class.text-alerta-texto]="e.aprovisionamiento === fallida"
-                      [class.text-estado-neutro-texto]="enProceso(e)"
-                    >
-                      {{ nombreAprovisionamiento(e.aprovisionamiento) }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-texto-secundario">
-                    {{ e.codigoPlan ?? t().empresas.sinSuscripcion }}
-                    {{ t().empresas.conModulos(e.modulos) }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+      @if (r.ligaInvitacion) {
+        <p class="mt-2 break-all text-xs text-texto-secundario">
+          {{ t().empresas.ligaSoloDesarrollo }}
+          <a
+            [href]="r.ligaInvitacion"
+            class="text-texto underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+            >{{ r.ligaInvitacion }}</a
+          >
+        </p>
       }
     </section>
+  }
 
-    <section class="rounded-md border border-borde bg-superficie p-4">
-      <h2 class="text-sm font-semibold text-texto">{{ t().empresas.darDeAlta }}</h2>
-      <p class="mt-1 text-xs text-texto-apagado">
-        {{ t().empresas.darDeAltaApoyo }}
-      </p>
+  <section class="rounded-xl border border-borde bg-superficie">
+    <h2 class="border-b border-borde px-4 py-3 text-sm font-semibold text-texto md:px-5">
+      {{ t().empresas.conteo(empresas().length) }}
+    </h2>
 
-      <form
-        [formGroup]="formulario"
-        (ngSubmit)="enviar()"
-        class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"
-      >
+    @if (cargando()) {
+      <!--
+        Esqueleto, no un «Cargando…». El texto no dice nada de la forma de lo que viene,
+        así que al llegar los datos la sección salta de una línea a una tabla de cinco
+        columnas, y ese salto se lee como un error. El anuncio para lectores de pantalla
+        no se pierde: va dentro, en `sr-only` con `role="status"`.
+      -->
+      <app-empresas-esqueleto />
+    } @else if (empresas().length === 0) {
+      <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ t().empresas.ninguna }}</p>
+    } @else {
+      <!--
+        `overflow-x-auto` en la tabla y no en la página: el documento nunca se desplaza en
+        horizontal. `min-w-*` para que las columnas no se aplasten en un teléfono — sin él
+        esta tabla era `layout: auto` y por debajo de `sm` sus celdas envolvían, dejando
+        filas de alturas distintas que el esqueleto no podía espejar.
+      -->
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-160 text-left text-sm">
+          <thead
+            class="border-b border-borde bg-superficie-sutil text-[11px] uppercase tracking-wide text-texto-apagado"
+          >
+            <tr>
+              <!--
+                PRIMERA COLUMNA FIJA. Al desplazar en horizontal, el identificador de la
+                empresa se queda a la vista: sin esto, tres columnas a la derecha ya no se
+                sabe de qué fila se está leyendo. Necesita fondo propio —el de la cabecera
+                aquí, el de la superficie en el cuerpo— o el contenido que pasa por debajo
+                se transparenta, y un filete a la derecha para que se lea como fijada y no
+                como un corte raro.
+              -->
+              <th
+                scope="col"
+                class="sticky left-0 border-r border-borde bg-superficie-sutil px-4 py-2.5 font-medium md:px-5"
+              >
+                {{ t().empresas.colEmpresa }}
+              </th>
+              <th scope="col" class="px-4 py-2.5 font-medium">
+                {{ t().empresas.colRazonSocial }}
+              </th>
+              <th scope="col" class="px-4 py-2.5 font-medium">{{ t().empresas.colEstado }}</th>
+              <th scope="col" class="px-4 py-2.5 font-medium">{{ t().empresas.colBase }}</th>
+              <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                {{ t().empresas.colPlan }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (e of empresas(); track e.id) {
+              <tr class="border-b border-borde-fila last:border-0">
+                <td
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium text-texto md:px-5"
+                >
+                  {{ e.slug }}
+                </td>
+                <td class="px-4 py-2.5 text-texto-secundario">{{ e.razonSocial }}</td>
+                <td class="whitespace-nowrap px-4 py-2.5 text-texto-secundario">
+                  {{ nombreEstado(e.estado) }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-2.5">
+                  <!--
+                    El color solo refuerza: la celda ya dice "Lista", "Fallida" o
+                    "Pendiente". Sin verde ni rojo en la paleta, el fallo va con el marrón
+                    de aviso y lo que sigue en curso, en neutro.
+                  -->
+                  <span
+                    class="font-medium"
+                    [class.text-texto]="e.aprovisionamiento === lista"
+                    [class.text-alerta-texto]="e.aprovisionamiento === fallida"
+                    [class.text-estado-neutro-texto]="enProceso(e)"
+                  >
+                    {{ nombreAprovisionamiento(e.aprovisionamiento) }}
+                  </span>
+                </td>
+                <td class="px-4 py-2.5 text-texto-secundario md:px-5">
+                  {{ e.codigoPlan ?? t().empresas.sinSuscripcion }}
+                  {{ t().empresas.conModulos(e.modulos) }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</div>
+
+<!--
+  El alta, dentro de la hoja inferior ARRASTRABLE de `disposicion/hoja.ts`. La hoja aporta
+  el gesto, los anclajes, la cabecera con su asa y el `<dialog>` nativo; aquí solo va el
+  contenido.
+
+  Los mismos anclajes que planes: este formulario tiene siete campos, así que arrancar a la
+  mitad de la pantalla y poder subir hasta el 95 % es el mismo reparto.
+-->
+<app-hoja
+  [abierta]="hojaAbierta()"
+  [anclajes]="[50, 70, 95]"
+  [titulo]="t().empresas.darDeAlta"
+  [apoyo]="t().empresas.darDeAltaApoyo"
+  (cerrar)="cerrarHoja()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-empresa">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      <!-- Una columna en teléfono, dos desde `sm`. Tres apretaría dentro de la hoja. -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div class="flex flex-col gap-1">
           <label for="slug" class="text-sm font-medium text-texto-secundario">
             {{ t().empresas.identificador }}
@@ -125,10 +175,12 @@
           <input
             id="slug"
             formControlName="slug"
+            autocapitalize="off"
+            spellcheck="false"
             aria-describedby="ayuda-slug"
             class="campo-formulario"
           />
-          <p id="ayuda-slug" class="text-xs text-texto-apagado">
+          <p id="ayuda-slug" class="break-words text-xs text-texto-apagado">
             {{ t().empresas.ayudaIdentificador }}
             <code>identificador.{{ dominioBase }}</code
             >.
@@ -142,18 +194,35 @@
           <input id="razonSocial" formControlName="razonSocial" class="campo-formulario" />
         </div>
 
-        <div class="flex flex-col gap-1">
-          <label for="rfc" class="text-sm font-medium text-texto-secundario">{{
-            t().empresas.rfc
-          }}</label>
-          <input id="rfc" formControlName="rfc" class="campo-formulario" />
-        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="flex flex-col gap-1">
+            <label for="rfc" class="text-sm font-medium text-texto-secundario">
+              {{ t().empresas.rfc }}
+            </label>
+            <input
+              id="rfc"
+              formControlName="rfc"
+              autocapitalize="characters"
+              spellcheck="false"
+              class="campo-formulario uppercase"
+            />
+          </div>
 
-        <div class="flex flex-col gap-1">
-          <label for="telefono" class="text-sm font-medium text-texto-secundario">
-            {{ t().empresas.telefono }}
-          </label>
-          <input id="telefono" formControlName="telefono" class="campo-formulario" />
+          <div class="flex flex-col gap-1">
+            <label for="telefono" class="text-sm font-medium text-texto-secundario">
+              {{ t().empresas.telefono }}
+            </label>
+            <!--
+              `type="tel"` abre el teclado numérico en un teléfono. No lleva `pattern`: los
+              formatos varían por país y validar de más rechazaría números buenos.
+            -->
+            <input
+              id="telefono"
+              type="tel"
+              formControlName="telefono"
+              class="campo-formulario tabular-nums"
+            />
+          </div>
         </div>
 
         <div class="flex flex-col gap-1">
@@ -167,13 +236,15 @@
           />
         </div>
 
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1 sm:col-span-2">
           <label for="correoAdministrador" class="text-sm font-medium text-texto-secundario">
             {{ t().empresas.correoAdministrador }}
           </label>
           <input
             id="correoAdministrador"
             type="email"
+            autocapitalize="off"
+            spellcheck="false"
             formControlName="correoAdministrador"
             class="campo-formulario"
           />
@@ -185,8 +256,8 @@
           </label>
 
           <!--
-            `select` nativo y no un desplegable propio: en un telefono el sistema abre su
-            propio selector, que es mejor que cualquier lista que se pueda dibujar aqui.
+            `select` nativo y no un desplegable propio: en un teléfono el sistema abre su
+            propio selector, que es mejor que cualquier lista que se pueda dibujar aquí.
           -->
           <select
             id="codigoPlan"
@@ -204,8 +275,8 @@
 
           @if (planes().length === 0) {
             <!--
-              Sin planes activos no se puede dar de alta nada, asi que se dice en lugar de
-              dejar un desplegable vacio que no explica por que no funciona.
+              Sin planes activos no se puede dar de alta nada, así que se dice en lugar de
+              dejar un desplegable vacío que no explica por qué no funciona.
             -->
             <p id="ayuda-plan" class="text-xs text-alerta-texto" role="alert">
               {{ t().empresas.sinPlanesActivos }}
@@ -214,20 +285,41 @@
             <p id="ayuda-plan" class="text-xs text-texto-apagado">{{ t().empresas.ayudaPlan }}</p>
           }
         </div>
+      </div>
+    </div>
+  </form>
 
-        <div class="sm:col-span-2">
-          <button
-            type="submit"
-            [disabled]="formulario.invalid || enviando()"
-            class="rounded-md bg-amarillo px-4 py-2 font-medium text-sobre-amarillo hover:bg-amarillo-hover focus:outline-none focus:ring-2 focus:ring-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
-          >
-            {{ enviando() ? t().empresas.aprovisionando : t().empresas.aprovisionar }}
-          </button>
-          <p class="mt-2 text-xs text-texto-apagado">
-            {{ t().empresas.tardaUnosSegundos }}
-          </p>
-        </div>
-      </form>
-    </section>
+  <!--
+    El pie va al hueco `[pie]` de la hoja, que lo deja fijo abajo. El submit apunta al
+    formulario por `form=`: está fuera de él en el árbol, porque la hoja lo proyecta en otra
+    ranura.
+
+    El aviso de que tarda va AQUÍ y no en el cuerpo: es lo que hay que leer justo antes de
+    pulsar, no al principio de un formulario de siete campos.
+  -->
+  <div
+    pie
+    class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+  >
+    <p class="text-xs text-texto-apagado">{{ t().empresas.tardaUnosSegundos }}</p>
+
+    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <button
+        type="button"
+        (click)="cerrarHoja()"
+        class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+      >
+        {{ t().empresas.cerrar }}
+      </button>
+
+      <button
+        type="submit"
+        form="formulario-empresa"
+        [disabled]="!puedeEnviar()"
+        class="whitespace-nowrap rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+      >
+        {{ enviando() ? t().empresas.aprovisionando : t().empresas.aprovisionar }}
+      </button>
+    </div>
   </div>
-</div>
+</app-hoja>

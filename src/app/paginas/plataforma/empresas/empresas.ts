@@ -9,6 +9,7 @@ import {
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Barra } from '../../../disposicion/barra';
+import { Hoja } from '../../../disposicion/hoja';
 import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
 import { t } from '../../../nucleo/i18n/i18n';
 import { configuracion } from '../../../nucleo/ambiente/configuracion';
@@ -20,13 +21,14 @@ import {
 } from '../../../nucleo/api/contratos-plataforma';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { SesionPlataformaStore } from '../../../nucleo/sesion/sesion-plataforma';
+import { EmpresasEsqueleto } from './esqueleto';
 
 /** Mismo patrón que el CHECK de la base y que FormatoSlug en el dominio. */
 const PATRON_SLUG = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 
 @Component({
   selector: 'app-empresas',
-  imports: [ReactiveFormsModule],
+  imports: [EmpresasEsqueleto, Hoja, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './empresas.html',
 })
@@ -67,6 +69,12 @@ export class Empresas {
   protected readonly enviando = signal(false);
   protected readonly reciente = signal<EmpresaAprovisionada | null>(null);
 
+  /**
+   * Si la hoja del alta esta abierta. El `<dialog>`, el gesto y los anclajes los maneja
+   * `app-hoja`; aqui solo se dice cuando se ve. Mismo trato que en la pantalla de planes.
+   */
+  protected readonly hojaAbierta = signal(false);
+
   /** El error del ALTA, que es de esta pantalla. El de la lista lo trae el recurso. */
   private readonly errorAlta = signal<string | null>(null);
 
@@ -90,14 +98,37 @@ export class Empresas {
   });
 
   constructor() {
-    // Sin busqueda ni accion: el formulario de alta esta en esta misma pantalla, asi que
-    // un boton amarillo que apunte aqui no lleva a ninguna parte.
+    // El alta ya NO vive en la pantalla: vive en la hoja inferior, asi que la barra por
+    // fin tiene accion principal. Antes no la tenia porque un boton amarillo que apuntara
+    // al formulario de mas abajo no llevaba a ninguna parte; ahora abre la hoja, igual que
+    // en planes. Es `alPulsar` y no `ruta`, asi que el armazon pinta un `<button>`: anunciar
+    // «enlace» para algo que abre una hoja en la misma pantalla le miente a un lector.
     effect(() =>
       this.barra.configurar({
         titulo: t().empresas.titulo,
         contexto: t().panel.contexto(this.empresas().length),
+        accion: { etiqueta: t().empresas.crear, alPulsar: () => this.abrirHoja() },
       }),
     );
+  }
+
+  protected abrirHoja(): void {
+    // El aviso del intento anterior no se arrastra a la hoja nueva: quien la abre otra vez
+    // no esta mirando el fallo de hace un rato.
+    this.errorAlta.set(null);
+    this.hojaAbierta.set(true);
+  }
+
+  protected cerrarHoja(): void {
+    this.hojaAbierta.set(false);
+  }
+
+  /**
+   * Sin un plan activo NO se puede dar de alta nada: `AprovisionarEmpresa` lo rechaza en el
+   * servidor, asi que dejar el boton habilitado seria prometer un viaje que acaba en error.
+   */
+  protected puedeEnviar(): boolean {
+    return this.formulario.valid && this.planes().length > 0 && !this.enviando();
   }
 
   protected enProceso(e: ResumenEmpresa): boolean {
@@ -141,7 +172,10 @@ export class Empresas {
   }
 
   protected enviar(): void {
-    if (this.formulario.invalid || this.enviando()) {
+    if (!this.puedeEnviar()) {
+      // Marcado y no silencio: sin esto, pulsar con un campo en falta no producia ningun
+      // efecto visible.
+      this.formulario.markAllAsTouched();
       return;
     }
 
@@ -171,6 +205,12 @@ export class Empresas {
           this.reciente.set(creada);
           this.formulario.reset();
           this.enviando.set(false);
+
+          // Se cierra al terminar, y la confirmacion queda en la PANTALLA y no en la hoja:
+          // lleva la liga de invitacion, que es justo lo que hay que poder copiar y leer con
+          // calma. Dejarla dentro de una hoja que se descarta con un gesto la haria
+          // desaparecer con el mismo movimiento que la abrio.
+          this.cerrarHoja();
         },
         error: (e: unknown) => {
           this.errorAlta.set(mensajeDeError(e));
