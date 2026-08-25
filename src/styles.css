@@ -1,3 +1,361 @@
 /* You can add global styles to this file, and also import other style files */
 
+/*
+ * Tipografías del producto, desde Google Fonts.
+ *
+ * VA ANTES QUE NADA, incluso antes de Tailwind. En CSS toda regla `@import` tiene que
+ * preceder a cualquier otra regla o el navegador la descarta EN SILENCIO —sin error en
+ * consola, solo la fuente que no aparece—. Y va antes de `@import 'tailwindcss'` porque
+ * el plugin de PostCSS sustituye esa línea por las miles de líneas del framework: si la
+ * de Google fuera después, acabaría enterrada a mitad del archivo y dejaría de valer.
+ *
+ * `display=swap` pinta el texto con la fuente de reserva desde el primer fotograma y lo
+ * cambia cuando llega la definitiva. Sin él, el título queda invisible mientras descarga.
+ *
+ * Los `<link rel="preconnect">` que ahorran el DNS y el TLS de estas dos peticiones
+ * están en `src/index.html`; sin ellos la fuente no empieza a bajar hasta pasados varios
+ * cientos de milisegundos.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap');
+
 @import 'tailwindcss';
+
+/*
+ * Sistema de color y tipografía del producto.
+ *
+ * Va aquí y NO en un `tailwind.config.js` porque Tailwind v4 personaliza el tema con la
+ * directiva `@theme` en CSS; el único enganche del proyecto son `.postcssrc.json` y este
+ * archivo. Cada `--color-*` genera automáticamente sus utilidades (`bg-*`, `text-*`,
+ * `border-*`, `ring-*`, `divide-*`), así que el nombre del token ES el nombre de la clase.
+ *
+ * Los nombres describen el PAPEL, no el color: `--color-superficie-sutil` sobrevive a un
+ * cambio de paleta, `--color-gris-98` no. Al lado de cada uno va el contraste WCAG medido
+ * contra los fondos donde se puede usar, para que nadie tenga que recalcularlo.
+ */
+@theme {
+  /* ── Tipografía: dos familias, una para leer y otra para titular ─────────────── */
+
+  /**
+   * La familia de TODO EL CUERPO: párrafos, campos, botones, menú y tablas.
+   *
+   * Merriweather es una serif diseñada para leer en pantalla: altura de x generosa y
+   * trazos robustos. Dos consecuencias prácticas que conviene tener presentes al
+   * maquetar: ocupa más ancho que una sans a igual tamaño —vigilar tablas y el menú
+   * lateral, donde el espacio horizontal está contado— y trae los pesos 300 a 900
+   * completos, así que aquí `font-medium` y `font-semibold` sí existen de verdad.
+   *
+   * Se llama `sans` y no `merriweather` —aunque sea una serif— porque Tailwind v4 deriva
+   * de `--font-sans` el valor de `--default-font-family`, que es lo que Preflight aplica
+   * a `html` y hereda todo lo demás. Un token con otro nombre generaría la utilidad
+   * `font-merriweather` pero dejaría la aplicación en la fuente del sistema. El nombre
+   * es el de la ranura de Tailwind, no una descripción de la fuente.
+   *
+   * La pila de reserva es real, no decorativa: en una red que bloquee Google Fonts —o en
+   * el primer render, antes de que la descarga termine— el producto tiene que seguir
+   * legible con la serif del sistema.
+   */
+  --font-sans: 'Merriweather', ui-serif, Georgia, serif;
+
+  /**
+   * Solo para TÍTULOS. Genera la utilidad `font-titulo`.
+   *
+   * Lato es una sans, así que la jerarquía va al revés de lo habitual: titular en sans
+   * sobre cuerpo en serif. Es una decisión editorial deliberada, no un descuido — el
+   * contraste entre las dos familias sigue existiendo, solo que invertido.
+   *
+   * Se aplica a mano, título por título, y NUNCA con una regla global `h1, h2 { … }`:
+   * en este producto hay muchos `<h2>` que son etiquetas de 14 px en negrita («Tu
+   * acceso», «Módulos», «Dar de alta una empresa») y cambiarles la familia solo añade
+   * ruido. La regla está en `docs/sistema-de-diseno.md`.
+   *
+   * OJO con los pesos: el corte de Lato trae 100, 300, 400, 700 y 900 — sin 500 ni 600.
+   * Un título con `font-semibold` se pinta en 700. No rompe nada, pero el escalón
+   * intermedio no existe.
+   *
+   * Reserva sans para que, si no carga, el título siga contrastando con el cuerpo en
+   * lugar de fundirse con él: el papel de la fuente sobrevive a la caída.
+   */
+  --font-titulo: 'Lato', ui-sans-serif, system-ui, sans-serif;
+
+  /**
+   * Merriweather como familia por defecto, dicho explícitamente.
+   *
+   * Tailwind ya lo deduce (`--default-font-family: --theme(--font-sans, initial)` en su
+   * `theme.css`), pero esa deducción es un detalle interno del framework y no una API.
+   * Escribirlo aquí cuesta una línea y hace que la familia del cuerpo sea una decisión
+   * visible en el tema, no un efecto secundario que se rompa en una versión.
+   */
+  --default-font-family: var(--font-sans);
+
+  /* ── Base: los planos neutros sobre los que se apoya todo ────────────────────── */
+
+  /** Fondo general de la aplicación. Nunca lleva contenido encima directamente: lo llevan las superficies. */
+  --color-fondo-app: #f4f4f2;
+
+  /** Superficie de tarjeta, panel y campo de formulario. Es el blanco de lectura. */
+  --color-superficie: #ffffff;
+
+  /** Superficie sutil: encabezado de tabla y cabecera de panel. Separa sin dibujar una línea. */
+  --color-superficie-sutil: #fafaf8;
+
+  /** Estado hover de filas y celdas, y fondo del campo de búsqueda en reposo. */
+  --color-superficie-hover: #f0f0ee;
+
+  /** Borde de tarjeta, panel y separador de sección. Decorativo: no identifica ningún control. */
+  --color-borde: #e3e3df;
+
+  /** Borde entre filas de tabla. Más tenue que `borde` porque se repite muchas veces. */
+  --color-borde-fila: #efefeb;
+
+  /**
+   * Borde de un campo de formulario o de un control con contorno.
+   *
+   * Mismo valor que `--color-texto-tenue`. NO se usa `--color-borde` aquí: #E3E3DF da 1.29:1
+   * contra blanco y el contorno de un control es información no textual que debe llegar a
+   * 3:1 (WCAG 1.4.11). Este llega a 3.45:1 sobre `superficie` y 3.13:1 sobre `fondo-app`.
+   */
+  --color-borde-campo: #8a8a8a;
+
+  /** Pista (canal vacío) de una barra de progreso o de una barra de datos. */
+  --color-pista-barra: #e8e8e4;
+
+  /* ── Negro: la estructura de navegación y los acentos sólidos ────────────────── */
+
+  /** Barra lateral y cabecera de aplicación. El negro más profundo de la paleta. */
+  --color-negro-lateral: #0b0b0b;
+
+  /** Tarjeta oscura y chip negro. Un punto por encima del lateral para despegarse de él. */
+  --color-negro-tarjeta: #111111;
+
+  /** Barras de datos y acento sólido. También es el color del anillo de foco. */
+  --color-negro-acento: #1a1a1a;
+
+  /** Caja interna dentro de una zona negra (bloque de identidad, agrupador). */
+  --color-negro-caja: #171717;
+
+  /** Borde de esa caja interna. Solo decorativo: 1.37:1 contra el lateral, no puede ser el único indicio de un control. */
+  --color-negro-caja-borde: #2a2a2a;
+
+  /* ── Amarillo: la acción principal y la señal de atención ────────────────────── */
+
+  /**
+   * Color de marca y fondo del botón principal.
+   *
+   * Solo como RELLENO con texto oscuro encima. No sirve de anillo de foco ni de indicador
+   * suelto sobre fondo claro: da 1.61:1 contra `superficie` y 1.46:1 contra `fondo-app`.
+   */
+  --color-amarillo: #ffc300;
+
+  /** Hover del botón principal. */
+  --color-amarillo-hover: #ffd23f;
+
+  /** Fondo del bloque de alerta / badge de aviso. */
+  --color-alerta-fondo: #fff3cc;
+
+  /** Texto del bloque de alerta. 5.64:1 sobre `alerta-fondo`, 6.25:1 sobre `superficie`. */
+  --color-alerta-texto: #7a5c00;
+
+  /** Fondo de una fila de tabla marcada por stock bajo. */
+  --color-fila-baja: #fffbef;
+
+  /** La cifra que dispara esa marca. 4.90:1 sobre `fila-baja`. */
+  --color-cifra-baja: #8a6a00;
+
+  /** Texto y iconos sobre amarillo. 9.92:1 sobre `amarillo`; `--color-texto` también vale (11.74:1). */
+  --color-sobre-amarillo: #2a2100;
+
+  /* ── Texto ───────────────────────────────────────────────────────────────────── */
+
+  /** Texto principal: títulos, cifras y cuerpo sobre fondo claro. */
+  --color-texto: #111111;
+
+  /** Texto secundario: descripciones, etiquetas de campo y celdas de apoyo. */
+  --color-texto-secundario: #3a3a3a;
+
+  /** Texto apagado: ayudas, encabezados de tabla y metadatos. Es el más claro que aún cumple 4.5:1. */
+  --color-texto-apagado: #6b6b6b;
+
+  /**
+   * Texto tenue. Solo para texto GRANDE (≥24px, o ≥18.7px en negrita) o para elementos no
+   * textuales: da 3.45:1 sobre `superficie` y 3.03:1 sobre `superficie-hover`, por debajo
+   * del 4.5:1 que exige el texto normal.
+   */
+  --color-texto-tenue: #8a8a8a;
+
+  /** Texto sobre cualquiera de los negros. */
+  --color-texto-inverso: #ffffff;
+
+  /** Texto secundario sobre negro. 13.38:1 sobre `negro-tarjeta`. */
+  --color-texto-inverso-suave: #d9d9d9;
+
+  /** Micro-etiquetas sobre negro. 7.94:1 sobre `negro-tarjeta`. También sirve de borde de control ahí (3:1 holgado). */
+  --color-texto-inverso-micro: #a8a8a8;
+
+  /**
+   * El gris más tenue sobre negro. Solo cumple 4.5:1 sobre `negro-lateral` (4.59:1);
+   * sobre `negro-tarjeta` da 4.40:1 y sobre `negro-acento` 4.05:1, así que ahí queda
+   * reservado a texto grande o a elementos no textuales.
+   */
+  --color-texto-inverso-tenue: #7a7a7a;
+
+  /** Texto de un estado neutro / inactivo ("Detenida", "Por construir"). 5.82:1 sobre su fondo. */
+  --color-estado-neutro-texto: #5a5a5a;
+
+  /** Fondo de ese estado neutro, y de un control deshabilitado. */
+  --color-estado-neutro-fondo: #ecece8;
+}
+
+/*
+ * Autocompletado del navegador.
+ *
+ * Chrome y Edge pintan los campos autocompletados de azul lavanda con un estilo propio
+ * que gana a cualquier `background-color`. El resultado es un formulario a medio pintar:
+ * dos campos azules dentro de una tarjeta blanca, y el borde del campo tapado.
+ *
+ * El `box-shadow` interior es el único recurso que lo sobreescribe —el fondo de verdad
+ * no se puede tocar— y `-webkit-text-fill-color` hace lo propio con el color del texto.
+ * La transición larga es el truco conocido para que el amarillo de Chrome no asome en el
+ * primer fotograma.
+ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-texto);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-superficie) inset;
+  box-shadow: 0 0 0 1000px var(--color-superficie) inset;
+  caret-color: var(--color-texto);
+  transition: background-color 100000s ease-in-out 0s;
+}
+
+/*
+ * Textura del panel de marca de las pantallas de acceso.
+ *
+ * Va como utilidad y no como clase suelta en la plantilla porque el gradiente es largo:
+ * en línea haría ilegible el marcado, y aquí puede explicarse.
+ *
+ * Es DECORACIÓN sobre un contenedor `aria-hidden`. Usa tokens, así que si la paleta
+ * cambia, la textura la sigue.
+ */
+
+/* Halo detrás de la ilustración: la asienta en el panel en vez de dejarla flotando en
+ * un negro plano. El centro está al 45 % de la altura, no al 50 %, porque el bloque
+ * lleva el texto debajo y el peso óptico queda por encima del centro geométrico. */
+@utility halo-marca {
+  background: radial-gradient(58% 58% at 50% 45%, var(--color-negro-caja) 0%, transparent 72%);
+}
+
+
+
+
+
+
+/*
+ * Los controles de las pantallas de acceso.
+ *
+ * Van como utilidades porque las seis pantallas —acceso de empresa, de plataforma,
+ * portal, invitación y las dos de restablecimiento— repiten los mismos dos controles.
+ * Con las clases sueltas en cada plantilla, cambiar el alto de un campo eran seis
+ * ediciones y la garantía de que una se quedaría distinta.
+ */
+
+/*
+ * Campo relleno y SIN BORDE, al estilo de la referencia de diseño.
+ *
+ * El fondo es lo que separa el campo de la tarjeta, así que aquí no aplica la regla de
+ * `borde-campo`: esa existe para los controles cuyo contorno es el único indicio de que
+ * son un control, y este se distingue por su relleno.
+ *
+ * Pero sin borde el foco se queda sin nada que lo marque, y ahí no hay margen: el
+ * `outline` es obligatorio (WCAG 2.4.7). Va con `offset` para que se lea sobre el propio
+ * relleno.
+ */
+@utility campo-acceso {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-superficie-hover);
+  padding: calc(var(--spacing) * 4) calc(var(--spacing) * 4);
+  font-size: 0.875rem;
+  color: var(--color-texto);
+
+  &::placeholder {
+    color: var(--color-texto-apagado);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-negro-acento);
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * Acción principal: a lo ancho, alta y en forma de píldora.
+ *
+ * La píldora es la única desviación de la escala de radios del sistema —donde un botón
+ * es `rounded-lg`— y está acotada a los accesos: son pantallas de un solo botón, sin
+ * nada alrededor con lo que desentonar.
+ */
+@utility boton-acceso {
+  width: 100%;
+  border-radius: calc(infinity * 1px);
+  background-color: var(--color-amarillo);
+  padding: calc(var(--spacing) * 4) calc(var(--spacing) * 4);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-sobre-amarillo);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-amarillo-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-negro-acento);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    background-color: var(--color-estado-neutro-fondo);
+    color: var(--color-estado-neutro-texto);
+  }
+}
+
+/*
+ * La fotografía del panel de marca.
+ *
+ * VA COMO FONDO DE CSS Y NO COMO `<img>`, y las dos razones son de peso:
+ *
+ * 1. `NgOptimizedImage` detectaba la imagen como elemento LCP y exigía `priority`
+ *    (NG02955). Pero marcarla prioritaria la precargaría SIEMPRE, incluso en un teléfono,
+ *    donde este panel está oculto y la imagen no se ve nunca. La advertencia pedía
+ *    exactamente lo contrario de lo que conviene.
+ * 2. El navegador NO descarga el fondo de un elemento con `display: none`. Como el panel
+ *    es `hidden lg:flex`, en móvil la imagen no se pide siquiera. Con un `<img>` eso no
+ *    se puede conseguir de forma fiable.
+ *
+ * Es decoración pura, sin contenido que anunciar, así que ser un fondo es además lo
+ * correcto semánticamente: no hay nada que describir en un `alt`.
+ *
+ * `contain` y no `cover`: la foto viene recortada a la banda de la máquina, y con `cover`
+ * el panel —casi cuadrado— la ampliaba tanto que solo se veía un fragmento.
+ */
+@utility foto-marca {
+  background-image: url('/excavadora.webp');
+  background-repeat: no-repeat;
+
+  /*
+   * `cover`: la foto llena el panel de lado a lado, sin franjas negras. Es la versión
+   * grande, que es la que se quería.
+   *
+   * El precio es que la foto es vertical (4000 x 6000) y el panel apaisado, así que se
+   * recorta bastante alto. A sangre es más simple y se ve mejor.
+   */
+  background-size: cover;
+
+  /* La máquina está en la banda alta de la foto; centrar metía muro de más. */
+  background-position: center 42%;
+
+  filter: grayscale(5);
+  opacity: 0.4;
+}
+
+
