@@ -91,12 +91,32 @@ export class Empresas {
   protected readonly reciente = signal<EmpresaAprovisionada | null>(null);
 
   /**
+   * EL SLUG del reenvio en vuelo, o `null`. Era un booleano, y con el boton dentro de cada
+   * fila un booleano miente: deshabilitaba el boton de TODAS las filas al pulsar una. Con el
+   * slug se deshabilita solo el que se pulso.
+   */
+  protected readonly reenviandoSlug = signal<string | null>(null);
+
+  /**
+   * Lo que contesto el ultimo reenvio, para decir a que correo fue.
+   *
+   * Va aparte de `reciente()` y no lo pisa: el aviso del alta cuenta lo que paso al crearla
+   * —la base, el esquema, su liga— y este cuenta el reenvio. Su aviso vive ARRIBA DE LA
+   * TABLA, junto al hueco del error, porque ahora el reenvio se dispara desde la fila de
+   * cualquier empresa y tiene que verse tambien cuando no hay ningun alta reciente.
+   */
+  protected readonly reenvio = signal<ResultadoReenvio | null>(null);
+
+  /**
    * Si la hoja del alta esta abierta. El `<dialog>`, el gesto y los anclajes los maneja
    * `app-hoja`; aqui solo se dice cuando se ve. Mismo trato que en la pantalla de planes.
    */
   protected readonly hojaAbierta = signal(false);
 
-  /** El error del ALTA, que es de esta pantalla. El de la lista lo trae el recurso. */
+  /**
+   * El error de lo que la persona acaba de disparar en esta pantalla —el alta o un reenvio—.
+   * El de la lista lo trae el recurso.
+   */
   private readonly errorAlta = signal<string | null>(null);
 
   /**
@@ -157,6 +177,50 @@ export class Empresas {
    */
   protected puedeEnviar(): boolean {
     return this.formulario.valid && this.planes().length > 0 && !this.enviando();
+  }
+
+  /**
+   * Reenvia la invitacion del administrador de una empresa.
+   *
+   * NO MANDA NINGUN CORREO como parametro, y no es un olvido: el endpoint no lo acepta. El
+   * destinatario sale de la base de la empresa, y viene de VUELTA en la respuesta para poder
+   * decir a donde fue. Si alguien le agrega aqui un campo de correo, esta reabriendo la
+   * escalada de privilegios que el reintento del alta tuvo.
+   *
+   * Un envio que falla NO es un error de esta llamada: el servidor contesta 200 con
+   * `invitacionEnviada: false`, porque la invitacion si se reemitio —y la anterior ya quedo
+   * invalidada—. Lo que falta es reintentar el correo.
+   *
+   * No recarga la lista a mano: eso lo encadena `ApiPlataforma.reenviarInvitacion`, que es
+   * quien sabe que un reenvio correcto cambia el `invitacionEnviada` de la fila.
+   */
+  protected reenviarInvitacion(slug: string): void {
+    // El guard es POR SLUG y no global: pulsar dos veces la misma fila reemitiria otra vez e
+    // invalidaria la liga que acaba de salir, mientras que dos filas distintas son dos
+    // reenvios legitimos.
+    //
+    // ponytail: un solo slug y no un conjunto. Con dos reenvios en vuelo el aviso ensena el
+    // que contesta al final y el boton del primero se rehabilita antes de tiempo. Es un
+    // segundo de ventana, la peticion vuelve igual y su resultado se ve en la fila al
+    // recargarse la lista; un `Set` para eso serian mas estados que el fallo que arregla.
+    if (this.reenviandoSlug() === slug) {
+      return;
+    }
+
+    this.reenviandoSlug.set(slug);
+    this.errorAlta.set(null);
+    this.reenvio.set(null);
+
+    this.api.reenviarInvitacion(slug).subscribe({
+      next: (resultado) => {
+        this.reenvio.set(resultado);
+        this.reenviandoSlug.set(null);
+      },
+      error: (e: unknown) => {
+        this.errorAlta.set(mensajeDeError(e));
+        this.reenviandoSlug.set(null);
+      },
+    });
   }
 
   protected enProceso(e: ResumenEmpresa): boolean {

@@ -9,6 +9,7 @@ import type {
   AltaDePlan,
   EmpresaAprovisionada,
   IdentidadPlataforma,
+  ResultadoReenvio,
   ResumenEmpresa,
   ResumenModulo,
   ResumenPlan,
@@ -196,6 +197,26 @@ export class ApiPlataforma {
   darDeAltaEmpresa(alta: AltaDeEmpresa) {
     return this.http
       .post<EmpresaAprovisionada>(`${this.base}/empresas`, alta)
+      .pipe(tap(() => this.recargarEmpresas()));
+  }
+
+  /**
+   * Reemite la invitación del administrador de una empresa.
+   *
+   * SIN CUERPO. No es un olvido: el endpoint no acepta correo y el destinatario sale de la
+   * base de la empresa. Si algún día alguien le agrega un parámetro aquí, está reabriendo un
+   * agujero que ya se cerró una vez.
+   *
+   * SÍ RECARGA LA LISTA, y antes no: aquí decía que el reenvío no cambia nada de lo que la
+   * lista muestra. Dejó de ser verdad cuando `ResumenEmpresa` empezó a traer
+   * `invitacionEnviada`, que es justo lo que un reenvío correcto cambia — y de ese campo
+   * depende que la fila enseñe el botón. Sin el `tap` el botón seguiría ahí después de un
+   * envío que salió bien. Va en el servicio, como en `darDeAltaEmpresa` y `crearPlan`, para
+   * que quien llame no tenga que acordarse.
+   */
+  reenviarInvitacion(slug: string) {
+    return this.http
+      .post<ResultadoReenvio>(`${this.base}/empresas/${encodeURIComponent(slug)}/invitacion`, null)
       .pipe(tap(() => this.recargarEmpresas()));
   }
 }

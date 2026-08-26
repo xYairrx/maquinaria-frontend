@@ -18,6 +18,47 @@
     </p>
   }
 
+  <!--
+    EL AVISO DEL REENVÍO, arriba y junto al hueco del error. Estaba dentro del bloque de
+    confirmación del alta, y ahí solo se veía después de dar de alta una empresa; con el botón
+    en la fila el reenvío se dispara en cualquier momento, así que su respuesta tiene que verse
+    también sin alta reciente. Va arriba y no pegado a la fila porque la lista se recarga al
+    terminar —la fila cambia debajo, y su botón desaparece— y porque así los avisos de esta
+    pantalla están todos en el mismo sitio.
+  -->
+  @if (reenvio(); as re) {
+    <section
+      class="rounded-lg border border-borde border-l-4 border-l-negro-acento bg-superficie p-4"
+      role="status"
+    >
+      <!--
+        El correo se ENSEÑA y no se pide: es la confirmación de que el destinatario salió de
+        la base de la empresa y no de nada que se pudiera escribir aquí.
+      -->
+      <p class="text-sm text-texto-secundario">
+        @if (re.invitacionEnviada) {
+          {{ t().empresas.reenviada(re.correo ?? '') }}
+        } @else {
+          <strong class="text-alerta-texto">{{ t().empresas.reenvioSinCorreo }}</strong>
+          {{ t().empresas.reenvioSinCorreoApoyo }}
+        }
+      </p>
+
+      <p class="mt-1 text-xs text-texto-apagado">{{ t().empresas.reenviarApoyo }}</p>
+
+      @if (re.ligaInvitacion) {
+        <p class="mt-2 break-all text-xs text-texto-secundario">
+          {{ t().empresas.ligaSoloDesarrollo }}
+          <a
+            [href]="re.ligaInvitacion"
+            class="text-texto underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+            >{{ re.ligaInvitacion }}</a
+          >
+        </p>
+      }
+    </section>
+  }
+
   @if (reciente(); as r) {
     <!--
       Confirmación. La paleta es monocroma + amarillo y no tiene verde, así que el aviso
@@ -43,6 +84,13 @@
         }
       </p>
 
+      <!--
+        AQUÍ YA NO HAY BOTÓN DE REENVIAR, y esa es la mitad del arreglo. Vive en la fila de
+        la empresa, que es donde sobrevive a una recarga: `invitacionEnviada` ya viene en la
+        lista. Dejarlo aquí también serían dos botones para la misma acción —uno de ellos
+        visible solo durante el minuto siguiente al alta— y dos copias del mismo marcado que
+        se desincronizan. El texto de arriba manda a la fila en lugar de prometer un botón.
+      -->
       @if (r.ligaInvitacion) {
         <p class="mt-2 break-all text-xs text-texto-secundario">
           {{ t().empresas.ligaSoloDesarrollo }}
@@ -64,7 +112,7 @@
     @if (cargando()) {
       <!--
         Esqueleto, no un «Cargando…». El texto no dice nada de la forma de lo que viene,
-        así que al llegar los datos la sección salta de una línea a una tabla de cinco
+        así que al llegar los datos la sección salta de una línea a una tabla de seis
         columnas, y ese salto se lee como un error. El anuncio para lectores de pantalla
         no se pierde: va dentro, en `sr-only` con `role="status"`.
       -->
@@ -77,9 +125,17 @@
         horizontal. `min-w-*` para que las columnas no se aplasten en un teléfono — sin él
         esta tabla era `layout: auto` y por debajo de `sm` sus celdas envolvían, dejando
         filas de alturas distintas que el esqueleto no podía espejar.
+
+        EL `min-w` SUBIÓ DE 160 A 216 (de 640 a 864 px) al entrar la sexta columna. No es un
+        número inventado: el botón con su texto más largo y sin envolver mide ~175 px y su
+        celda le suma el `px-4`/`md:px-5`, así que la columna nueva pide unos 215 px. Con los
+        640 de antes, esos 215 se los habría quitado a las otras cinco y la razón social
+        volvería a envolver en un teléfono, que es justo lo que el `min-w` existe para evitar.
+        No se fija una segunda columna: la regla dice preferir menos columnas antes que más
+        fijas, y aquí no se puede quitar ninguna.
       -->
       <div class="overflow-x-auto">
-        <table class="w-full min-w-160 text-left text-sm">
+        <table class="w-full min-w-216 text-left text-sm">
           <thead
             class="border-b border-borde bg-superficie-sutil text-[11px] uppercase tracking-wide text-texto-apagado"
           >
@@ -103,8 +159,16 @@
               </th>
               <th scope="col" class="px-4 py-2.5 font-medium">{{ t().empresas.colEstado }}</th>
               <th scope="col" class="px-4 py-2.5 font-medium">{{ t().empresas.colBase }}</th>
-              <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+              <th scope="col" class="px-4 py-2.5 font-medium">
                 {{ t().empresas.colPlan }}
+              </th>
+              <!--
+                COLUMNA DE ACCIÓN, con la cabecera en `sr-only` — el mismo trato que la de
+                retirar un plan. Una cabecera visible («Invitación») prometería un dato en
+                cada fila, y aquí la celda está vacía en todas las que sí la recibieron.
+              -->
+              <th scope="col" class="px-4 py-2.5 md:px-5">
+                <span class="sr-only">{{ t().empresas.reenviar }}</span>
               </th>
             </tr>
           </thead>
@@ -136,9 +200,36 @@
                     {{ nombreAprovisionamiento(e.aprovisionamiento) }}
                   </span>
                 </td>
-                <td class="px-4 py-2.5 text-texto-secundario md:px-5">
+                <td class="px-4 py-2.5 text-texto-secundario">
                   {{ e.codigoPlan ?? t().empresas.sinSuscripcion }}
                   {{ t().empresas.conModulos(e.modulos) }}
+                </td>
+                <td class="px-4 py-2.5 text-right md:px-5">
+                  <!--
+                    EL BOTÓN SALE SOLO SI LA INVITACIÓN NO SALIÓ, y ahora sobrevive a una
+                    recarga: `invitacionEnviada` viene en la lista. En las demás filas la
+                    celda va vacía — no un texto de relleno que hubiera que traducir para
+                    decir que no hay nada que hacer.
+
+                    Se deshabilita SOLO el de esta fila: `reenviandoSlug()` guarda el slug en
+                    vuelo, y con el booleano de antes pulsar una fila deshabilitaba el botón
+                    de todas. Al terminar bien, el servicio recarga la lista y este botón
+                    desaparece solo, porque su empresa ya tiene la invitación enviada.
+                  -->
+                  @if (!e.invitacionEnviada) {
+                    <button
+                      type="button"
+                      (click)="reenviarInvitacion(e.slug)"
+                      [disabled]="reenviandoSlug() === e.slug"
+                      class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+                    >
+                      {{
+                        reenviandoSlug() === e.slug
+                          ? t().empresas.reenviando
+                          : t().empresas.reenviar
+                      }}
+                    </button>
+                  }
                 </td>
               </tr>
             }

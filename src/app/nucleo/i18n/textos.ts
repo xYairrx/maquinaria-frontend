@@ -357,8 +357,19 @@ const ES_MX = {
     aprovisionada: (slug: string) => `${slug} aprovisionada`,
     baseYEsquema: (base: string, esquema: string) => `Base ${base}, esquema ${esquema}.`,
     invitacionEnviada: 'Invitación enviada.',
-    invitacionNoEnviada: 'La invitación NO se envió',
-    hayQueReenviar: '— hay que reenviarla.',
+    invitacionNoEnviada: 'Invitación no enviada.',
+    hayQueReenviar: 'Reenvíala desde su fila en la lista.',
+    reenviar: 'Reenviar la invitación',
+    reenviando: 'Reenviando…',
+    // Ya no dice que el botón desaparece al recargar: dejó de ser verdad cuando la lista
+    // empezó a traer `invitacionEnviada`. Lo que sí desaparece —y hay que decirlo, porque es
+    // lo que se ve al terminar— es el botón de ESA fila cuando el envío sale bien.
+    reenviarApoyo:
+      'Se manda al correo que la empresa tiene guardado, no a uno que se pueda escribir aquí. Cuando el envío sale bien, el botón desaparece de su fila.',
+    reenviada: (correo: string) => `Invitación reenviada a ${correo}.`,
+    reenvioSinCorreo: 'La invitación se reemitió pero el correo NO salió',
+    reenvioSinCorreoApoyo:
+      '— y la liga anterior ya quedó invalidada, así que hay que volver a reenviarla.',
     ligaSoloDesarrollo: 'Liga (solo en desarrollo):',
     conteo: (n: number) => `${n} empresas`,
     ninguna: 'Todavía no hay ninguna.',
@@ -810,7 +821,15 @@ const EN_US: Textos = {
     baseYEsquema: (base: string, esquema: string) => `Database ${base}, schema ${esquema}.`,
     invitacionEnviada: 'Invitation sent.',
     invitacionNoEnviada: 'The invitation was NOT sent',
-    hayQueReenviar: '— it has to be resent.',
+    hayQueReenviar: '— resend it from its row in the list.',
+    reenviar: 'Resend the invitation',
+    reenviando: 'Resending…',
+    reenviarApoyo:
+      'It goes to the email stored on the company, not to one you could type here. When the send succeeds, the button disappears from its row.',
+    reenviada: (correo: string) => `Invitation resent to ${correo}.`,
+    reenvioSinCorreo: 'The invitation was reissued but the email did NOT go out',
+    reenvioSinCorreoApoyo:
+      '— and the previous link is already invalidated, so it has to be resent again.',
     ligaSoloDesarrollo: 'Link (development only):',
     conteo: (n: number) => `${n} companies`,
     ninguna: 'There are none yet.',

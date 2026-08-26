@@ -1,10 +1,17 @@
 <!--
   Espejo de la tabla de `empresas.html`: misma cabecera con `bg-superficie-sutil`, mismas
-  cinco columnas, el mismo `px-4 py-2.5` en cada celda y el mismo `min-w-160` con su
+  SEIS columnas, el mismo `px-4 py-2.5` en cada celda y el mismo `min-w-216` con su
   `overflow-x-auto`.
 
+  ERAN CINCO CELDAS Y SON SEIS, con el `min-w` subiendo de 160 a 216 con la tabla: la sexta es
+  la columna de accion del reenvio de invitacion. Va SIN bloque gris, en la cabecera —que alli
+  es `sr-only`— y en las filas: su boton sale solo en las empresas cuya invitacion no salio,
+  asi que pintar un bloque en las cuatro filas prometeria un contenido que la mayoria no
+  tiene. La celda esta, para que el reparto de anchos sea el de seis columnas y no el de
+  cinco.
+
   POR QUE DIVS Y NO UNA `<table>`: la tabla de verdad no tiene ni una celda vacia, asi que
-  una copia con `<td>` huecos anunciaria una tabla de cinco columnas sin datos a quien use
+  una copia con `<td>` huecos anunciaria una tabla de seis columnas sin datos a quien use
   un lector de pantalla. Aqui todo el bloque es DECORACION y va `aria-hidden`; lo que
   sustituye al texto de «Cargando…» es el `role="status"` en `sr-only`, y `aria-busy` dice
   que lo de dentro esta a medias.
@@ -17,9 +24,15 @@
   EL DESAJUSTE POR DEBAJO DE `sm` YA NO EXISTE, y merece decirse porque estuvo documentado
   aqui como inevitable: la tabla era de reparto automatico sin `min-w-*`, asi que en un
   telefono envolvia el texto de sus celdas, sus filas crecian de alto y este espejo se
-  quedaba corto. Con `min-w-160` la tabla ya no envuelve — se desplaza dentro de su caja —
+  quedaba corto. Con el `min-w-*` la tabla ya no envuelve — se desplaza dentro de su caja —
   asi que las alturas coinciden a cualquier ancho. Mismo `min-w` aqui, o el esqueleto se
   encogeria donde la tabla no lo hace.
+
+  Y HAY UN SEGUNDO DESAJUSTE QUE TAMPOCO SE PUEDE ESPEJAR, y se escribe en lugar de fingir
+  que no esta: una fila CON boton mide 54 px y no 40 —el boton son 34 px con su `py-1.5` y su
+  filete, mas el `py-2.5` de la celda—, y desde aqui no hay forma de saber cuales filas lo
+  van a llevar. Este espejo pinta filas sin boton, que es el caso normal: una empresa cuya
+  invitacion salio. Es la misma clase de imprecision que el numero de filas.
 
   Lo que sigue sin poder coincidir es el ancho de cada columna: los anchos los decide el
   contenido que todavia no ha llegado. Los `w-*` de abajo son el reparto plausible —la razon
@@ -30,7 +43,7 @@
   <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
 
   <div aria-hidden="true" class="overflow-x-auto">
-    <div class="min-w-160">
+    <div class="min-w-216">
       <div class="flex items-center border-b border-borde bg-superficie-sutil">
         <!--
           La primera celda lleva el mismo filete a la derecha que la columna fija de la
@@ -42,9 +55,10 @@
         <div class="min-w-0 flex-1 px-4 py-2.5"><div class="esqueleto h-4 w-24"></div></div>
         <div class="min-w-0 flex-1 px-4 py-2.5"><div class="esqueleto h-4 w-16"></div></div>
         <div class="min-w-0 flex-1 px-4 py-2.5"><div class="esqueleto h-4 w-14"></div></div>
-        <div class="min-w-0 flex-1 px-4 py-2.5 md:px-5">
+        <div class="min-w-0 flex-1 px-4 py-2.5">
           <div class="esqueleto h-4 w-12"></div>
         </div>
+        <div class="min-w-0 flex-1 px-4 py-2.5 md:px-5"></div>
       </div>
 
       @for (fila of filas; track fila) {
@@ -61,9 +75,10 @@
           <div class="min-w-0 flex-1 px-4 py-2.5">
             <div class="esqueleto h-5 w-14 max-w-full"></div>
           </div>
-          <div class="min-w-0 flex-1 px-4 py-2.5 md:px-5">
+          <div class="min-w-0 flex-1 px-4 py-2.5">
             <div class="esqueleto h-5 w-28 max-w-full"></div>
           </div>
+          <div class="min-w-0 flex-1 px-4 py-2.5 md:px-5"></div>
         </div>
       }
     </div>

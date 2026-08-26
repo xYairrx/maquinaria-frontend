@@ -39,6 +39,17 @@ export interface ResumenEmpresa {
   readonly codigoPlan: string | null;
   readonly modulos: number;
   readonly creadoEn: string;
+  /**
+   * Si la invitación del primer administrador SALIÓ.
+   *
+   * `false` significa «no salió, o no se sabe»: las empresas creadas antes de que existiera
+   * la columna quedaron en `false` porque de verdad no se sabe. Los dos casos piden lo mismo
+   * —reenviarla— así que un booleano basta y no hay que inventar un tercer estado.
+   *
+   * Es lo que decide si la fila de la tabla enseña el botón de reenviar. Antes ese dato solo
+   * venía en la respuesta del alta, así que al recargar la pantalla el botón desaparecía.
+   */
+  readonly invitacionEnviada: boolean;
 }
 
 export interface EmpresaAprovisionada {
@@ -48,6 +59,24 @@ export interface EmpresaAprovisionada {
   readonly versionEsquema: string;
   readonly invitacionEnviada: boolean;
   /** Solo llega en Development. En producción la liga va únicamente por correo. */
+  readonly ligaInvitacion: string | null;
+}
+
+/**
+ * `POST /api/plataforma/empresas/{slug}/invitacion`.
+ *
+ * NO HAY PETICIÓN, y esa ausencia es la pieza de seguridad: el destinatario lo decide la base
+ * de la empresa. Un campo de correo aquí reabriría la escalada de privilegios que el reintento
+ * del alta tuvo — pedir la liga de una cuenta con acceso total al buzón de quien la pide.
+ *
+ * `correo` viene de vuelta justo para eso: para ver a dónde fue sin poder elegirlo.
+ */
+export interface ResultadoReenvio {
+  readonly correcto: boolean;
+  readonly motivo: string | null;
+  readonly correo: string | null;
+  readonly invitacionEnviada: boolean;
+  /** Solo en Development, igual que la del alta. */
   readonly ligaInvitacion: string | null;
 }
 

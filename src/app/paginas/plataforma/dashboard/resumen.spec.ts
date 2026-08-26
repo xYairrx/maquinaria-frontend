@@ -31,6 +31,10 @@ const empresa = (parcial: Partial<ResumenEmpresa> = {}): ResumenEmpresa => ({
   codigoPlan: 'base',
   modulos: 26,
   creadoEn: '2026-08-01T10:00:00Z',
+  // No lo lee ninguna de estas pruebas: el resumen no mira la invitacion. Esta para que el
+  // tipo cuadre, y el dia que el dashboard avise de invitaciones sin enviar, se pasa por
+  // `parcial`.
+  invitacionEnviada: true,
   ...parcial,
 });
 
