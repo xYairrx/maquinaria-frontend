@@ -166,7 +166,25 @@
 >
   <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-empresa">
     <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
-      <!-- Una columna en teléfono, dos desde `sm`. Tres apretaría dentro de la hoja. -->
+      <!--
+        Una columna en teléfono, dos desde `sm`. Tres apretaría dentro de la hoja.
+
+        CADA CAMPO ES SIEMPRE EL MISMO PATRÓN, y de eso depende que se pueda copiar a las 26
+        pantallas que vienen sin dejarse una pieza:
+
+        1. `<label for>` a la vista, como manda el sistema de diseño para un alta de datos.
+        2. El control con `class="campo-formulario"`, que se pinta en error solo — lo dispara
+           `aria-invalid`, así que el estilo y el anuncio no pueden desincronizarse.
+        3. `aria-invalid` cuando toca: es lo único que le dice a un lector de pantalla que ESE
+           campo es el del problema. El `role="alert"` anuncia el mensaje, no a quién pertenece.
+        4. `aria-describedby` con el id del mensaje, **SIN QUITAR el de la ayuda**: el atributo
+           admite varios ids separados por espacio, y el identificador y el plan tienen ayuda Y
+           error a la vez. Sobrescribirlo con solo el error borraría la explicación justo
+           cuando más falta hace.
+        5. `<app-error-campo>` debajo, con el mensaje del diccionario.
+
+        `mal(...)` es `errorVisible`: inválido Y tocado. Nunca al primer carácter.
+      -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div class="flex flex-col gap-1">
           <label for="slug" class="text-sm font-medium text-texto-secundario">
@@ -177,7 +195,10 @@
             formControlName="slug"
             autocapitalize="off"
             spellcheck="false"
-            aria-describedby="ayuda-slug"
+            [attr.aria-invalid]="mal(formulario.controls.slug) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.slug) ? 'ayuda-slug error-slug' : 'ayuda-slug'
+            "
             class="campo-formulario"
           />
           <p id="ayuda-slug" class="break-words text-xs text-texto-apagado">
@@ -185,54 +206,112 @@
             <code>identificador.{{ dominioBase }}</code
             >.
           </p>
+          <app-error-campo
+            id="error-slug"
+            [visible]="mal(formulario.controls.slug)"
+            [mensaje]="t().empresas.errorIdentificador"
+          />
         </div>
 
         <div class="flex flex-col gap-1">
           <label for="razonSocial" class="text-sm font-medium text-texto-secundario">
             {{ t().empresas.razonSocial }}
           </label>
-          <input id="razonSocial" formControlName="razonSocial" class="campo-formulario" />
+          <input
+            id="razonSocial"
+            formControlName="razonSocial"
+            [attr.aria-invalid]="mal(formulario.controls.razonSocial) ? 'true' : null"
+            [attr.aria-describedby]="mal(formulario.controls.razonSocial) ? 'error-razon' : null"
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-razon"
+            [visible]="mal(formulario.controls.razonSocial)"
+            [mensaje]="t().empresas.errorRazonSocial"
+          />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <div class="flex flex-col gap-1">
-            <label for="rfc" class="text-sm font-medium text-texto-secundario">
-              {{ t().empresas.rfc }}
-            </label>
-            <input
-              id="rfc"
-              formControlName="rfc"
-              autocapitalize="characters"
-              spellcheck="false"
-              class="campo-formulario uppercase"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label for="telefono" class="text-sm font-medium text-texto-secundario">
-              {{ t().empresas.telefono }}
-            </label>
-            <!--
-              `type="tel"` abre el teclado numérico en un teléfono. No lleva `pattern`: los
-              formatos varían por país y validar de más rechazaría números buenos.
-            -->
-            <input
-              id="telefono"
-              type="tel"
-              formControlName="telefono"
-              class="campo-formulario tabular-nums"
-            />
-          </div>
+        <!--
+          RFC Y TELÉFONO ERAN UNA REJILLA ANIDADA DE DOS COLUMNAS, y ya no lo son: media celda
+          de la rejilla exterior son ~160 px a 375, y el mensaje del RFC —que tiene que decir
+          las dos longitudes y la forma— se partía en diez renglones dentro de esa columna.
+          Ahora son dos celdas normales: apiladas a lo ancho completo en un teléfono y a media
+          hoja desde `sm`, que es donde el mensaje ocupa dos o tres renglones.
+        -->
+        <div class="flex flex-col gap-1">
+          <label for="rfc" class="text-sm font-medium text-texto-secundario">
+            {{ t().empresas.rfc }}
+          </label>
+          <!--
+            El `uppercase` es solo de CSS: lo que se valida y lo que se manda lo normaliza
+            `normalizarRfc`, así que pegar «MAQ 940101 AB1» de un PDF entra igual. No se
+            reescribe el valor del control mientras se captura — mover el cursor de quien está
+            escribiendo es peor que el aspecto.
+          -->
+          <input
+            id="rfc"
+            formControlName="rfc"
+            autocapitalize="characters"
+            spellcheck="false"
+            [attr.aria-invalid]="mal(formulario.controls.rfc) ? 'true' : null"
+            [attr.aria-describedby]="mal(formulario.controls.rfc) ? 'error-rfc' : null"
+            class="campo-formulario uppercase"
+          />
+          <app-error-campo
+            id="error-rfc"
+            [visible]="mal(formulario.controls.rfc)"
+            [mensaje]="t().validacion.rfc"
+          />
         </div>
 
         <div class="flex flex-col gap-1">
+          <label for="telefono" class="text-sm font-medium text-texto-secundario">
+            {{ t().empresas.telefono }}
+          </label>
+          <!--
+            SOLO DÍGITOS, y el campo no deja ni teclear otra cosa: `(input)` filtra al
+            escribir y al pegar. Validar y quejarse después no bastaba — el campo seguía
+            aceptando la pulsación, que es lo que se reportó.
+
+            `type="tel"` + `inputmode="numeric"` para el teclado numérico del teléfono, y NO
+            `type="number"`, que trae flechitas, acepta notación exponencial y se come los
+            ceros a la izquierda, que en una lada son parte del número.
+          -->
+          <input
+            id="telefono"
+            type="tel"
+            inputmode="numeric"
+            autocomplete="tel"
+            formControlName="telefono"
+            (input)="filtrarTelefono($event)"
+            [attr.aria-invalid]="mal(formulario.controls.telefono) ? 'true' : null"
+            [attr.aria-describedby]="mal(formulario.controls.telefono) ? 'error-telefono' : null"
+            class="campo-formulario tabular-nums"
+          />
+          <app-error-campo
+            id="error-telefono"
+            [visible]="mal(formulario.controls.telefono)"
+            [mensaje]="t().validacion.telefono"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
           <label for="nombreAdministrador" class="text-sm font-medium text-texto-secundario">
             {{ t().empresas.nombreAdministrador }}
           </label>
           <input
             id="nombreAdministrador"
             formControlName="nombreAdministrador"
+            [attr.aria-invalid]="mal(formulario.controls.nombreAdministrador) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.nombreAdministrador) ? 'error-nombre-admin' : null
+            "
             class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-nombre-admin"
+            [visible]="mal(formulario.controls.nombreAdministrador)"
+            [mensaje]="t().empresas.errorNombreAdministrador"
           />
         </div>
 
@@ -246,7 +325,16 @@
             autocapitalize="off"
             spellcheck="false"
             formControlName="correoAdministrador"
+            [attr.aria-invalid]="mal(formulario.controls.correoAdministrador) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.correoAdministrador) ? 'error-correo' : null
+            "
             class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-correo"
+            [visible]="mal(formulario.controls.correoAdministrador)"
+            [mensaje]="t().validacion.correo"
           />
         </div>
 
@@ -262,7 +350,10 @@
           <select
             id="codigoPlan"
             formControlName="codigoPlan"
-            aria-describedby="ayuda-plan"
+            [attr.aria-invalid]="mal(formulario.controls.codigoPlan) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.codigoPlan) ? 'ayuda-plan error-plan' : 'ayuda-plan'
+            "
             class="campo-formulario"
           >
             <option value="" disabled>—</option>
@@ -284,6 +375,12 @@
           } @else {
             <p id="ayuda-plan" class="text-xs text-texto-apagado">{{ t().empresas.ayudaPlan }}</p>
           }
+
+          <app-error-campo
+            id="error-plan"
+            [visible]="mal(formulario.controls.codigoPlan)"
+            [mensaje]="t().empresas.errorPlan"
+          />
         </div>
       </div>
     </div>

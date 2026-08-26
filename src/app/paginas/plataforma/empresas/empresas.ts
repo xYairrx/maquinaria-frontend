@@ -18,8 +18,20 @@ import {
   EstadoTenant,
   type EmpresaAprovisionada,
   type ResumenEmpresa,
+  type ResultadoReenvio,
 } from '../../../nucleo/api/contratos-plataforma';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
+import { ErrorCampo, errorVisible } from '../../../nucleo/formularios/error-campo';
+import {
+  normalizarCorreo,
+  normalizarRfc,
+  normalizarTelefono,
+  soloDigitos,
+  validadorCorreo,
+  validadorRequerido,
+  validadorRfc,
+  validadorTelefono,
+} from '../../../nucleo/formularios/validadores';
 import { SesionPlataformaStore } from '../../../nucleo/sesion/sesion-plataforma';
 import { EmpresasEsqueleto } from './esqueleto';
 
@@ -28,7 +40,7 @@ const PATRON_SLUG = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 
 @Component({
   selector: 'app-empresas',
-  imports: [EmpresasEsqueleto, Hoja, ReactiveFormsModule],
+  imports: [EmpresasEsqueleto, ErrorCampo, Hoja, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './empresas.html',
 })
@@ -39,6 +51,15 @@ export class Empresas {
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly t = t;
+
+  /**
+   * Si el mensaje de error de un campo se tiene que ver. La regla está en `error-campo.ts`,
+   * una sola vez: inválido Y tocado, nunca mientras se escribe el primer carácter.
+   *
+   * Se expone como miembro porque Angular no puede llamar a una función importada desde el
+   * marcado. Es la misma línea que van a escribir las 26 pantallas que vienen.
+   */
+  protected readonly mal = errorVisible;
 
   protected readonly lista = EstadoAprovisionamiento.Lista;
   protected readonly fallida = EstadoAprovisionamiento.Fallida;
@@ -86,11 +107,18 @@ export class Empresas {
 
   protected readonly formulario = this.fb.group({
     slug: ['', [Validators.required, Validators.pattern(PATRON_SLUG)]],
-    razonSocial: ['', Validators.required],
-    rfc: [''],
-    telefono: [''],
-    nombreAdministrador: ['', Validators.required],
-    correoAdministrador: ['', [Validators.required, Validators.email]],
+    razonSocial: ['', validadorRequerido],
+    // Opcionales los dos: vacío es válido y se manda `null`. Lo que ya NO se admite es
+    // cualquier cosa — el RFC pedía longitud libre y el teléfono aceptaba letras. Las reglas
+    // son espejo de las del backend y viven en `nucleo/formularios/validadores.ts`, porque
+    // `Cliente` y `Proveedor` llevan los mismos dos campos.
+    rfc: ['', validadorRfc],
+    telefono: ['', validadorTelefono],
+    nombreAdministrador: ['', validadorRequerido],
+    // `validadorCorreo` SUSTITUYE a `Validators.email`, que da por bueno `a@b`: un correo sin
+    // punto en el dominio no lo entrega ningún servidor, y por ahí va la invitación del
+    // primer administrador. `required` se queda al lado, que es quien reclama el vacío.
+    correoAdministrador: ['', [validadorRequerido, validadorCorreo]],
     // Ya no va fijo a 'base': el catalogo existe, asi que se elige. Arranca vacio y el
     // `required` obliga a escogerlo — preseleccionar el primero haria que alguien diera de
     // alta una empresa con un plan que no miro.
@@ -171,6 +199,39 @@ export class Empresas {
     }
   }
 
+  /**
+   * Filtra el telefono MIENTRAS SE ESCRIBE, y tambien al pegar.
+   *
+   * Sin esto el campo dejaba teclear letras y simbolos y solo protestaba al validar, que es
+   * lo que se reporto: «sigue dejando meter caracteres que no se deberian permitir». Un
+   * campo que solo admite digitos no debe aceptar la pulsacion y quejarse despues.
+   *
+   * NO se hace con `type="number"`, que trae flechitas, acepta notacion exponencial y se
+   * come los ceros a la izquierda —fatal para una lada—. Se queda en `type="tel"` con
+   * `inputmode="numeric"` para el teclado del telefono, y el filtro va aqui.
+   *
+   * `emitEvent: false` evita una segunda vuelta de validacion por la escritura que acabamos
+   * de hacer nosotros; el valor ya quedo puesto y su estado se recalcula igual.
+   */
+  protected filtrarTelefono(evento: Event): void {
+    const campo = evento.target as HTMLInputElement;
+    const limpio = soloDigitos(campo.value);
+
+    if (limpio === campo.value) {
+      return;
+    }
+
+    // Se conserva la posicion del cursor descontando lo que se quito antes de el: sin esto,
+    // escribir en medio de un numero salta el cursor al final en cada pulsacion.
+    const cursor = campo.selectionStart ?? campo.value.length;
+    const quitadosAntes =
+      campo.value.slice(0, cursor).length - soloDigitos(campo.value.slice(0, cursor)).length;
+
+    campo.value = limpio;
+    this.formulario.controls.telefono.setValue(limpio, { emitEvent: false });
+    campo.setSelectionRange(cursor - quitadosAntes, cursor - quitadosAntes);
+  }
+
   protected enviar(): void {
     if (!this.puedeEnviar()) {
       // Marcado y no silencio: sin esto, pulsar con un campo en falta no producia ningun
@@ -184,6 +245,13 @@ export class Empresas {
 
     const v = this.formulario.getRawValue();
 
+    // Se normaliza lo MISMO que se validó, con las mismas funciones: si aquí se mandara el
+    // valor crudo, el servidor recibiría algo que este formulario no comprobó. El teléfono
+    // solo se recorta —su formato lo eligió quien lo escribió y varía por país—; el RFC va en
+    // mayúsculas y sin espacios, y el correo en minúsculas.
+    const rfc = normalizarRfc(v.rfc);
+    const telefono = normalizarTelefono(v.telefono);
+
     this.api
       .darDeAltaEmpresa({
         slug: v.slug,
@@ -191,10 +259,10 @@ export class Empresas {
         // Los opcionales van como null y no como cadena vacía: en la base la columna es
         // nullable, y guardar '' significaría "capturado y vacío", que es otra cosa.
         nombreComercial: null,
-        rfc: v.rfc === '' ? null : v.rfc,
-        telefono: v.telefono === '' ? null : v.telefono,
+        rfc: rfc === '' ? null : rfc,
+        telefono: telefono === '' ? null : telefono,
         correoContacto: null,
-        correoAdministrador: v.correoAdministrador,
+        correoAdministrador: normalizarCorreo(v.correoAdministrador),
         nombreAdministrador: v.nombreAdministrador,
         codigoPlan: v.codigoPlan,
       })

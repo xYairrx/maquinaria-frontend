@@ -519,6 +519,33 @@ input:-webkit-autofill:focus {
     border-color: var(--color-negro-acento);
   }
 
+  /*
+   * EL CAMPO EN ERROR. Se dispara con `aria-invalid="true"`, que es el atributo que el campo
+   * ya tiene que llevar por accesibilidad: asi el estilo y el anuncio no pueden
+   * desincronizarse, porque son el MISMO dato. Una clase aparte se olvidaria en la mitad de
+   * los campos y nadie lo veria hasta auditar con un lector de pantalla.
+   *
+   * EL COLOR NO ES EL UNICO INDICIO (WCAG 1.4.1), y aqui hay tres capas:
+   *
+   * 1. El indicio principal es el MENSAJE de texto de debajo, que dice que se espera. Es
+   *    `nucleo/formularios/error-campo`, y sin el este borde no significa nada.
+   * 2. El borde ENGORDA: el `box-shadow` interior de 1px lo dobla a 2px sin mover ni un pixel
+   *    del layout —subir `border-width` desplazaria el contenido del campo—. El grosor se
+   *    percibe sin distinguir colores.
+   * 3. Y solo entonces, el color: `alerta-texto`, que es el par de aviso de la paleta. NO hay
+   *    rojo en este producto, asi que el mismo marron con el que se marca un aprovisionamiento
+   *    fallido es el que marca un campo mal escrito.
+   *
+   * Va DESPUES de `:focus-visible` a proposito: las dos reglas tienen la misma especificidad
+   * —clase + atributo contra clase + pseudoclase— asi que gana la ultima, y el campo enfocado
+   * conserva su borde de error en lugar de fingir que ya esta bien. El `outline` del foco
+   * sigue puesto, que es lo que dice donde esta el cursor.
+   */
+  &[aria-invalid='true'] {
+    border-color: var(--color-alerta-texto);
+    box-shadow: inset 0 0 0 1px var(--color-alerta-texto);
+  }
+
   &:disabled {
     background-color: var(--color-estado-neutro-fondo);
     color: var(--color-estado-neutro-texto);

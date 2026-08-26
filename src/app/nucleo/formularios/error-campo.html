@@ -1,0 +1,13 @@
+<!--
+  `role="alert"` va en el párrafo y no en el anfitrión: así la región nace con su contenido
+  y el lector de pantalla la anuncia al aparecer. Un `role="alert"` permanente y vacío
+  también funcionaría, pero con `empty:hidden` estaría oculto justo hasta el instante en que
+  se llena, que es lo mismo con un paso más.
+
+  `text-alerta-texto` es el par de aviso de la paleta —6.25:1 sobre `superficie`—, no un
+  rojo: no hay rojo. Es el mismo color con el que esta aplicación marca un
+  aprovisionamiento fallido y la falta de planes activos.
+-->
+@if (visible()) {
+  <p role="alert" class="text-xs leading-snug text-alerta-texto">{{ mensaje() }}</p>
+}

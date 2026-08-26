@@ -384,6 +384,21 @@ const ES_MX = {
     plan: 'Plan que contrata',
     ayudaPlan: 'Determina a qué módulos tendrá acceso. Solo se ofrecen los planes activos.',
     sinPlanesActivos: 'No hay ningún plan activo: crea uno antes de dar de alta una empresa.',
+
+    // --- Los mensajes de error de los campos propios de este alta ---
+    //
+    // Los de RFC, teléfono y correo NO están aquí: viven en `validacion`, porque son las
+    // reglas de tres datos del dominio que también llevan `Cliente` y `Proveedor`. Estos
+    // cuatro sí son de esta pantalla y de ninguna otra.
+    //
+    // Cada mensaje dice QUÉ SE ESPERA, nunca «campo inválido»: el mensaje es el único que
+    // puede explicar por qué el botón amarillo sigue gris.
+    errorIdentificador:
+      'El identificador va en minúsculas, dígitos y guiones, de 3 a 50 caracteres, y no puede empezar ni terminar con guion.',
+    errorRazonSocial: 'Escribe la razón social de la empresa, tal como aparece en su acta.',
+    errorNombreAdministrador: 'Escribe el nombre de quien va a administrar la empresa.',
+    errorPlan: 'Elige el plan que contrata la empresa.',
+
     aprovisionar: 'Dar de alta',
     aprovisionando: 'Aprovisionando…',
     tardaUnosSegundos: 'Tarda unos segundos: crea la base y le corre todas las migraciones.',
@@ -399,6 +414,24 @@ const ES_MX = {
       lista: 'Lista',
       fallida: 'Fallida',
     },
+  },
+
+  /**
+   * Los mensajes de los validadores de `nucleo/formularios/validadores.ts`.
+   *
+   * Están en su propia sección y no dentro de `empresas` porque las tres reglas son de datos
+   * del DOMINIO, no de una pantalla: `Cliente` y `Proveedor` llevan RFC y teléfono, y
+   * cualquier alta de usuario lleva correo. Un mensaje por regla, en el mismo sitio que la
+   * regla.
+   *
+   * Y ninguno dice «campo inválido»: dicen la forma que se espera, con las longitudes. Es la
+   * diferencia entre corregirlo en un intento y adivinar.
+   */
+  validacion: {
+    rfc: 'El RFC lleva 12 caracteres si es persona moral y 13 si es persona física: 3 o 4 letras, 6 dígitos de la fecha y 3 de la homoclave. Puedes dejarlo vacío.',
+    telefono: 'El teléfono lleva de 10 a 15 dígitos, solo números. Puedes dejarlo vacío.',
+    correo:
+      'El correo va con la forma nombre@dominio.mx: una sola arroba, un punto en el dominio y sin espacios.',
   },
 
   errores: {
@@ -804,6 +837,13 @@ const EN_US: Textos = {
     plan: 'Plan',
     ayudaPlan: 'Decides which modules they will have access to. Only active plans are offered.',
     sinPlanesActivos: 'There is no active plan: create one before adding a company.',
+
+    errorIdentificador:
+      'The identifier takes lowercase letters, digits and hyphens, 3 to 50 characters, and cannot start or end with a hyphen.',
+    errorRazonSocial: "Write the company's legal name, as it appears on its incorporation deed.",
+    errorNombreAdministrador: 'Write the name of whoever will administer the company.',
+    errorPlan: 'Pick the plan the company subscribes to.',
+
     aprovisionar: 'Add',
     aprovisionando: 'Provisioning…',
     tardaUnosSegundos:
@@ -820,6 +860,13 @@ const EN_US: Textos = {
       lista: 'Ready',
       fallida: 'Failed',
     },
+  },
+
+  validacion: {
+    rfc: 'A Mexican tax ID is 12 characters for a company and 13 for an individual: 3 or 4 letters, 6 date digits and a 3-character check code. You may leave it empty.',
+    telefono: 'A phone number takes 10 to 15 digits, numbers only. You may leave it empty.',
+    correo:
+      'The email must look like name@domain.com: a single at sign, a dot in the domain and no spaces.',
   },
 
   errores: {
