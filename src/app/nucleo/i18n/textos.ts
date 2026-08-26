@@ -288,7 +288,7 @@ const ES_MX = {
     leyendaSinComparar:
       'No se pudo comparar: o nunca se migró, o su versión no la conoce el binario que respondió, que es lo que pasa cuando la base va POR DELANTE del código desplegado. Aquí no se afirma si le faltan migraciones ni cuántas.',
     limitacion:
-      'El reporte lee la versión que la base central tiene registrada para cada empresa; no se conecta a las bases. Si alguien migró una a mano, aquí seguirá apareciendo la versión vieja hasta la siguiente corrida de migrar-empresas.',
+      'El reporte abre cada base y lee su historial de migraciones, no la copia que la central tiene registrada, así que detecta también a quien migró por fuera. La contrapartida: una base que no responda aparece como «sin comparar», no como un error.',
   },
 
   hoja: {
@@ -710,7 +710,7 @@ const EN_US: Textos = {
     leyendaSinComparar:
       'It could not be compared: either it was never migrated, or the binary that answered does not know its version, which is what happens when the database is AHEAD of the deployed code. Nothing is claimed here about whether or how many migrations it is missing.',
     limitacion:
-      'The report reads the version the central database has on record for each company; it does not connect to the databases themselves. If someone migrated one by hand, the old version will keep showing here until the next migrar-empresas run.',
+      'The report opens each database and reads its migration history, not the copy the central database has on record, so it also catches anyone who migrated outside the tool. The trade-off: a database that does not answer shows up as “could not compare”, not as an error.',
   },
 
   hoja: {

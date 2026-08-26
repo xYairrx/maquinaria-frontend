@@ -11,7 +11,7 @@ import { idioma } from '../i18n/i18n';
 import { sitio } from './sitio';
 
 /**
- * Compone el título de la pestaña: «Entrar · RETROMAQ».
+ * Compone el título de la pestaña: «Entrar · MAQVIA».
  *
  * Sin esto, cada ruta pone su `title` a secas y el nombre del producto solo aparece en
  * el `<title>` estático de `index.html`, que el router pisa en la primera navegación.
@@ -57,7 +57,7 @@ export class TituloPagina extends TitleStrategy {
   private aplicar(estado: RouterStateSnapshot): void {
     const propio = this.resolver(estado);
 
-    // Una ruta sin `title` deja solo el nombre del producto, no « · RETROMAQ».
+    // Una ruta sin `title` deja solo el nombre del producto, no « · MAQVIA».
     this.titulo.setTitle(propio === null ? sitio.nombre : `${propio} · ${sitio.nombre}`);
   }
 

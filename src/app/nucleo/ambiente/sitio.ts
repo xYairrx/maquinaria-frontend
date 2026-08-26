@@ -29,7 +29,7 @@ export const sitio = {
    * Si cambia, cambia también el `<title>` de `src/index.html` a mano. Ver la nota de
    * arriba: es la única copia que ningún compilador comprueba.
    */
-  nombre: 'MAQUINON',
+  nombre: 'MAQVIA ERP',
 
   /**
    * El nombre partido en dos, para pintarlo con dos colores.
@@ -40,9 +40,9 @@ export const sitio = {
    */
   marca: {
     /** Primera parte, en el color de texto. */
-    inicio: 'PIT',
+    inicio: 'MAQVIA',
     /** Segunda parte, en amarillo. */
-    fin: 'ON',
+    fin: 'ERP',
   },
 
   /**
