@@ -98,6 +98,12 @@ export const rutasEmpresa: Routes = [
         title: () => t().titulos.modelos,
         loadComponent: () => import('./paginas/empresa/modelos/modelos').then((m) => m.Modelos),
       },
+      {
+        path: 'ubicaciones',
+        title: () => t().titulos.ubicaciones,
+        loadComponent: () =>
+          import('./paginas/empresa/ubicaciones/ubicaciones').then((m) => m.Ubicaciones),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
     ],
   },

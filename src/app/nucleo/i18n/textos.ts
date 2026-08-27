@@ -78,6 +78,7 @@ const ES_MX = {
     tarifas: 'Tarifas',
     clausulas: 'Cláusulas',
     modelos: 'Modelos',
+    ubicaciones: 'Ubicaciones',
     operacion: 'Operación',
     equipos: 'Equipos',
     clientes: 'Clientes',
@@ -476,6 +477,7 @@ const ES_MX = {
     tarifas: 'Tarifas',
     clausulas: 'Cláusulas',
     modelos: 'Modelos',
+    ubicaciones: 'Ubicaciones',
     superadministracion: 'Superadministración',
     empresas: 'Empresas',
     saludEsquemas: 'Salud de esquemas',
@@ -804,6 +806,81 @@ const ES_MX = {
     guardando: 'Guardando…',
     cerrar: 'Cerrar',
   },
+  /**
+   * Ubicaciones. Los rótulos de `tipos` y `capacidades` van indexados por el valor del enum
+   * —1 Bodega · 2 Sucursal · 3 Patio— para que un tipo nuevo en el backend salte aquí.
+   *
+   * `capacidades` no describe el tipo, dice QUÉ PUEDE HACER: es lo que decide si esa
+   * ubicación sirve para lo que la persona necesita.
+   */
+  ubicaciones: {
+    titulo: 'Ubicaciones',
+    contexto: (n: number) => (n === 1 ? '1 ubicación' : `${n} ubicaciones`),
+    contextoActivas: (n: number) => (n === 1 ? '1 activa' : `${n} activas`),
+    contextoRetiradas: (n: number) => (n === 1 ? '1 retirada' : `${n} retiradas`),
+    contextoResultados: (n: number) => (n === 1 ? '1 resultado' : `${n} resultados`),
+    contextoDeTipo: (n: number, tipo: string) =>
+      n === 1 ? `1 ${tipo}` : `${n} de tipo ${tipo}`,
+    buscar: 'Buscar una ubicación',
+    crear: 'Nueva ubicación',
+    crearApoyo: 'Una bodega, una sucursal o un patio. De aquí cuelgan los equipos.',
+    editarTitulo: 'Editar la ubicación',
+    editarApoyo: 'Los equipos que ya están aquí se quedan donde están.',
+    tipos: { 1: 'Bodega', 2: 'Sucursal', 3: 'Patio' } as Record<number, string>,
+    capacidades: {
+      1: 'guarda equipo, no cotiza',
+      2: 'cotiza, no guarda equipo',
+      3: 'guarda equipo y cotiza',
+    } as Record<number, string>,
+    codigo: 'Código',
+    ayudaCodigo: 'Corto y único. Es como se nombra la ubicación en los documentos.',
+    nombre: 'Nombre',
+    tipo: 'Tipo',
+    ayudaTipo:
+      'Decide si aquí se puede guardar equipo y si desde aquí se puede cotizar. No se elige por separado.',
+    ayudaTipoEdicion:
+      'Si le quitas la capacidad de guardar equipo y ya hay máquinas aquí, el cambio se rechaza. Muévelas primero.',
+    domicilio: 'Domicilio',
+    telefono: 'Teléfono',
+    latitud: 'Latitud',
+    longitud: 'Longitud',
+    ayudaCoordenadas: 'Opcionales. Si pones una, pon la otra: media coordenada no ubica nada.',
+    coordenadaIncompleta: 'Faltan la latitud o la longitud. Van las dos, o ninguna.',
+    todas: 'Todas',
+    activas: 'Activas',
+    retiradas: 'Retiradas',
+    retirada: 'Retirada',
+    cualquierTipo: 'Cualquier tipo',
+    colUbicacion: 'Ubicación',
+    colTipo: 'Tipo',
+    colDomicilio: 'Domicilio',
+    colTelefono: 'Teléfono',
+    colEquipos: 'Equipos',
+    sinDato: 'Sin definir',
+    acciones: 'Acciones',
+    editar: 'Editar',
+    retirar: 'Retirar',
+    reactivar: 'Reactivar',
+    confirmarRetiro: (nombre: string) =>
+      `¿Retirar «${nombre}»? Deja de ofrecerse al dar de alta un equipo o al mover uno.`,
+    confirmarRetiroConEquipos: (nombre: string, n: number) =>
+      `«${nombre}» tiene ${n === 1 ? '1 equipo' : `${n} equipos`} registrados. Al retirarla dejará de ofrecerse, pero esas máquinas se quedan asignadas ahí. Conviene moverlas antes.`,
+    sinUbicaciones: 'Todavía no hay ubicaciones. La primera se crea con el botón de arriba.',
+    sinResultados: (texto: string) => `Ninguna ubicación coincide con «${texto}».`,
+    sinDeEseTipo: (tipo: string) =>
+      `No hay ninguna de tipo ${tipo}. Elige «Cualquier tipo» para ver el catálogo completo.`,
+    sinActivas: 'Ninguna ubicación está activa ahora mismo. Quita el filtro para ver las retiradas.',
+    sinRetiradas: 'Ninguna ubicación está retirada. Quita el filtro para ver el catálogo completo.',
+    rango: (desde: number, hasta: number, total: number) => `${desde}-${hasta} de ${total}`,
+    paginacion: 'Paginación',
+    paginaDe: (actual: number, total: number) => `Página ${actual} de ${total}`,
+    anterior: 'Anterior',
+    siguiente: 'Siguiente',
+    guardar: 'Guardar',
+    guardando: 'Guardando…',
+    cerrar: 'Cerrar',
+  },
+
 
 
 
@@ -931,6 +1008,7 @@ const EN_US: Textos = {
     tarifas: 'Rates',
     clausulas: 'Clauses',
     modelos: 'Models',
+    ubicaciones: 'Locations',
     operacion: 'Operations',
     equipos: 'Equipment',
     clientes: 'Customers',
@@ -1300,6 +1378,7 @@ const EN_US: Textos = {
     tarifas: 'Rates',
     clausulas: 'Clauses',
     modelos: 'Models',
+    ubicaciones: 'Locations',
     superadministracion: 'Platform admin',
     empresas: 'Companies',
     saludEsquemas: 'Schema health',
@@ -1605,6 +1684,75 @@ const EN_US: Textos = {
     guardando: 'Saving…',
     cerrar: 'Close',
   },
+  ubicaciones: {
+    titulo: 'Locations',
+    contexto: (n: number) => (n === 1 ? '1 location' : `${n} locations`),
+    contextoActivas: (n: number) => (n === 1 ? '1 active' : `${n} active`),
+    contextoRetiradas: (n: number) => (n === 1 ? '1 retired' : `${n} retired`),
+    contextoResultados: (n: number) => (n === 1 ? '1 result' : `${n} results`),
+    contextoDeTipo: (n: number, tipo: string) =>
+      n === 1 ? `1 ${tipo}` : `${n} of type ${tipo}`,
+    buscar: 'Search a location',
+    crear: 'New location',
+    crearApoyo: 'A warehouse, a branch or a yard. Equipment hangs off it.',
+    editarTitulo: 'Edit location',
+    editarApoyo: 'Equipment already here stays where it is.',
+    tipos: { 1: 'Warehouse', 2: 'Branch', 3: 'Yard' } as Record<number, string>,
+    capacidades: {
+      1: 'stores equipment, does not quote',
+      2: 'quotes, does not store equipment',
+      3: 'stores equipment and quotes',
+    } as Record<number, string>,
+    codigo: 'Code',
+    ayudaCodigo: 'Short and unique. It is how the location is named on documents.',
+    nombre: 'Name',
+    tipo: 'Type',
+    ayudaTipo:
+      'Decides whether equipment can be stored here and whether quotes can come from here. Not picked separately.',
+    ayudaTipoEdicion:
+      'If you take away its ability to store equipment while machines are here, the change is rejected. Move them first.',
+    domicilio: 'Address',
+    telefono: 'Phone',
+    latitud: 'Latitude',
+    longitud: 'Longitude',
+    ayudaCoordenadas:
+      'Optional. If you enter one, enter the other: half a coordinate locates nothing.',
+    coordenadaIncompleta: 'Latitude or longitude is missing. Both, or neither.',
+    todas: 'All',
+    activas: 'Active',
+    retiradas: 'Retired',
+    retirada: 'Retired',
+    cualquierTipo: 'Any type',
+    colUbicacion: 'Location',
+    colTipo: 'Type',
+    colDomicilio: 'Address',
+    colTelefono: 'Phone',
+    colEquipos: 'Equipment',
+    sinDato: 'Not set',
+    acciones: 'Actions',
+    editar: 'Edit',
+    retirar: 'Retire',
+    reactivar: 'Reactivate',
+    confirmarRetiro: (nombre: string) =>
+      `Retire "${nombre}"? It stops being offered when registering equipment or moving it.`,
+    confirmarRetiroConEquipos: (nombre: string, n: number) =>
+      `"${nombre}" has ${n === 1 ? '1 piece of equipment' : `${n} pieces of equipment`} registered. Retiring it stops it being offered, but those machines stay assigned there. Better to move them first.`,
+    sinUbicaciones: 'No locations yet. Create the first one with the button above.',
+    sinResultados: (texto: string) => `No location matches “${texto}”.`,
+    sinDeEseTipo: (tipo: string) =>
+      `There is no ${tipo}. Pick “Any type” to see the whole catalog.`,
+    sinActivas: 'No location is active right now. Clear the filter to see retired ones.',
+    sinRetiradas: 'No location is retired. Clear the filter to see the whole catalog.',
+    rango: (desde: number, hasta: number, total: number) => `${desde}-${hasta} of ${total}`,
+    paginacion: 'Pagination',
+    paginaDe: (actual: number, total: number) => `Page ${actual} of ${total}`,
+    anterior: 'Previous',
+    siguiente: 'Next',
+    guardar: 'Save',
+    guardando: 'Saving…',
+    cerrar: 'Close',
+  },
+
 
 
 

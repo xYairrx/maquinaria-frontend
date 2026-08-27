@@ -71,6 +71,18 @@ export interface FiltroClausulas extends FiltroListado {
 }
 
 /**
+ * `AlmacenaEquipo` y `EsAdministrativa` NO son campos de la ubicación: se DERIVAN del tipo,
+ * y en la base son columnas generadas. Como filtro sí existen, y son la forma correcta de
+ * pedir «solo donde cabe una máquina» —el alta de equipo y los traspasos— sin que la pantalla
+ * tenga que saber que eso significa bodega o patio.
+ */
+export interface FiltroUbicaciones extends FiltroListado {
+  readonly Tipo?: TipoUbicacion;
+  readonly AlmacenaEquipo?: boolean;
+  readonly EsAdministrativa?: boolean;
+}
+
+/**
  * Una página de resultados.
  *
  * `total` es el conteo COMPLETO de las filas que cumplen el filtro, no las de esta
@@ -134,6 +146,28 @@ export type AltaClausula = components['schemas']['AltaClausula'];
 /** Puesto de trabajo. De él cuelgan los trabajadores. */
 export type Puesto = components['schemas']['PuestoDto'];
 export type AltaPuesto = components['schemas']['AltaPuesto'];
+
+// --------------------------------------------------------------- organizacion --
+
+/**
+ * Una ubicación física: bodega, sucursal o patio. **Los tres al mismo nivel**, no una
+ * jerarquía: un patio no está dentro de una sucursal.
+ *
+ * `almacenaEquipo` y `esAdministrativa` llegan CALCULADOS y salen opcionales del generado
+ * porque el servidor los deriva del tipo —en la base son columnas generadas— y nadie los
+ * captura. El alta, coherente con eso, solo acepta `tipo`.
+ */
+export type Ubicacion = components['schemas']['UbicacionDto'];
+export type AltaUbicacion = components['schemas']['AltaUbicacion'];
+
+/**
+ * El tipo llega como número: 1 Bodega · 2 Sucursal · 3 Patio.
+ *
+ * Al ser numérico, un `<option>` que lo lleve necesita `[ngValue]` y no `[value]`. Está
+ * razonado en `AGENTS.md`; con `[value]` el control recibe la cadena «1» y el servidor
+ * responde 400.
+ */
+export type TipoUbicacion = components['schemas']['TipoUbicacion'];
 
 // -------------------------------------------------------------------- sesion --
 

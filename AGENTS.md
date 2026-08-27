@@ -327,6 +327,54 @@ Regression tests: `nucleo/sesion/interceptor-refresco.spec.ts` (11), the load-be
 "two concurrent 401s produce ONE refresh".
 See `docs/convenciones.md#sesión-el-refresco-del-token-va-serializado`.
 
+## A reactive primitive only tracks SIGNALS — anything else freezes it
+
+`computed`, `effect` and `httpResource` re-run when a **signal** they read changes. Reading
+anything else — a plain property, `form.getRawValue()`, a service field — registers **no
+dependency at all**. The primitive evaluates once and keeps that value forever.
+
+It does not throw, does not warn, and the compiler cannot see it. The types are correct; the
+value is just stale. **This has now shipped twice:**
+
+- **`httpResource` reading a non-signal property** (Marcas). The search box and the
+  active/retired filters did nothing: the resource's first run read zero signals, so it never
+  refetched. Fixed by creating the resource inside a factory that closes over the filter
+  signal. Locked by `api-catalogos.spec.ts`.
+- **`computed` reading `form.getRawValue()`** (Ubicaciones). The "half a coordinate locates
+  nothing" guard never fired: no warning, and the submit button stayed enabled. Locked by
+  `paginas/empresa/ubicaciones/ubicaciones.spec.ts`, which keeps the broken version next to
+  the fixed one to show the difference.
+
+**A `FormGroup` is not reactive.** The bridge is `valueChanges`:
+
+```ts
+private readonly valores = toSignal(this.formulario.valueChanges, {
+  initialValue: this.formulario.getRawValue(),
+});
+
+readonly incompleta = computed(() => {           // yes — reads a signal
+  const { latitud, longitud } = this.valores();
+  return (latitud == null) !== (longitud == null);
+});
+
+readonly rota = computed(() => {                 // no — reads nothing reactive
+  const { latitud, longitud } = this.formulario.getRawValue();
+  return (latitud === null) !== (longitud === null);
+});
+```
+
+Pass `initialValue`, or the signal is `undefined` until the first keystroke and the guard is
+wrong on a freshly opened form.
+
+**A method called FROM the template is a different case and is fine.** `puedeEnviar()` reads
+`formulario.valid`, which is not a signal, but the template re-evaluates it on every change
+detection pass and Angular's event listeners mark the component dirty on every keystroke. The
+trap is only inside `computed` / `effect` / `httpResource`, which decide for themselves when
+to re-run.
+
+**The check to run before writing one:** name the signals this primitive reads. If the list is
+empty, it will never re-run — that is the whole bug, in both cases it caused.
+
 ## A `<select>` whose value is not a string needs `[ngValue]`
 
 **`[value]` on an `<option>` is ALWAYS a string** — that is the HTML spec, attributes are

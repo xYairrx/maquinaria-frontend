@@ -39,7 +39,16 @@ export interface GrupoMenu {
   readonly opciones: readonly OpcionMenu[];
 }
 
-// Iconos. Trazos de Lucide (ISC), copiados en lugar de instalar el paquete: son cinco.
+/**
+ * Iconos. Trazos de Lucide (ISC), copiados en lugar de instalar el paquete.
+ *
+ * **CADA OPCIÓN DEL MENÚ LLEVA EL SUYO.** Repetir un glifo entre dos opciones anula para qué
+ * sirve: la vista periférica busca la forma, no lee la palabra, y dos entradas idénticas
+ * obligan a leer las dos. Pasó con Marcas/Categorías, Tipos/Modelos y Tarifas/Cláusulas.
+ *
+ * Se dibujan como un `<path>` de trazo —sin relleno—, así que el trazo tiene que quedar
+ * legible a 16 px: nada con detalle fino.
+ */
 const ICONOS = {
   inicio: 'M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',
   edificios: 'M3 21h18M5 21V7l7-4v18M19 21V11l-7-4M9 9h.01M9 13h.01M9 17h.01',
@@ -52,6 +61,15 @@ const ICONOS = {
   etiqueta:
     'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6M7.5 7.5h.01',
   base: 'M21 5c0 1.66-4.03 3-9 3S3 6.66 3 5s4.03-3 9-3 9 1.34 9 3M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3',
+  /** Carpeta: una categoría agrupa tipos. */
+  carpeta:
+    'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z',
+  /** Capas: un tipo es un estrato por encima del modelo. */
+  capas:
+    'M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83zM2 12.18l8.58 3.9a2 2 0 0 0 1.66 0l8.58-3.9M2 17.18l8.58 3.9a2 2 0 0 0 1.66 0l8.58-3.9',
+  /** Billete: una tarifa es un importe, no un documento. */
+  billete:
+    'M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2M14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0M6 12h.01M18 12h.01',
 } as const;
 
 /**
@@ -83,15 +101,17 @@ export function menuEmpresa(): readonly GrupoMenu[] {
         // esconde la opcion para siempre, porque nunca coincide con `modulo.clave`. El
         // mapa completo esta en `docs/plan-fase1-front.md` §4.
         { titulo: m.marcas, ruta: '/marcas', modulo: 'equipos', icono: ICONOS.etiqueta },
-        { titulo: m.categorias, ruta: '/categorias', modulo: 'equipos', icono: ICONOS.etiqueta },
-        { titulo: m.tipos, ruta: '/tipos', modulo: 'equipos', icono: ICONOS.maquina },
+        { titulo: m.categorias, ruta: '/categorias', modulo: 'equipos', icono: ICONOS.carpeta },
+        { titulo: m.tipos, ruta: '/tipos', modulo: 'equipos', icono: ICONOS.capas },
         { titulo: m.modelos, ruta: '/modelos', modulo: 'equipos', icono: ICONOS.maquina },
         // Tarifas exige `rentas.consultar`, no `equipos`.
-        { titulo: m.tarifas, ruta: '/tarifas', modulo: 'rentas', icono: ICONOS.documento },
+        { titulo: m.tarifas, ruta: '/tarifas', modulo: 'rentas', icono: ICONOS.billete },
         // Clausulas exige `contratos.consultar`.
         { titulo: m.clausulas, ruta: '/clausulas', modulo: 'contratos', icono: ICONOS.documento },
         // Puestos NO va bajo `equipos`: PuestosController exige `usuarios.consultar`.
         { titulo: m.puestos, ruta: '/puestos', modulo: 'usuarios', icono: ICONOS.usuarios },
+        // Ubicaciones exige `sucursales.consultar`: asi se llama el modulo en el backend.
+        { titulo: m.ubicaciones, ruta: '/ubicaciones', modulo: 'sucursales', icono: ICONOS.edificios },
       ],
     },
     // ponytail: aqui iba tambien un grupo `Operacion` con /equipos, /clientes y /rentas. Se

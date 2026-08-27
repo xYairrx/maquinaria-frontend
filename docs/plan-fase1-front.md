@@ -11,6 +11,91 @@
 
 ---
 
+## 0. Dónde vamos — al 2026-08-27
+
+**Pasos 1, 2 y 3a del orden de construcción (§7) cerrados: los siete catálogos y Ubicaciones.**
+Ocho pantallas de empresa, todas con el mismo molde de §8.
+
+| Pantalla | Ruta | Módulo del permiso | Filtros propios, además de texto y activo |
+|---|---|---|---|
+| Marcas | `/marcas` | `equipos` | — |
+| Categorías | `/categorias` | `equipos` | — |
+| Tipos | `/tipos` | `equipos` | `CategoriaEquipoId` |
+| Modelos | `/modelos` | `equipos` | `MarcaId` |
+| Tarifas | `/tarifas` | `rentas` | `AplicaRenta`, `AplicaVenta`, `Unidad` |
+| Cláusulas | `/clausulas` | `contratos` | `Obligatoria` |
+| Puestos | `/puestos` | `usuarios` | — |
+| Ubicaciones | `/ubicaciones` | `sucursales` | `Tipo` |
+
+Todos los filtros van al SERVIDOR; ninguna pantalla trae el catálogo entero para recortarlo
+en memoria.
+
+### Lo verificado en el navegador, no supuesto
+
+Alta, edición, retiro con confirmación, búsqueda con retardo, paginación, los mensajes de
+vacío según el filtro que lo causó, el 409 con el texto del servidor, **0 violaciones de axe**
+y la columna fijada aguantando un desplazamiento real de 500 px.
+
+### Lo que sigue, en orden
+
+1. **Trabajadores** (`/trabajadores`, módulo `usuarios`). Cuelga de puesto y de ubicación, que
+   ya existen. Cierra el paso 3.
+2. **Clientes y Proveedores** (paso 4). Ojo: sus dos servicios del backend hacen N+1, ver la
+   tabla de abajo.
+3. **Equipos y su expediente** (paso 5).
+
+### Estado del backend, por pantalla que falta
+
+De 33 servicios, 13 escribían su proyección como método y EF la evaluaba en el CLIENTE. Cinco
+ya están arreglados. **Los ocho que quedan van a estorbar en este orden:**
+
+| Paso | Pantalla | Servicio | Qué pasa |
+|---|---|---|---|
+| 4 | Clientes | `ServicioClientesEf` | N+1, no truena |
+| 4 | Proveedores | `ServicioProveedoresEf` | N+1, no truena |
+| 5 | Expediente de equipo | `ServicioDocumentosEquipoEf` | **truena** |
+| 7 | Cotizaciones | `ServicioCotizacionesEf` | **truena** |
+| 8 | Rentas | `ServicioRentasEf` | **truena** |
+| 9 | Contratos | `ServicioContratosEf` | **truena** |
+| 10 | Órdenes de compra | `ServicioOrdenesCompraEf` | **truena** |
+| 10 | Órdenes de venta | `ServicioOrdenesVentaEf` | **truena** |
+
+«Truena» es `NullReferenceException` **en cuanto la tabla tenga una fila**, no antes: con cero
+filas el `Select` no corre sobre nada y todo parece bien. El arreglo y su razonamiento están en
+`maquinaria-backend/docs/guias/estado-y-pendientes.md`, sección «Las proyecciones se evaluaban
+en el cliente».
+
+**El criterio acordado: se corrige cada uno cuando se llega a su pantalla**, no en una barrida.
+El backend se armó sin frontend delante, así que cada pantalla nueva destapa lo suyo, y
+arreglarlo con la pantalla a la vista es lo que permite comprobar que quedó bien.
+
+### Cuatro trampas que ya costaron una depuración cada una
+
+Están escritas completas en `AGENTS.md`; aquí solo para no repetirlas:
+
+1. **`tsc --noEmit` no revisa plantillas de Angular.** Verificar con `ng build`. Una clave de
+   diccionario faltante pasó el typecheck, dejó `ng serve` sin poder reconstruir, y durante un
+   rato el navegador sirvió código viejo mientras parecía que las correcciones no hacían nada.
+2. **`[ngValue]` y no `[value]`** en un `<option>` cuyo valor no sea texto.
+3. **`<input type="number">` mete un `number` en el control, y `null` al vaciarse** — nunca
+   cadena vacía, se declare como se declare.
+4. **Un `computed` / `effect` / `httpResource` solo rastrea SEÑALES.** Leer
+   `form.getRawValue()` o una propiedad normal lo deja congelado sin avisar. Ya pasó dos veces.
+
+### Cómo levantar el entorno
+
+```bash
+cd maquinaria-frontend && npm ci && npx ng serve
+```
+
+La API va aparte, en el 5123. El front la busca ahí y el tenant sale del subdominio, así que
+se entra por `http://<slug>.localhost:4200` —hoy `prueba`—, no por `localhost:4200`.
+
+Comprobación antes de dar por buena una pantalla: `npx ng build` (revisa plantillas),
+`npx ng test --watch=false` y abrirla en el navegador.
+
+---
+
 ## 1. Qué se entrega
 
 El criterio de salida no lo fija este documento, lo fija el alcance de la fase:
@@ -323,18 +408,18 @@ Sigue las dependencias reales, no el orden alfabético del menú. Es el mismo or
 rebanadas R2 a R11 del backend, y por la misma razón: cada pantalla necesita que existan los
 catálogos que su formulario consulta.
 
-| # | Pantalla | Depende de | Por qué en este lugar |
-|---|---|---|---|
-| **1** | **Marcas** | — | **Define el patrón de pantalla de módulo.** Cinco endpoints, un campo |
-| 2 | Los otros seis catálogos | 1 | Mismo molde |
-| 3 | Ubicaciones · Trabajadores | 2 (puestos) | Trabajador cuelga de puesto |
-| 4 | Clientes · Proveedores | — | CRUD independiente |
-| 5 | Equipos y su expediente | 2, 3 | Su formulario consulta marca, modelo, tipo, categoría y ubicación |
-| 6 | Disponibilidad · Transferencias | 5 | Sin equipos no hay calendario |
-| 7 | Cotizaciones | 4, 5, 2 (tarifas) | Cliente, equipos y conceptos cobrables |
-| 8 | **Rentas** | 7 | **Cierra el criterio de salida** |
-| 9 | Contratos | 8, 2 (cláusulas) | Cuelgan de una renta |
-| 10 | Órdenes de compra y de venta | 4, 5 | Proveedor y equipo |
+| # | Pantalla | Estado | Depende de | Por qué en este lugar |
+|---|---|---|---|---|
+| **1** | **Marcas** | **hecha** | — | **Define el patrón de pantalla de módulo.** Cinco endpoints, un campo |
+| 2 | Los otros seis catálogos | **hechas** | 1 | Mismo molde |
+| 3 | Ubicaciones · Trabajadores | Ubicaciones **hecha** | 2 (puestos) | Trabajador cuelga de puesto |
+| 4 | Clientes · Proveedores | — | — | CRUD independiente |
+| 5 | Equipos y su expediente | — | 2, 3 | Su formulario consulta marca, modelo, tipo, categoría y ubicación |
+| 6 | Disponibilidad · Transferencias | — | 5 | Sin equipos no hay calendario |
+| 7 | Cotizaciones | — | 4, 5, 2 (tarifas) | Cliente, equipos y conceptos cobrables |
+| 8 | **Rentas** | — | 7 | **Cierra el criterio de salida** |
+| 9 | Contratos | — | 8, 2 (cláusulas) | Cuelgan de una renta |
+| 10 | Órdenes de compra y de venta | — | 4, 5 | Proveedor y equipo |
 
 **El paso 1 es el que importa.** Define cómo se ve una pantalla de módulo en este producto
 —tabla responsiva, hoja de alta, filtros, paginación y manejo de los tres códigos— y las

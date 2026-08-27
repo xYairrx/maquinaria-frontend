@@ -316,26 +316,30 @@ número.
 10. **Sin pruebas end-to-end.** Angular CLI no trae framework de e2e; la elección sigue
     siendo una decisión abierta.
 11. **Cobertura desigual — mejoró mucho, y sigue desigual.** De 39 pruebas en 2 archivos a
-    **173 en 14**. Lo que ya tiene red: las dos funciones puras del arranque (`tenant`,
+    **179 en 15**. Lo que ya tiene red: las dos funciones puras del arranque (`tenant`,
     `acceso`), el diccionario y el cambio de idioma (`i18n`), los tres servicios de API con
     `HttpTestingController` —incluida la regresión de que `value()` no debe lanzar en error y
     las cuatro de que el listado de catálogos reacciona al filtro—, la agregación del
     dashboard (`resumen`), la lectura del esquema (`esquema`), el interceptor de refresco
     (11 casos, con el single-flight y el 401 de plataforma que se propaga), la hoja inferior
     (6 casos de gesto sobre el `<dialog>` real), el diálogo de confirmación, `mensaje-error`
-    (8 casos, nacidos del 400 que no decía nada) y el `NumberValueAccessor` (5 casos, ver
-    abajo).
+    (8 casos, nacidos del 400 que no decía nada), el `NumberValueAccessor` (5 casos) y la
+    guarda de coordenadas de Ubicaciones (6). Las tres últimas, abajo.
 
     Lo que **sigue sin una sola prueba**: los dos guards (`guard-sesion`, `guard-plataforma`),
     `interceptor-token`, los dos almacenes de sesión, `titulo-pagina`, `opciones-menu` y
-    **las diecisiete pantallas** (once de empresa, cinco de plataforma, una de portal). De
-    los 32 componentes, los únicos probados son `hoja` y `dialogo-confirmacion`.
+    **las diecisiete pantallas** (doce de empresa, cinco de plataforma, una de portal). De
+    los 34 componentes, los únicos probados son `hoja` y `dialogo-confirmacion`.
 
-    Las dos pruebas nuevas de esta tanda no son de pantalla sino **de lo que Angular escribe
-    debajo de un formulario tipado**, que es donde el compilador no ayuda:
-    `paginas/empresa/modelos/modelos.spec.ts` fija que un `<input type="number">` mete un
-    number —y `null` al vaciarse, nunca cadena vacía— y `nucleo/api/mensaje-error.spec.ts`
-    fija que los `errors` por campo ganan al `title` genérico.
+    Las pruebas nuevas de esta tanda no son de pantalla sino **de lo que Angular hace por
+    debajo**, que es donde el compilador no ayuda:
+
+    - `nucleo/api/mensaje-error.spec.ts`: los `errors` por campo ganan al `title` genérico.
+    - `paginas/empresa/modelos/modelos.spec.ts`: un `<input type="number">` mete un number en
+      el control —y `null` al vaciarse, nunca cadena vacía—.
+    - `paginas/empresa/ubicaciones/ubicaciones.spec.ts`: un `computed` que lee
+      `getRawValue()` **no reacciona**. Guarda la versión rota junto a la buena para que la
+      diferencia se vea.
 
 12. ~~Falta el interceptor de refresco de token.~~ **HECHO (2026-08-25), y con él se cierra
     la Fase 0 del frontend.** `refresco-sesion.ts` + `interceptor-refresco.ts`, con

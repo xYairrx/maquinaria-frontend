@@ -1,0 +1,393 @@
+<!--
+  Espejo estructural de `marcas.html`. Lo propio son las dos filas de chips —estado y tipo—
+  y que la columna de tipo dice lo que ese tipo PUEDE hacer, no solo cómo se llama.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="flex flex-col gap-2">
+      <div class="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          (click)="filtrarPor(undefined)"
+          [attr.aria-pressed]="soloActivas() === undefined"
+          [class.chip-activo]="soloActivas() === undefined"
+          class="chip"
+        >
+          {{ t().ubicaciones.todas }}
+        </button>
+        <button
+          type="button"
+          (click)="filtrarPor(true)"
+          [attr.aria-pressed]="soloActivas() === true"
+          [class.chip-activo]="soloActivas() === true"
+          class="chip"
+        >
+          {{ t().ubicaciones.activas }}
+        </button>
+        <button
+          type="button"
+          (click)="filtrarPor(false)"
+          [attr.aria-pressed]="soloActivas() === false"
+          [class.chip-activo]="soloActivas() === false"
+          class="chip"
+        >
+          {{ t().ubicaciones.retiradas }}
+        </button>
+      </div>
+
+      <!--
+        Los tipos son TRES y cerrados, así que caben como chips y se ven de un golpe. Un
+        desplegable escondería que solo hay tres.
+      -->
+      <div class="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          (click)="filtrarPorTipo(undefined)"
+          [attr.aria-pressed]="tipoFiltrado() === undefined"
+          [class.chip-activo]="tipoFiltrado() === undefined"
+          class="chip"
+        >
+          {{ t().ubicaciones.cualquierTipo }}
+        </button>
+        @for (tipo of tipos; track tipo) {
+          <button
+            type="button"
+            (click)="filtrarPorTipo(tipo)"
+            [attr.aria-pressed]="tipoFiltrado() === tipo"
+            [class.chip-activo]="tipoFiltrado() === tipo"
+            class="chip"
+          >
+            {{ nombreTipo(tipo) }}
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (total() > 0) {
+      <p class="text-xs tabular-nums text-texto-apagado" aria-live="polite">
+        {{ t().ubicaciones.rango(desde(), hasta(), total()) }}
+      </p>
+    }
+  </div>
+
+  @if (cargando()) {
+    <app-ubicaciones-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (ubicaciones().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-200 text-left text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().ubicaciones.colUbicacion }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().ubicaciones.colTipo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().ubicaciones.colDomicilio }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().ubicaciones.colTelefono }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                  {{ t().ubicaciones.colEquipos }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 md:px-5">
+                  <span class="sr-only">{{ t().ubicaciones.acciones }}</span>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (ubicacion of ubicaciones(); track ubicacion.id) {
+                <tr class="border-b border-borde-fila align-top last:border-0">
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p class="font-medium text-texto">{{ ubicacion.nombre }}</p>
+
+                      @if (!ubicacion.activo) {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                        >
+                          {{ t().ubicaciones.retirada }}
+                        </span>
+                      }
+                    </div>
+
+                    <p class="text-xs text-texto-apagado">{{ ubicacion.codigo }}</p>
+                  </td>
+
+                  <!--
+                    El nombre del tipo y, debajo, lo que ese tipo PUEDE hacer. «Bodega» no le
+                    dice nada a quien captura; «guarda equipo, no cotiza» sí, y es lo que
+                    decide si esa ubicación sirve para lo que la persona necesita.
+                  -->
+                  <td class="px-4 py-3">
+                    <p class="text-texto-secundario">{{ nombreTipo(ubicacion.tipo) }}</p>
+                    <p class="text-xs text-texto-apagado">{{ capacidadDe(ubicacion.tipo) }}</p>
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    @if (ubicacion.domicilio) {
+                      <span class="line-clamp-2 max-w-72">{{ ubicacion.domicilio }}</span>
+                    } @else {
+                      <span class="text-texto-apagado">{{ t().ubicaciones.sinDato }}</span>
+                    }
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 text-texto-secundario">
+                    {{ ubicacion.telefono ?? t().ubicaciones.sinDato }}
+                  </td>
+
+                  <td
+                    class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-texto-secundario"
+                  >
+                    {{ ubicacion.equipos }}
+                  </td>
+
+                  <td class="px-4 py-3 text-right md:px-5">
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        (click)="abrirEdicion(ubicacion)"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ t().ubicaciones.editar }}
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="alternarActivo(ubicacion)"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ ubicacion.activo ? t().ubicaciones.retirar : t().ubicaciones.reactivar }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (paginas() > 1) {
+      <nav
+        class="flex items-center justify-between gap-3"
+        [attr.aria-label]="t().ubicaciones.paginacion"
+      >
+        <button
+          type="button"
+          (click)="irA(pagina() - 1)"
+          [disabled]="pagina() <= 1"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+        >
+          {{ t().ubicaciones.anterior }}
+        </button>
+
+        <span class="text-xs tabular-nums text-texto-apagado">
+          {{ t().ubicaciones.paginaDe(pagina(), paginas()) }}
+        </span>
+
+        <button
+          type="button"
+          (click)="irA(pagina() + 1)"
+          [disabled]="pagina() >= paginas()"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+        >
+          {{ t().ubicaciones.siguiente }}
+        </button>
+      </nav>
+    }
+  }
+</div>
+
+<app-hoja
+  [abierta]="hojaAbierta()"
+  [anclajes]="[68, 92]"
+  [titulo]="editando() ? t().ubicaciones.editarTitulo : t().ubicaciones.crear"
+  [apoyo]="editando() ? t().ubicaciones.editarApoyo : t().ubicaciones.crearApoyo"
+  (cerrar)="cerrarHoja()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-ubicacion">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="codigo" class="text-sm font-medium text-texto-secundario">
+            {{ t().ubicaciones.codigo }}
+          </label>
+          <input
+            id="codigo"
+            formControlName="codigo"
+            maxlength="30"
+            autocapitalize="characters"
+            autocomplete="off"
+            spellcheck="false"
+            aria-describedby="ayuda-codigo"
+            class="campo-formulario"
+          />
+          <p id="ayuda-codigo" class="text-xs text-texto-apagado">
+            {{ t().ubicaciones.ayudaCodigo }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="nombre" class="text-sm font-medium text-texto-secundario">
+            {{ t().ubicaciones.nombre }}
+          </label>
+          <input
+            id="nombre"
+            formControlName="nombre"
+            maxlength="120"
+            autocomplete="off"
+            class="campo-formulario"
+          />
+        </div>
+
+        <!--
+          El tipo decide QUÉ PUEDE HACER la ubicación, así que cada opción lo dice. Y la
+          ayuda avisa de que cambiarlo puede rechazarse: es lo que evita el 409 sorpresa.
+        -->
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="tipo" class="text-sm font-medium text-texto-secundario">
+            {{ t().ubicaciones.tipo }}
+          </label>
+          <select
+            id="tipo"
+            formControlName="tipo"
+            aria-describedby="ayuda-tipo"
+            class="campo-formulario"
+          >
+            @for (tipo of tipos; track tipo) {
+              <!--
+                `ngValue` y NO `value`: el tipo es un enum numérico. Con `value` el control
+                recibiría la cadena «1», el servidor contestaría 400, y al arrancar no
+                podría casar el número contra opciones de texto.
+              -->
+              <option [ngValue]="tipo">{{ nombreTipo(tipo) }} — {{ capacidadDe(tipo) }}</option>
+            }
+          </select>
+          <p id="ayuda-tipo" class="text-xs text-texto-apagado">
+            {{ editando() ? t().ubicaciones.ayudaTipoEdicion : t().ubicaciones.ayudaTipo }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="domicilio" class="text-sm font-medium text-texto-secundario">
+            {{ t().ubicaciones.domicilio }}
+          </label>
+          <textarea
+            id="domicilio"
+            formControlName="domicilio"
+            rows="2"
+            class="campo-formulario"
+          ></textarea>
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="telefono" class="text-sm font-medium text-texto-secundario">
+            {{ t().ubicaciones.telefono }}
+          </label>
+          <input
+            id="telefono"
+            formControlName="telefono"
+            type="tel"
+            autocomplete="off"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="latitud" class="text-sm font-medium text-texto-secundario">
+            {{ t().ubicaciones.latitud }}
+          </label>
+          <input
+            id="latitud"
+            formControlName="latitud"
+            type="number"
+            step="any"
+            inputmode="decimal"
+            autocomplete="off"
+            aria-describedby="ayuda-coordenadas"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="longitud" class="text-sm font-medium text-texto-secundario">
+            {{ t().ubicaciones.longitud }}
+          </label>
+          <input
+            id="longitud"
+            formControlName="longitud"
+            type="number"
+            step="any"
+            inputmode="decimal"
+            autocomplete="off"
+            aria-describedby="ayuda-coordenadas"
+            class="campo-formulario"
+          />
+        </div>
+
+        <p id="ayuda-coordenadas" class="text-xs text-texto-apagado sm:col-span-2">
+          {{ t().ubicaciones.ayudaCoordenadas }}
+        </p>
+
+        <!--
+          Media coordenada no ubica nada, y el servidor no lo comprueba. Se dice aquí, que es
+          donde se puede arreglar, y además bloquea el envío.
+        -->
+        @if (coordenadaIncompleta()) {
+          <p class="aviso text-sm text-texto-secundario sm:col-span-2" role="alert">
+            {{ t().ubicaciones.coordenadaIncompleta }}
+          </p>
+        }
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarHoja()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().ubicaciones.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-ubicacion"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().ubicaciones.guardando : t().ubicaciones.guardar }}
+    </button>
+  </div>
+</app-hoja>

@@ -107,7 +107,7 @@ carpeta está en [estado y pendientes](docs/estado-y-pendientes.md#cómo-está-o
 | [Sistema de diseño](docs/sistema-de-diseno.md) | Menú lateral, barra superior, tarjetas, tablas y accesos. La referencia visual del producto |
 | [Convenciones de código](docs/convenciones.md) | Las reglas de `AGENTS.md` en forma operativa, zoneless y Tailwind v4 |
 | [Estado y pendientes](docs/estado-y-pendientes.md) | Qué hay en disco, los 17 pendientes, las fases y las divergencias con los docs |
-| [Plan de la Fase 1](docs/plan-fase1-front.md) | **Qué pantallas se construyen y en qué orden.** El mapa de los 117 endpoints sin interfaz, los contratos de listado y el patrón de pantalla de módulo |
+| [Plan de la Fase 1](docs/plan-fase1-front.md) | **Qué pantallas se construyen y en qué orden, y dónde vamos.** Empieza por §0, que dice qué está hecho y qué sigue. Después, el mapa de endpoints, los contratos de listado y el patrón de pantalla de módulo |
 
 ## Cómo se trabaja
 
