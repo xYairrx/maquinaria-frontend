@@ -1,0 +1,53 @@
+<!--
+  Espejo de `marcas.html`. Mismas secciones, mismos cortes responsivos.
+
+  El esqueleto es DECORACIÓN y va `aria-hidden`; lo que sustituye al texto de «Cargando…»
+  es el `role="status"` en `sr-only`. Ver `docs/convenciones.md#esqueletos-de-carga`.
+-->
+<div class="flex flex-col gap-4" aria-busy="true">
+  <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+
+  <div aria-hidden="true" class="flex flex-col gap-4">
+    <!-- La fila de chips del filtro y el rango, arriba de la tabla. -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex gap-1.5">
+        <div class="esqueleto h-7 w-20 rounded-full"></div>
+        <div class="esqueleto h-7 w-20 rounded-full"></div>
+        <div class="esqueleto h-7 w-24 rounded-full"></div>
+      </div>
+
+      <div class="esqueleto h-3 w-28"></div>
+    </div>
+
+    <section class="rounded-xl border border-borde bg-superficie">
+      <!-- El encabezado de la tabla. `h-3` porque el texto de 11 px ocupa una caja de 16. -->
+      <div class="border-b border-borde px-4 py-2.5 md:px-5">
+        <div class="esqueleto h-3 w-full"></div>
+      </div>
+
+      @for (fila of filas; track fila) {
+        <div
+          class="flex items-center justify-between gap-4 border-b border-borde-fila px-4 py-3 last:border-0 md:px-5"
+        >
+          <!--
+            El nombre y, a su lado, el hueco de la píldora de «retirada». Va aquí y no a la
+            derecha porque en la tabla real vive dentro de la celda fijada: si el espejo la
+            pusiera en otro lado, al llegar los datos saltaría de sitio.
+          -->
+          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+            <div class="esqueleto h-3.5 w-40 max-w-full"></div>
+          </div>
+
+          <!-- El conteo de modelos. -->
+          <div class="esqueleto h-3.5 w-8 shrink-0"></div>
+
+          <!-- Los dos botones de acción. -->
+          <div class="flex shrink-0 gap-2">
+            <div class="esqueleto h-8 w-16 rounded-lg"></div>
+            <div class="esqueleto h-8 w-20 rounded-lg"></div>
+          </div>
+        </div>
+      }
+    </section>
+  </div>
+</div>

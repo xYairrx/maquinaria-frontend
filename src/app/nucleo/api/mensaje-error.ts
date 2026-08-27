@@ -24,10 +24,45 @@ export function mensajeDeError(error: unknown): string {
 
     const problema = error.error as DetalleProblema | null;
 
-    return problema?.detail ?? problema?.title ?? t().errores.conCodigo(error.status);
+    // Un 400 de enlace de modelo llega como ValidationProblemDetails: su `title` es el
+    // genérico «One or more validation errors occurred» y lo útil está en `errors`, un
+    // diccionario de campo a mensajes.
+    //
+    // SIN ESTO, ese 400 se ve como una frase que no dice qué campo falló ni por qué, y
+    // encima en inglés aunque la interfaz esté en español. Costó un rato de depuración con
+    // el `<select>` de unidad: el control mandaba la cadena «1» donde el enum espera un
+    // entero, y el servidor lo decía —en `errors.unidad`— mientras la pantalla mostraba el
+    // título genérico.
+    //
+    // Va ANTES que `detail` porque cuando hay `errors` el `detail` no viene.
+    const porCampo = detalleDeValidacion(problema);
+
+    return porCampo ?? problema?.detail ?? problema?.title ?? t().errores.conCodigo(error.status);
   }
 
   return t().errores.inesperado;
+}
+
+/**
+ * Los mensajes de un `ValidationProblemDetails`, aplanados en una línea.
+ *
+ * No se traducen: los redacta el servidor, igual que el `detail`. Se juntan con «·» en vez
+ * de una lista porque esto alimenta un `<p role="alert">` de una sola línea; si algún día
+ * hacen falta por campo —para marcar el `<input>` que falló— el sitio de ese cambio es este,
+ * no cada pantalla.
+ */
+function detalleDeValidacion(problema: DetalleProblema | null): string | null {
+  const errores = problema?.errors;
+
+  if (errores === undefined || errores === null) {
+    return null;
+  }
+
+  const mensajes = Object.entries(errores).flatMap(([campo, textos]) =>
+    (textos ?? []).map((texto) => (campo === '' ? texto : `${campo}: ${texto}`)),
+  );
+
+  return mensajes.length === 0 ? null : mensajes.join(' · ');
 }
 
 /**

@@ -61,6 +61,43 @@ export const rutasEmpresa: Routes = [
         title: () => t().titulos.inicio,
         loadComponent: () => import('./paginas/empresa/inicio/inicio').then((m) => m.Inicio),
       },
+      {
+        path: 'marcas',
+        title: () => t().titulos.marcas,
+        loadComponent: () => import('./paginas/empresa/marcas/marcas').then((m) => m.Marcas),
+      },
+      {
+        path: 'categorias',
+        title: () => t().titulos.categorias,
+        loadComponent: () =>
+          import('./paginas/empresa/categorias/categorias').then((m) => m.Categorias),
+      },
+      {
+        path: 'puestos',
+        title: () => t().titulos.puestos,
+        loadComponent: () => import('./paginas/empresa/puestos/puestos').then((m) => m.Puestos),
+      },
+      {
+        path: 'tipos',
+        title: () => t().titulos.tipos,
+        loadComponent: () => import('./paginas/empresa/tipos/tipos').then((m) => m.Tipos),
+      },
+      {
+        path: 'tarifas',
+        title: () => t().titulos.tarifas,
+        loadComponent: () => import('./paginas/empresa/tarifas/tarifas').then((m) => m.Tarifas),
+      },
+      {
+        path: 'clausulas',
+        title: () => t().titulos.clausulas,
+        loadComponent: () =>
+          import('./paginas/empresa/clausulas/clausulas').then((m) => m.Clausulas),
+      },
+      {
+        path: 'modelos',
+        title: () => t().titulos.modelos,
+        loadComponent: () => import('./paginas/empresa/modelos/modelos').then((m) => m.Modelos),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
     ],
   },

@@ -196,3 +196,11 @@
     </main>
   </div>
 </div>
+
+<!--
+  El diálogo de confirmación, montado UNA VEZ por armazón. Las pantallas no lo dibujan:
+  llaman a `Confirmacion.pedir()` y esperan la respuesta. Mismo reparto que la barra — el
+  estado en un servicio, el marcado aquí — y por la misma razón: dieciocho pantallas con su
+  propio diálogo serían dieciocho copias del mismo marcado.
+-->
+<app-dialogo-confirmacion />

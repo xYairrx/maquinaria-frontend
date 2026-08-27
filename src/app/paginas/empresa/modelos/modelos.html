@@ -1,0 +1,349 @@
+<!--
+  Espejo estructural de `marcas.html`. Lo propio de esta pantalla son dos cosas: el
+  desplegable de MARCA que filtra la tabla —y que filtra en el servidor, no en memoria— y
+  el par de selectores del formulario, donde marca es obligatoria y tipo no.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          (click)="filtrarPor(undefined)"
+          [attr.aria-pressed]="soloActivos() === undefined"
+          [class.chip-activo]="soloActivos() === undefined"
+          class="chip"
+        >
+          {{ t().modelos.todos }}
+        </button>
+        <button
+          type="button"
+          (click)="filtrarPor(true)"
+          [attr.aria-pressed]="soloActivos() === true"
+          [class.chip-activo]="soloActivos() === true"
+          class="chip"
+        >
+          {{ t().modelos.activos }}
+        </button>
+        <button
+          type="button"
+          (click)="filtrarPor(false)"
+          [attr.aria-pressed]="soloActivos() === false"
+          [class.chip-activo]="soloActivos() === false"
+          class="chip"
+        >
+          {{ t().modelos.retirados }}
+        </button>
+      </div>
+
+      <!--
+        Un `<select>` y no una fila de chips: las marcas son un catálogo abierto y una fila
+        de treinta chips no cabe en un teléfono. El id de una marca es un GUID —una cadena—,
+        así que `[value]` es correcto aquí; `[ngValue]` solo hace falta cuando el valor no
+        es texto.
+      -->
+      <div class="flex items-center gap-2">
+        <label for="filtro-marca" class="sr-only">{{ t().modelos.filtrarMarca }}</label>
+        <select
+          id="filtro-marca"
+          [value]="marcaFiltrada()"
+          (change)="filtrarPorMarca($any($event.target).value)"
+          class="campo-formulario py-1.5 text-[13px]"
+        >
+          <option value="">{{ t().modelos.todasLasMarcas }}</option>
+          @for (marca of marcas(); track marca.id) {
+            <option [value]="marca.id">{{ marca.nombre }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (total() > 0) {
+      <p class="text-xs tabular-nums text-texto-apagado" aria-live="polite">
+        {{ t().modelos.rango(desde(), hasta(), total()) }}
+      </p>
+    }
+  </div>
+
+  <!--
+    Se avisa ANTES de que alguien pulse «Nuevo modelo» y encuentre el desplegable vacío.
+    Solo por las marcas: un modelo sin tipo se guarda bien, uno sin marca no.
+  -->
+  @if (sinMarcas() && !cargando()) {
+    <p class="aviso text-sm text-texto-secundario" role="status">
+      {{ t().modelos.hacenFaltaMarcas }}
+    </p>
+  }
+
+  @if (cargando()) {
+    <app-modelos-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (modelos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-200 text-left text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().modelos.colModelo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().modelos.colMarca }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().modelos.colTipo }}</th>
+                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                  {{ t().modelos.colServicio }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                  {{ t().modelos.colEquipos }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 md:px-5">
+                  <span class="sr-only">{{ t().modelos.acciones }}</span>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (modelo of modelos(); track modelo.id) {
+                <tr class="border-b border-borde-fila align-top last:border-0">
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p class="font-medium text-texto">{{ modelo.nombre }}</p>
+
+                      @if (!modelo.activo) {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                        >
+                          {{ t().modelos.retirado }}
+                        </span>
+                      }
+                    </div>
+
+                    @if (modelo.descripcion) {
+                      <p class="line-clamp-1 max-w-80 text-xs text-texto-apagado">
+                        {{ modelo.descripcion }}
+                      </p>
+                    }
+                  </td>
+
+                  <!-- El NOMBRE, no el id: la API los devuelve ya resueltos. -->
+                  <td class="px-4 py-3 text-texto-secundario">{{ modelo.marca }}</td>
+
+                  <!--
+                    Sin tipo es un estado válido, no un dato faltante, así que se dice con
+                    palabras en vez de dejar la celda en blanco.
+                  -->
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ modelo.tipoEquipo ?? t().modelos.sinTipo }}
+                  </td>
+
+                  <td
+                    class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-texto-secundario"
+                  >
+                    @if (modelo.horasEntreServicios !== null) {
+                      {{ t().modelos.cadaHoras(modelo.horasEntreServicios) }}
+                    } @else {
+                      <span class="text-texto-apagado">{{ t().modelos.sinDato }}</span>
+                    }
+                  </td>
+
+                  <td
+                    class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-texto-secundario"
+                  >
+                    {{ modelo.equipos }}
+                  </td>
+
+                  <td class="px-4 py-3 text-right md:px-5">
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        (click)="abrirEdicion(modelo)"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ t().modelos.editar }}
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="alternarActivo(modelo)"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ modelo.activo ? t().modelos.retirar : t().modelos.reactivar }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (paginas() > 1) {
+      <nav
+        class="flex items-center justify-between gap-3"
+        [attr.aria-label]="t().modelos.paginacion"
+      >
+        <button
+          type="button"
+          (click)="irA(pagina() - 1)"
+          [disabled]="pagina() <= 1"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+        >
+          {{ t().modelos.anterior }}
+        </button>
+
+        <span class="text-xs tabular-nums text-texto-apagado">
+          {{ t().modelos.paginaDe(pagina(), paginas()) }}
+        </span>
+
+        <button
+          type="button"
+          (click)="irA(pagina() + 1)"
+          [disabled]="pagina() >= paginas()"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+        >
+          {{ t().modelos.siguiente }}
+        </button>
+      </nav>
+    }
+  }
+</div>
+
+<app-hoja
+  [abierta]="hojaAbierta()"
+  [anclajes]="[62, 88]"
+  [titulo]="editando() ? t().modelos.editarTitulo : t().modelos.crear"
+  [apoyo]="editando() ? t().modelos.editarApoyo : t().modelos.crearApoyo"
+  (cerrar)="cerrarHoja()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-modelo">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <!-- La marca primero: es de lo que cuelga el modelo, y es obligatoria. -->
+        <div class="flex flex-col gap-1">
+          <label for="marca" class="text-sm font-medium text-texto-secundario">
+            {{ t().modelos.marca }}
+          </label>
+          <select id="marca" formControlName="marcaId" class="campo-formulario">
+            <!-- Sin opción elegida por defecto: elegir es del capturista. -->
+            <option value="" disabled>{{ t().modelos.elegirMarca }}</option>
+            @for (marca of marcas(); track marca.id) {
+              <option [value]="marca.id">{{ marca.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <!--
+          El tipo NO lleva `required` y su opción vacía no está `disabled`: «sin tipo» es
+          una respuesta, no una omisión, y tiene que poder elegirse a propósito.
+        -->
+        <div class="flex flex-col gap-1">
+          <label for="tipo" class="text-sm font-medium text-texto-secundario">
+            {{ t().modelos.tipo }}
+          </label>
+          <select
+            id="tipo"
+            formControlName="tipoEquipoId"
+            aria-describedby="ayuda-tipo"
+            class="campo-formulario"
+          >
+            <option value="">{{ t().modelos.sinTipo }}</option>
+            @for (tipo of tipos(); track tipo.id) {
+              <option [value]="tipo.id">{{ tipo.nombre }}</option>
+            }
+          </select>
+          <p id="ayuda-tipo" class="text-xs text-texto-apagado">{{ t().modelos.ayudaTipo }}</p>
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="nombre" class="text-sm font-medium text-texto-secundario">
+            {{ t().modelos.nombre }}
+          </label>
+          <input
+            id="nombre"
+            formControlName="nombre"
+            maxlength="80"
+            autocomplete="off"
+            aria-describedby="ayuda-nombre"
+            class="campo-formulario"
+          />
+          <p id="ayuda-nombre" class="text-xs text-texto-apagado">{{ t().modelos.ayudaNombre }}</p>
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+            {{ t().modelos.descripcion }}
+          </label>
+          <textarea
+            id="descripcion"
+            formControlName="descripcion"
+            rows="3"
+            class="campo-formulario"
+          ></textarea>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="horas" class="text-sm font-medium text-texto-secundario">
+            {{ t().modelos.horasEntreServicios }}
+          </label>
+          <input
+            id="horas"
+            formControlName="horasEntreServicios"
+            type="number"
+            min="0"
+            step="1"
+            inputmode="numeric"
+            autocomplete="off"
+            aria-describedby="ayuda-horas"
+            class="campo-formulario"
+          />
+          <p id="ayuda-horas" class="text-xs text-texto-apagado">{{ t().modelos.ayudaHoras }}</p>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarHoja()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().modelos.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-modelo"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().modelos.guardando : t().modelos.guardar }}
+    </button>
+  </div>
+</app-hoja>

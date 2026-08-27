@@ -11,8 +11,20 @@ import { InicioEsqueleto } from './esqueleto';
  */
 const MODULOS_DEL_CATALOGO = 26;
 
-/** Lo que ya se puede construir. El resto se muestra apagado. */
-const IMPLEMENTADOS = new Set(['usuarios']);
+/**
+ * Los módulos con pantalla propia. El resto se muestra apagado.
+ *
+ * EL CRITERIO ES «se puede operar el módulo», no «existe alguna pantalla suya». Marcas ya
+ * está construida y su endpoint exige `equipos.consultar`, pero el módulo de equipos en sí
+ * —el alta de una máquina, su expediente— todavía no: marcar `equipos` aquí diría que se
+ * puede administrar el parque, y no se puede.
+ *
+ * Decía `new Set(['usuarios'])` y era falso en dos sentidos: no hay ruta `/usuarios` en
+ * `rutas-empresa.ts`, y el backend **no expone endpoints de usuarios ni de roles** para una
+ * empresa —solo `/api/mi/sesion` y aceptar una invitación—. Hoy invitar gente a una empresa
+ * es una acción de plataforma. Ver `docs/plan-fase1-front.md` §3.1.
+ */
+const IMPLEMENTADOS = new Set<string>();
 
 @Component({
   selector: 'app-inicio',

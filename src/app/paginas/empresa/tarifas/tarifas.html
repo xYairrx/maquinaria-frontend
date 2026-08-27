@@ -1,0 +1,363 @@
+<!--
+  Espejo estructural de `marcas.html`. Lo propio: una segunda fila de chips que filtra por
+  dónde se cobra el concepto, y el selector de unidad en el formulario.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-col gap-2">
+      <div class="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          (click)="filtrarPor(undefined)"
+          [attr.aria-pressed]="soloActivas() === undefined"
+          [class.chip-activo]="soloActivas() === undefined"
+          class="chip"
+        >
+          {{ t().tarifas.todas }}
+        </button>
+        <button
+          type="button"
+          (click)="filtrarPor(true)"
+          [attr.aria-pressed]="soloActivas() === true"
+          [class.chip-activo]="soloActivas() === true"
+          class="chip"
+        >
+          {{ t().tarifas.activas }}
+        </button>
+        <button
+          type="button"
+          (click)="filtrarPor(false)"
+          [attr.aria-pressed]="soloActivas() === false"
+          [class.chip-activo]="soloActivas() === false"
+          class="chip"
+        >
+          {{ t().tarifas.retiradas }}
+        </button>
+      </div>
+
+      <!--
+        Segunda dimensión, independiente de la primera: dónde se cobra. Filtra en el
+        SERVIDOR con `AplicaRenta` / `AplicaVenta`, no en memoria.
+      -->
+      <div class="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          (click)="filtrarAplicaA(undefined)"
+          [attr.aria-pressed]="aplicaA() === undefined"
+          [class.chip-activo]="aplicaA() === undefined"
+          class="chip"
+        >
+          {{ t().tarifas.rentaYVenta }}
+        </button>
+        <button
+          type="button"
+          (click)="filtrarAplicaA('renta')"
+          [attr.aria-pressed]="aplicaA() === 'renta'"
+          [class.chip-activo]="aplicaA() === 'renta'"
+          class="chip"
+        >
+          {{ t().tarifas.deRenta }}
+        </button>
+        <button
+          type="button"
+          (click)="filtrarAplicaA('venta')"
+          [attr.aria-pressed]="aplicaA() === 'venta'"
+          [class.chip-activo]="aplicaA() === 'venta'"
+          class="chip"
+        >
+          {{ t().tarifas.deVenta }}
+        </button>
+      </div>
+    </div>
+
+    @if (total() > 0) {
+      <p class="text-xs tabular-nums text-texto-apagado" aria-live="polite">
+        {{ t().tarifas.rango(desde(), hasta(), total()) }}
+      </p>
+    }
+  </div>
+
+  @if (cargando()) {
+    <app-tarifas-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (tarifas().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-160 text-left text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().tarifas.colTarifa }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().tarifas.colUnidad }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().tarifas.colAplicaA }}</th>
+                <th scope="col" class="px-4 py-2.5 md:px-5">
+                  <span class="sr-only">{{ t().tarifas.acciones }}</span>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (tarifa of tarifas(); track tarifa.id) {
+                <tr class="border-b border-borde-fila align-top last:border-0">
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p class="font-medium text-texto">{{ tarifa.nombre }}</p>
+
+                      @if (!tarifa.activo) {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                        >
+                          {{ t().tarifas.retirada }}
+                        </span>
+                      }
+                    </div>
+
+                    <p class="text-xs text-texto-apagado">{{ tarifa.codigo }}</p>
+
+                    @if (tarifa.descripcion; as descripcion) {
+                      <p class="mt-1 max-w-80 text-xs leading-relaxed text-texto-apagado">
+                        {{ descripcion }}
+                      </p>
+                    }
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 text-texto-secundario">
+                    {{ nombreUnidad(tarifa.unidad) }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <!--
+                      Las dos son independientes: un flete se cobra igual en renta que en
+                      venta. Por eso pueden aparecer las dos etiquetas a la vez.
+                    -->
+                    <ul class="flex flex-wrap gap-1">
+                      @if (tarifa.aplicaRenta) {
+                        <li
+                          class="rounded bg-superficie-hover px-1.5 py-0.5 text-[11px] text-texto-secundario"
+                        >
+                          {{ t().tarifas.renta }}
+                        </li>
+                      }
+                      @if (tarifa.aplicaVenta) {
+                        <li
+                          class="rounded bg-superficie-hover px-1.5 py-0.5 text-[11px] text-texto-secundario"
+                        >
+                          {{ t().tarifas.venta }}
+                        </li>
+                      }
+                    </ul>
+                  </td>
+
+                  <td class="px-4 py-3 text-right md:px-5">
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        (click)="abrirEdicion(tarifa)"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ t().tarifas.editar }}
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="alternarActivo(tarifa)"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ tarifa.activo ? t().tarifas.retirar : t().tarifas.reactivar }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (paginas() > 1) {
+      <nav
+        class="flex items-center justify-between gap-3"
+        [attr.aria-label]="t().tarifas.paginacion"
+      >
+        <button
+          type="button"
+          (click)="irA(pagina() - 1)"
+          [disabled]="pagina() <= 1"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+        >
+          {{ t().tarifas.anterior }}
+        </button>
+
+        <span class="text-xs tabular-nums text-texto-apagado">
+          {{ t().tarifas.paginaDe(pagina(), paginas()) }}
+        </span>
+
+        <button
+          type="button"
+          (click)="irA(pagina() + 1)"
+          [disabled]="pagina() >= paginas()"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+        >
+          {{ t().tarifas.siguiente }}
+        </button>
+      </nav>
+    }
+  }
+</div>
+
+<app-hoja
+  [abierta]="hojaAbierta()"
+  [anclajes]="[65, 90]"
+  [titulo]="editando() ? t().tarifas.editarTitulo : t().tarifas.crear"
+  [apoyo]="editando() ? t().tarifas.editarApoyo : t().tarifas.crearApoyo"
+  (cerrar)="cerrarHoja()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-tarifa">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="codigo" class="text-sm font-medium text-texto-secundario">
+            {{ t().tarifas.codigo }}
+          </label>
+          <input
+            id="codigo"
+            formControlName="codigo"
+            maxlength="30"
+            autocapitalize="characters"
+            autocomplete="off"
+            spellcheck="false"
+            aria-describedby="ayuda-codigo"
+            class="campo-formulario"
+          />
+          <p id="ayuda-codigo" class="text-xs text-texto-apagado">{{ t().tarifas.ayudaCodigo }}</p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="nombre" class="text-sm font-medium text-texto-secundario">
+            {{ t().tarifas.nombre }}
+          </label>
+          <input
+            id="nombre"
+            formControlName="nombre"
+            maxlength="80"
+            autocomplete="off"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="unidad" class="text-sm font-medium text-texto-secundario">
+            {{ t().tarifas.unidad }}
+          </label>
+          <select
+            id="unidad"
+            formControlName="unidad"
+            aria-describedby="ayuda-unidad"
+            class="campo-formulario"
+          >
+            @for (u of unidades; track u) {
+              <!--
+                `ngValue` y NO `value`: con `value` el `<select>` escribe una CADENA en el
+                control —«1»— y el backend, que espera el entero del enum, contesta 400. Y
+                peor: al arrancar no puede casar el numero 2 contra opciones de texto, cae
+                en la primera opcion y cambia la unidad sin que nadie lo pida.
+              -->
+              <option [ngValue]="u">{{ nombreUnidad(u) }}</option>
+            }
+          </select>
+          <p id="ayuda-unidad" class="text-xs text-texto-apagado">{{ t().tarifas.ayudaUnidad }}</p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+            {{ t().tarifas.descripcion }}
+            <span class="font-normal text-texto-apagado">{{ t().tarifas.opcional }}</span>
+          </label>
+          <input id="descripcion" formControlName="descripcion" class="campo-formulario" />
+        </div>
+
+        <!--
+          `fieldset` con `legend` porque las dos casillas responden a una sola pregunta.
+          Sueltas, un lector de pantalla las anuncia como dos preguntas sin relación.
+        -->
+        <fieldset class="flex flex-col gap-2 sm:col-span-2">
+          <legend class="text-sm font-medium text-texto-secundario">
+            {{ t().tarifas.dondeSeCobra }}
+          </legend>
+
+          <p class="text-xs text-texto-apagado">{{ t().tarifas.ayudaDondeSeCobra }}</p>
+
+          <div class="mt-1 flex flex-col gap-1 sm:flex-row sm:gap-4">
+            <label
+              class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-negro-acento"
+            >
+              <input
+                type="checkbox"
+                formControlName="aplicaRenta"
+                class="size-4 shrink-0 accent-amarillo"
+              />
+              <span>{{ t().tarifas.renta }}</span>
+            </label>
+
+            <label
+              class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-negro-acento"
+            >
+              <input
+                type="checkbox"
+                formControlName="aplicaVenta"
+                class="size-4 shrink-0 accent-amarillo"
+              />
+              <span>{{ t().tarifas.venta }}</span>
+            </label>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarHoja()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().tarifas.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-tarifa"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().tarifas.guardando : t().tarifas.guardar }}
+    </button>
+  </div>
+</app-hoja>

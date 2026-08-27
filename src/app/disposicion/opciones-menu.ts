@@ -73,7 +73,28 @@ export function menuEmpresa(): readonly GrupoMenu[] {
       titulo: '',
       opciones: [{ titulo: m.inicio, ruta: '/inicio', icono: ICONOS.inicio }],
     },
-    // ponytail: aqui iba un grupo `Operacion` con /equipos, /clientes y /rentas. Se
+    {
+      titulo: m.catalogos,
+      opciones: [
+        // La clave del modulo es `equipos` y NO `catalogos`: no existe un modulo llamado
+        // asi en la base central. Los siete catalogos se reparten entre `equipos`,
+        // `contratos`, `usuarios` y `rentas`, que son los modulos cuyos permisos exigen
+        // sus endpoints —MarcasController pide `equipos.consultar`—. Una clave inventada
+        // esconde la opcion para siempre, porque nunca coincide con `modulo.clave`. El
+        // mapa completo esta en `docs/plan-fase1-front.md` §4.
+        { titulo: m.marcas, ruta: '/marcas', modulo: 'equipos', icono: ICONOS.etiqueta },
+        { titulo: m.categorias, ruta: '/categorias', modulo: 'equipos', icono: ICONOS.etiqueta },
+        { titulo: m.tipos, ruta: '/tipos', modulo: 'equipos', icono: ICONOS.maquina },
+        { titulo: m.modelos, ruta: '/modelos', modulo: 'equipos', icono: ICONOS.maquina },
+        // Tarifas exige `rentas.consultar`, no `equipos`.
+        { titulo: m.tarifas, ruta: '/tarifas', modulo: 'rentas', icono: ICONOS.documento },
+        // Clausulas exige `contratos.consultar`.
+        { titulo: m.clausulas, ruta: '/clausulas', modulo: 'contratos', icono: ICONOS.documento },
+        // Puestos NO va bajo `equipos`: PuestosController exige `usuarios.consultar`.
+        { titulo: m.puestos, ruta: '/puestos', modulo: 'usuarios', icono: ICONOS.usuarios },
+      ],
+    },
+    // ponytail: aqui iba tambien un grupo `Operacion` con /equipos, /clientes y /rentas. Se
     // retiro el 2026-08-25: `rutas-empresa.ts` no registra ninguna de las tres, asi que
     // para un plan que las contratara la opcion se dibujaba y al pulsarla caia en el
     // `path: '**'` y regresaba a /inicio. Un menu que no lleva a ningun lado es peor que

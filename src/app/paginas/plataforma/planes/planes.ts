@@ -10,6 +10,7 @@ import {
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Barra } from '../../../disposicion/barra';
+import { Confirmacion } from '../../../disposicion/confirmacion';
 import { Hoja } from '../../../disposicion/hoja';
 import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
 import type { ResumenPlan } from '../../../nucleo/api/contratos-plataforma';
@@ -46,6 +47,7 @@ const LARGO_CODIGO = 40;
 export class Planes {
   private readonly api = inject(ApiPlataforma);
   private readonly barra = inject(Barra);
+  private readonly confirmacion = inject(Confirmacion);
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly t = t;
@@ -92,11 +94,12 @@ export class Planes {
     ],
     nombre: ['', Validators.required],
     descripcion: [''],
-    // `precioMensual` como texto y no como number: un `input type="number"` vacio da
-    // cadena vacia, y con el control tipado a number eso se convierte en NaN.
-    precioMensual: ['0', [Validators.required, Validators.min(0)]],
+    // NUMEROS, no texto: el `NumberValueAccessor` de un `<input type="number">` escribe un
+    // number en el control —y `null` si se vacia—, se declare como se declare. `required`
+    // cubre ese `null`; declararlos como texto seguiria siendo mentira.
+    precioMensual: [0 as number | null, [Validators.required, Validators.min(0)]],
     moneda: ['MXN', [Validators.required, Validators.minLength(3), Validators.maxLength(3)]],
-    orden: ['0', Validators.required],
+    orden: [0 as number | null, Validators.required],
   });
 
   constructor() {
@@ -176,16 +179,16 @@ export class Planes {
         // Cadena vacia va como null: en la base la columna es nullable, y guardar ''
         // significaria «capturado y vacio», que es otra cosa.
         descripcion: v.descripcion.trim() === '' ? null : v.descripcion.trim(),
-        precioMensual: Number(v.precioMensual),
+        precioMensual: v.precioMensual ?? 0,
         moneda: v.moneda.toUpperCase(),
-        orden: Number(v.orden),
+        orden: Math.trunc(v.orden ?? 0),
         modulos: [...this.elegidos()],
       })
       .subscribe({
         next: () => {
           // Sin recargar a mano: `crearPlan` refresca el recurso compartido, asi que la
           // lista de aqui y el selector del alta de empresa se actualizan solos.
-          this.formulario.reset({ precioMensual: '0', moneda: 'MXN', orden: '0' });
+          this.formulario.reset({ precioMensual: 0, moneda: 'MXN', orden: 0 });
           this.elegirNinguno();
           this.enviando.set(false);
           this.cerrarHoja();
@@ -197,10 +200,22 @@ export class Planes {
       });
   }
 
-  protected alternarActivo(plan: ResumenPlan): void {
+  protected async alternarActivo(plan: ResumenPlan): Promise<void> {
     // Se pregunta solo al RETIRAR: reactivar no le quita nada a nadie.
-    if (plan.activo && !confirm(t().planes.confirmarRetiro(plan.codigo))) {
-      return;
+    //
+    // Ya no con `confirm()`: ignoraba el idioma elegido —sus botones salen en el del
+    // navegador—, no se podía estilizar y bloqueaba el hilo. Ver `disposicion/confirmacion.ts`.
+    if (plan.activo) {
+      const sigue = await this.confirmacion.pedir({
+        titulo: t().planes.retirar,
+        mensaje: t().planes.confirmarRetiro(plan.codigo),
+        confirmar: t().planes.retirar,
+        peligro: true,
+      });
+
+      if (!sigue) {
+        return;
+      }
     }
 
     this.errorCrear.set(null);

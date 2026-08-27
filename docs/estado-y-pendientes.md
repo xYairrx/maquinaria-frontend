@@ -316,24 +316,26 @@ número.
 10. **Sin pruebas end-to-end.** Angular CLI no trae framework de e2e; la elección sigue
     siendo una decisión abierta.
 11. **Cobertura desigual — mejoró mucho, y sigue desigual.** De 39 pruebas en 2 archivos a
-    **116 en 9**. Lo que ya tiene red: las dos funciones puras del arranque (`tenant`,
-    `acceso`), el diccionario y el cambio de idioma (`i18n`), los dos servicios de API con
-    `HttpTestingController` —incluida la regresión de que `value()` no debe lanzar en error—,
-    la agregación del dashboard (`resumen`), la lectura del esquema (`esquema`), el
-    interceptor de refresco (11 casos, con el single-flight y el 401 de plataforma que se
-    propaga) y la hoja inferior (6 casos de gesto sobre el `<dialog>` real).
+    **173 en 14**. Lo que ya tiene red: las dos funciones puras del arranque (`tenant`,
+    `acceso`), el diccionario y el cambio de idioma (`i18n`), los tres servicios de API con
+    `HttpTestingController` —incluida la regresión de que `value()` no debe lanzar en error y
+    las cuatro de que el listado de catálogos reacciona al filtro—, la agregación del
+    dashboard (`resumen`), la lectura del esquema (`esquema`), el interceptor de refresco
+    (11 casos, con el single-flight y el 401 de plataforma que se propaga), la hoja inferior
+    (6 casos de gesto sobre el `<dialog>` real), el diálogo de confirmación, `mensaje-error`
+    (8 casos, nacidos del 400 que no decía nada) y el `NumberValueAccessor` (5 casos, ver
+    abajo).
 
     Lo que **sigue sin una sola prueba**: los dos guards (`guard-sesion`, `guard-plataforma`),
-    `interceptor-token`, los dos almacenes de sesión, `mensaje-error`, `titulo-pagina`,
-    `opciones-menu` y **las once pantallas** (cinco de empresa, cinco de plataforma, una de
-    portal). De los 26 componentes, el único probado es `hoja`.
+    `interceptor-token`, los dos almacenes de sesión, `titulo-pagina`, `opciones-menu` y
+    **las diecisiete pantallas** (once de empresa, cinco de plataforma, una de portal). De
+    los 32 componentes, los únicos probados son `hoja` y `dialogo-confirmacion`.
 
-### Integración con la API
-
-> El grueso ya corre: `provideHttpClient()`, el interceptor de token, el de refresco, los
-> dos guards y las dos sesiones separadas por llave. El inventario está en
-> [integración con el backend](integracion-backend.md). Lo que sigue en esta lista es lo
-> que falta.
+    Las dos pruebas nuevas de esta tanda no son de pantalla sino **de lo que Angular escribe
+    debajo de un formulario tipado**, que es donde el compilador no ayuda:
+    `paginas/empresa/modelos/modelos.spec.ts` fija que un `<input type="number">` mete un
+    number —y `null` al vaciarse, nunca cadena vacía— y `nucleo/api/mensaje-error.spec.ts`
+    fija que los `errors` por campo ganan al `title` genérico.
 
 12. ~~Falta el interceptor de refresco de token.~~ **HECHO (2026-08-25), y con él se cierra
     la Fase 0 del frontend.** `refresco-sesion.ts` + `interceptor-refresco.ts`, con
@@ -342,13 +344,23 @@ número.
     401 de `/api/plataforma/**` se propaga tal cual y eso sigue siendo una decisión de
     esquema abierta del backend, no un pendiente de este repo. Contrato en
     [integración con el backend](integracion-backend.md#refresco-de-la-sesión-de-empresa).
-13. **Falta `api:sync`.** Los tipos de `nucleo/api/contratos.ts` y
-    `contratos-plataforma.ts` están **escritos a mano**. El plan sigue siendo generarlos
-    desde `/openapi/v1.json` y commitear el resultado, para que un cambio de contrato
-    salga como diff en la revisión y no como error en tiempo de ejecución. Ya hay una
-    prueba de que hace falta: ver el pendiente 18.
-14. **La herramienta generadora del cliente OpenAPI no está elegida** en ningún
-    documento. No solo falta el script: falta decidir con qué se genera.
+13. ~~Falta `api:sync`.~~ **HECHO (2026-08-27).** `npm run api:sync` genera
+    `nucleo/api/generado.ts` desde `/openapi/v1.json`, y `npm run api:check` verifica que
+    esté al día sin escribir —es lo que le falta al gate de CI del pendiente 9—. El archivo
+    generado **no se edita**: el nombre es la advertencia. `contratos.ts` se queda a mano
+    como superficie curada y re-exporta con nombres del dominio.
+14. ~~La herramienta generadora no está elegida.~~ **HECHO (2026-08-27):
+    `openapi-typescript` 7.13.0**, con `--immutable` y `--alphabetize`. Se descartaron
+    `orval`, `openapi-generator-cli` y `ng-openapi-gen` porque las tres generan **servicios
+    con `HttpClient` y Observables**, que pelean con `httpResource` + señales, los recursos
+    compartidos y el refresco serializado. Lo que hacía falta no era un cliente generado
+    sino que los contratos de datos dejaran de escribirse a mano. El razonamiento completo
+    está en [plan de la Fase 1](plan-fase1-front.md#6-apisync--hecho-el-2026-08-27).
+
+    **Al generar por primera vez salieron tipos débiles, y se arregló en el backend.**
+    `AddOpenApi()` se llamaba pelado: 279 campos salían como `number | string` y 15 enums
+    como `number` sin sus valores. Con el transformador `Arranque/EsquemaOpenApi.cs` quedan
+    en **0** y `EstadoRenta` pasó de `number` a `1 | 2 | … | 10`.
 15. **El token de refresco vive en `localStorage`**, no en cookie `HttpOnly`. Es una
     divergencia consciente con el diseño y hay que resolverla antes de producción; está
     explicada en
@@ -360,9 +372,11 @@ número.
     mandar `null`.** El backend lo calcula como `disponibles.Count > 0 ? disponibles[^1] :
     null` (`SaludEsquemas.cs`), o sea nulo si el ensamblado no trajera ninguna migración —no
     puede pasar en producción, pero el contrato lo permite—. `resumen.ts` ya lo trata como
-    `string | null`; el tipo de `contratos-plataforma.ts` es más optimista que la API. Es
-    exactamente la clase de desajuste que un cliente generado (pendiente 13) habría cazado
-    en el diff en vez de dejarlo para un `undefined` en pantalla.
+    `string | null`; el tipo de `contratos-plataforma.ts` es más optimista que la API.
+
+    **La herramienta que lo habría cazado ya existe** (pendiente 13), pero el desajuste
+    sigue en pie: `contratos-plataforma.ts` no se ha reescrito contra `generado.ts`. Se
+    cierra cuando esos tipos pasen a re-exportar del generado en lugar de declararse a mano.
 
 ### Producto
 

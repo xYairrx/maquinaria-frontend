@@ -748,3 +748,72 @@ dialog.hoja-inferior::backdrop {
     }
   }
 }
+
+/*
+ * El dialogo de confirmacion, que sustituye a `confirm()`.
+ *
+ * Centrado, al contrario que la hoja inferior: una hoja se descarta con el mismo gesto que
+ * la abre y eso esta bien para un formulario, pero una pregunta destructiva tiene que
+ * interrumpir. Centrada obliga a mirarla.
+ */
+@utility dialogo-confirmacion {
+  /*
+   * `margin: auto` con las cuatro anclas del navegador puestas es lo que centra un
+   * `<dialog>` modal. No se tocan los `inset`, al reves que en la hoja: ahi habia que
+   * anularlos justo para NO centrarla.
+   */
+  margin: auto;
+  width: calc(100% - var(--spacing) * 8);
+  max-width: 26rem;
+
+  /*
+   * Anular el `max-width` del NAVEGADOR: a un `<dialog>` modal le pone
+   * `calc(100% - 6px - 2em)` junto con el borde y el relleno que tambien le da por
+   * defecto. Sin esto, el ancho pedido queda 38 px corto. Mismo origen que en la hoja.
+   */
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-superficie);
+  padding: 0;
+  box-shadow: 0 20px 45px -15px rgb(0 0 0 / 0.35);
+
+  /*
+   * ESTO NO ES OPCIONAL: un `<dialog>` cerrado se oculta con el `display: none` que le pone
+   * el NAVEGADOR, y cualquier `display` propio lo pisa por orden a igual especificidad.
+   * Sin esta regla el dialogo se ve en la pagina estando cerrado. Es el mismo fallo que ya
+   * se pago una vez en `hoja-inferior`.
+   */
+  &:not([open]) {
+    display: none;
+  }
+
+  &[open] {
+    animation: confirmacion-aparece 160ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[open] {
+      animation: none;
+    }
+  }
+}
+
+/*
+ * El velo. Regla suelta y no utilidad porque `::backdrop` es un pseudoelemento y no se
+ * alcanza con una clase.
+ */
+dialog.dialogo-confirmacion::backdrop {
+  background-color: rgb(0 0 0 / 0.55);
+  animation: velo-aparece 160ms ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes confirmacion-aparece {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+}

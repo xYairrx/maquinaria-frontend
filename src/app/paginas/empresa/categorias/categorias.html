@@ -1,0 +1,260 @@
+<!--
+  Espejo estructural de `marcas.html`, que es la pantalla canónica de catálogo. Lo que
+  cambia son las columnas y los campos del formulario; el porqué de cada decisión —la
+  columna fija, el vacío que explica, el esqueleto solo en la primera carga— está allí.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <!-- Tres estados, no un interruptor: «Activas» y «Retiradas» no cubren «Todas». -->
+    <div class="flex flex-wrap gap-1.5">
+      <button
+        type="button"
+        (click)="filtrarPor(undefined)"
+        [attr.aria-pressed]="soloActivas() === undefined"
+        [class.chip-activo]="soloActivas() === undefined"
+        class="chip"
+      >
+        {{ t().categorias.todas }}
+      </button>
+      <button
+        type="button"
+        (click)="filtrarPor(true)"
+        [attr.aria-pressed]="soloActivas() === true"
+        [class.chip-activo]="soloActivas() === true"
+        class="chip"
+      >
+        {{ t().categorias.activas }}
+      </button>
+      <button
+        type="button"
+        (click)="filtrarPor(false)"
+        [attr.aria-pressed]="soloActivas() === false"
+        [class.chip-activo]="soloActivas() === false"
+        class="chip"
+      >
+        {{ t().categorias.retiradas }}
+      </button>
+    </div>
+
+    @if (total() > 0) {
+      <p class="text-xs tabular-nums text-texto-apagado" aria-live="polite">
+        {{ t().categorias.rango(desde(), hasta(), total()) }}
+      </p>
+    }
+  </div>
+
+  @if (cargando()) {
+    <app-categorias-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (categorias().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-160 text-left text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().categorias.colCategoria }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().categorias.colDescripcion }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                  {{ t().categorias.colTipos }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 md:px-5">
+                  <span class="sr-only">{{ t().categorias.acciones }}</span>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (categoria of categorias(); track categoria.id) {
+                <tr class="border-b border-borde-fila align-top last:border-0">
+                  <!--
+                    El código va DENTRO de la celda fijada, bajo el nombre, y no en columna
+                    propia: fijar dos columnas deja demasiado poco ancho para lo demás en un
+                    teléfono. Mismo criterio que la píldora de estado en planes.
+                  -->
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p class="font-medium text-texto">{{ categoria.nombre }}</p>
+
+                      @if (!categoria.activo) {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                        >
+                          {{ t().categorias.retirada }}
+                        </span>
+                      }
+                    </div>
+
+                    <p class="text-xs text-texto-apagado">{{ categoria.codigo }}</p>
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    @if (categoria.descripcion; as descripcion) {
+                      <p class="max-w-96 text-xs leading-relaxed">{{ descripcion }}</p>
+                    }
+                  </td>
+
+                  <td
+                    class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-texto-secundario"
+                  >
+                    {{ categoria.tipos }}
+                  </td>
+
+                  <td class="px-4 py-3 text-right md:px-5">
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        (click)="abrirEdicion(categoria)"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ t().categorias.editar }}
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="alternarActivo(categoria)"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ categoria.activo ? t().categorias.retirar : t().categorias.reactivar }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (paginas() > 1) {
+      <nav
+        class="flex items-center justify-between gap-3"
+        [attr.aria-label]="t().categorias.paginacion"
+      >
+        <button
+          type="button"
+          (click)="irA(pagina() - 1)"
+          [disabled]="pagina() <= 1"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+        >
+          {{ t().categorias.anterior }}
+        </button>
+
+        <span class="text-xs tabular-nums text-texto-apagado">
+          {{ t().categorias.paginaDe(pagina(), paginas()) }}
+        </span>
+
+        <button
+          type="button"
+          (click)="irA(pagina() + 1)"
+          [disabled]="pagina() >= paginas()"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+        >
+          {{ t().categorias.siguiente }}
+        </button>
+      </nav>
+    }
+  }
+</div>
+
+<app-hoja
+  [abierta]="hojaAbierta()"
+  [anclajes]="[55, 80]"
+  [titulo]="editando() ? t().categorias.editarTitulo : t().categorias.crear"
+  [apoyo]="editando() ? t().categorias.editarApoyo : t().categorias.crearApoyo"
+  (cerrar)="cerrarHoja()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-categoria">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="codigo" class="text-sm font-medium text-texto-secundario">
+            {{ t().categorias.codigo }}
+          </label>
+          <input
+            id="codigo"
+            formControlName="codigo"
+            maxlength="30"
+            autocapitalize="characters"
+            autocomplete="off"
+            spellcheck="false"
+            aria-describedby="ayuda-codigo"
+            class="campo-formulario"
+          />
+          <p id="ayuda-codigo" class="text-xs text-texto-apagado">
+            {{ t().categorias.ayudaCodigo }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="nombre" class="text-sm font-medium text-texto-secundario">
+            {{ t().categorias.nombre }}
+          </label>
+          <input
+            id="nombre"
+            formControlName="nombre"
+            maxlength="80"
+            autocomplete="off"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+            {{ t().categorias.descripcion }}
+            <span class="font-normal text-texto-apagado">{{ t().categorias.opcional }}</span>
+          </label>
+          <input id="descripcion" formControlName="descripcion" class="campo-formulario" />
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarHoja()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().categorias.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-categoria"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().categorias.guardando : t().categorias.guardar }}
+    </button>
+  </div>
+</app-hoja>

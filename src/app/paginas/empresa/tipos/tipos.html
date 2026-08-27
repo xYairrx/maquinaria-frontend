@@ -1,0 +1,293 @@
+<!--
+  Espejo estructural de `marcas.html`. Lo propio de esta pantalla es el desplegable de
+  categoría del formulario y su aviso cuando no hay ninguna activa.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap gap-1.5">
+      <button
+        type="button"
+        (click)="filtrarPor(undefined)"
+        [attr.aria-pressed]="soloActivos() === undefined"
+        [class.chip-activo]="soloActivos() === undefined"
+        class="chip"
+      >
+        {{ t().tipos.todos }}
+      </button>
+      <button
+        type="button"
+        (click)="filtrarPor(true)"
+        [attr.aria-pressed]="soloActivos() === true"
+        [class.chip-activo]="soloActivos() === true"
+        class="chip"
+      >
+        {{ t().tipos.activos }}
+      </button>
+      <button
+        type="button"
+        (click)="filtrarPor(false)"
+        [attr.aria-pressed]="soloActivos() === false"
+        [class.chip-activo]="soloActivos() === false"
+        class="chip"
+      >
+        {{ t().tipos.retirados }}
+      </button>
+    </div>
+
+      <!--
+        Un `<select>` y no chips: las categorías son un catálogo abierto y treinta chips no
+        caben en un teléfono. El id es un GUID —una cadena—, así que `[value]` es correcto;
+        `[ngValue]` solo hace falta cuando el valor no es texto.
+      -->
+      <div class="flex items-center gap-2">
+        <label for="filtro-categoria" class="sr-only">{{ t().tipos.filtrarCategoria }}</label>
+        <select
+          id="filtro-categoria"
+          [value]="categoriaFiltrada()"
+          (change)="filtrarPorCategoria($any($event.target).value)"
+          class="campo-formulario py-1.5 text-[13px]"
+        >
+          <option value="">{{ t().tipos.todasLasCategorias }}</option>
+          @for (categoria of categorias(); track categoria.id) {
+            <option [value]="categoria.id">{{ categoria.nombre }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (total() > 0) {
+      <p class="text-xs tabular-nums text-texto-apagado" aria-live="polite">
+        {{ t().tipos.rango(desde(), hasta(), total()) }}
+      </p>
+    }
+  </div>
+
+  <!--
+    Se avisa ANTES de que alguien pulse «Nuevo tipo» y se encuentre un desplegable vacío.
+    Es la misma idea que el vacío que explica: decir por qué no se puede, y qué hacer.
+  -->
+  @if (sinCategorias() && !cargando()) {
+    <p class="aviso text-sm text-texto-secundario" role="status">
+      {{ t().tipos.hacenFaltaCategorias }}
+    </p>
+  }
+
+  @if (cargando()) {
+    <app-tipos-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (tipos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-160 text-left text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().tipos.colTipo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().tipos.colCategoria }}</th>
+                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                  {{ t().tipos.colEquipos }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 md:px-5">
+                  <span class="sr-only">{{ t().tipos.acciones }}</span>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (tipo of tipos(); track tipo.id) {
+                <tr class="border-b border-borde-fila align-top last:border-0">
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p class="font-medium text-texto">{{ tipo.nombre }}</p>
+
+                      @if (!tipo.activo) {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                        >
+                          {{ t().tipos.retirado }}
+                        </span>
+                      }
+                    </div>
+
+                    <p class="text-xs text-texto-apagado">{{ tipo.codigo }}</p>
+                  </td>
+
+                  <!-- El NOMBRE de la categoría, no su id: la API ya lo devuelve resuelto. -->
+                  <td class="px-4 py-3 text-texto-secundario">{{ tipo.categoria }}</td>
+
+                  <td
+                    class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-texto-secundario"
+                  >
+                    {{ tipo.equipos }}
+                  </td>
+
+                  <td class="px-4 py-3 text-right md:px-5">
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        (click)="abrirEdicion(tipo)"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ t().tipos.editar }}
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="alternarActivo(tipo)"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ tipo.activo ? t().tipos.retirar : t().tipos.reactivar }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (paginas() > 1) {
+      <nav class="flex items-center justify-between gap-3" [attr.aria-label]="t().tipos.paginacion">
+        <button
+          type="button"
+          (click)="irA(pagina() - 1)"
+          [disabled]="pagina() <= 1"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+        >
+          {{ t().tipos.anterior }}
+        </button>
+
+        <span class="text-xs tabular-nums text-texto-apagado">
+          {{ t().tipos.paginaDe(pagina(), paginas()) }}
+        </span>
+
+        <button
+          type="button"
+          (click)="irA(pagina() + 1)"
+          [disabled]="pagina() >= paginas()"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+        >
+          {{ t().tipos.siguiente }}
+        </button>
+      </nav>
+    }
+  }
+</div>
+
+<app-hoja
+  [abierta]="hojaAbierta()"
+  [anclajes]="[55, 80]"
+  [titulo]="editando() ? t().tipos.editarTitulo : t().tipos.crear"
+  [apoyo]="editando() ? t().tipos.editarApoyo : t().tipos.crearApoyo"
+  (cerrar)="cerrarHoja()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-tipo">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <!--
+          La categoría, primero: es de lo que cuelga el tipo, así que se elige antes de
+          nombrarlo. Un `<select>` nativo y no un desplegable propio — teclado, lector de
+          pantalla y el selector rodante del teléfono salen gratis.
+        -->
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="categoria" class="text-sm font-medium text-texto-secundario">
+            {{ t().tipos.categoria }}
+          </label>
+          <select
+            id="categoria"
+            formControlName="categoriaEquipoId"
+            aria-describedby="ayuda-categoria"
+            class="campo-formulario"
+          >
+            <!-- Sin opción elegida por defecto: elegir es del capturista, no del formulario. -->
+            <option value="" disabled>{{ t().tipos.elegirCategoria }}</option>
+            @for (categoria of categorias(); track categoria.id) {
+              <option [value]="categoria.id">{{ categoria.nombre }}</option>
+            }
+          </select>
+          <p id="ayuda-categoria" class="text-xs text-texto-apagado">
+            {{ t().tipos.ayudaCategoria }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="codigo" class="text-sm font-medium text-texto-secundario">
+            {{ t().tipos.codigo }}
+          </label>
+          <input
+            id="codigo"
+            formControlName="codigo"
+            maxlength="30"
+            autocapitalize="characters"
+            autocomplete="off"
+            spellcheck="false"
+            aria-describedby="ayuda-codigo"
+            class="campo-formulario"
+          />
+          <p id="ayuda-codigo" class="text-xs text-texto-apagado">{{ t().tipos.ayudaCodigo }}</p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="nombre" class="text-sm font-medium text-texto-secundario">
+            {{ t().tipos.nombre }}
+          </label>
+          <input
+            id="nombre"
+            formControlName="nombre"
+            maxlength="80"
+            autocomplete="off"
+            class="campo-formulario"
+          />
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarHoja()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().tipos.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-tipo"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().tipos.guardando : t().tipos.guardar }}
+    </button>
+  </div>
+</app-hoja>

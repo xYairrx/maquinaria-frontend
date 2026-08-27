@@ -670,6 +670,69 @@ se retrasan. Sintomas que parecen fallos y no lo son:
 - Los `Escape` sinteticos no llegan al `<dialog>`, y el evento `close` puede tardar. Para
   comprobar el enganche, despacha el evento a mano: `d.dispatchEvent(new Event('close'))`.
 
+## Confirmar antes de una acción destructiva
+
+**Nunca `confirm()` ni `alert()`.** La pregunta va por `Confirmacion.pedir()`
+(`disposicion/confirmacion.ts`), que devuelve una promesa de booleano y sustituye a
+`confirm()` línea por línea:
+
+```ts
+const sigue = await this.confirmacion.pedir({
+  titulo: t().marcas.retirar,
+  mensaje: t().marcas.confirmarRetiro(marca.nombre),
+  confirmar: t().marcas.retirar,
+  peligro: true,
+});
+
+if (!sigue) {
+  return;
+}
+```
+
+### Por qué no el del navegador
+
+Cuatro razones, y ninguna es estética:
+
+- **Ignora el idioma de la aplicación.** Sus botones salen en el del navegador, así que
+  alguien con la interfaz en español lee «OK / Cancel». El diccionario no los alcanza, y el
+  selector de idioma queda desmentido en el peor momento.
+- **No se puede estilizar.** Rompe el sistema de diseño justo cuando la persona está a punto
+  de romper algo.
+- **Bloquea el hilo.** Detiene renderizado y animaciones mientras está abierto.
+- **No distingue lo destructivo de lo neutro.** «Retirar una marca» y «Guardar cambios» se
+  ven idénticos.
+
+### El reparto
+
+El estado vive en un servicio y el marcado en el armazón, que monta
+`<app-dialogo-confirmacion />` **una sola vez**. Es el mismo reparto que `Barra`, y por la
+misma razón: dieciocho pantallas con su propio diálogo serían dieciocho copias del mismo
+marcado que se separan con el tiempo.
+
+### Cinco reglas
+
+- **`mensaje` dice qué CAMBIA**, no «¿estás seguro?». Una pregunta sin la consecuencia
+  dentro obliga a decidir a ciegas. «Deja de ofrecerse al capturar un equipo» sí informa.
+- **`confirmar` es un VERBO**, nunca «Aceptar». Leer «Retirar» dice qué va a pasar aunque no
+  se haya leído el texto, que es como se usa un diálogo de verdad.
+- **Cancelar va primero en el DOM y lleva `autofocus`.** Un `<dialog>` enfoca su primer
+  elemento enfocable, y en una pregunta destructiva eso tiene que ser la opción segura: con
+  el orden invertido, un Enter reflejo ejecuta lo que se estaba preguntando.
+- **Cerrar sin elegir es NO.** Escape lo cierra el navegador sin pasar por el componente, así
+  que el `(close)` del `<dialog>` resuelve la promesa en `false`. Sin eso, quien esperaba se
+  queda colgado para siempre con su botón bloqueado — y no hay error en consola ni nada que
+  ver en pantalla. Hay prueba de regresión en `confirmacion.spec.ts`.
+- **Lo destructivo va en NEGRO, no en rojo.** La paleta es monocroma más amarillo y el
+  sistema de diseño prohíbe el rojo; el amarillo es el color de la acción que se quiere, así
+  que sacarlo ya dice que este no es el camino feliz. El color **no es el único indicio**: la
+  etiqueta lleva el verbo.
+
+### Una pregunta nueva cancela la anterior
+
+Si se pide una confirmación con otra abierta, la primera se resuelve en `false` antes de
+sustituirla. Dejarla colgada filtraría una promesa que nunca se resuelve. Pasa de verdad: dos
+filas pulsadas rápido, o un atajo que abre otra.
+
 ## Esqueletos de carga
 
 **Nada de textos que digan «Cargando…».** Mientras llegan los datos se pinta la SILUETA de
