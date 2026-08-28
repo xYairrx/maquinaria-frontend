@@ -17,5 +17,5 @@ export const configuracion = {
    * nativa. En producción es el dominio real, y tiene que coincidir con
    * `Cors:DominioBase` de la API o el navegador bloqueará todas las llamadas.
    */
-  dominioBase: 'maquinaria-frontend.vercel.app',
+  dominioBase: 'maqvia.com',
 } as const;
