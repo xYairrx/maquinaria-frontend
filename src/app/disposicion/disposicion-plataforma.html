@@ -191,7 +191,22 @@
       <app-menu-usuario [nombre]="nombre()" [correo]="correo()" (salir)="salir()" />
     </header>
 
-    <main id="contenido" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+    <!--
+      `tabindex="0"` y NO `-1`, aunque el único uso original fuera el destino del salto de
+      contenido.
+
+      El `<main>` es una REGIÓN DESPLAZABLE —`overflow-y-auto`— y una región que se desplaza
+      tiene que poder desplazarse con el teclado (WCAG 2.1.1). Con `-1` es enfocable por
+      código pero no con Tab, así que si la pantalla de dentro no tiene ni un control, no hay
+      forma de hacerla scrollear sin ratón. Es justo el caso de `/inicio`: puro contenido de
+      lectura, cero enfocables, y el contenido se sale del alto.
+
+      No se veía porque las pantallas de módulo traen dieciocho botones entre filtros y
+      acciones, y `axe` da por buena la región en cuanto encuentra algo enfocable dentro. El
+      precio de `0` es una parada de tabulación más por pantalla; el de `-1` es contenido
+      inalcanzable.
+    -->
+    <main id="contenido" tabindex="0" class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
       <router-outlet />
     </main>
   </div>

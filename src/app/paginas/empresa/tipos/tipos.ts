@@ -12,7 +12,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { Barra } from '../../../disposicion/barra';
 import { Confirmacion } from '../../../disposicion/confirmacion';
-import { Hoja } from '../../../disposicion/hoja';
+import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
+import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiCatalogos } from '../../../nucleo/api/api-catalogos';
 import type { FiltroTiposEquipo, TipoEquipo } from '../../../nucleo/api/contratos';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
@@ -38,7 +39,7 @@ const TAMANO_PAGINA = 50;
  */
 @Component({
   selector: 'app-tipos',
-  imports: [Hoja, TiposEsqueleto, ReactiveFormsModule],
+  imports: [BarraHerramientas, PanelLateral, ReactiveFormsModule, TiposEsqueleto],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tipos.html',
 })
@@ -92,7 +93,7 @@ export class Tipos {
   protected readonly recargando = this.listado.cargando;
 
   protected readonly enviando = signal(false);
-  protected readonly hojaAbierta = signal(false);
+  protected readonly panelAbierto = signal(false);
 
   private readonly errorMutacion = signal<string | null>(null);
 
@@ -163,8 +164,10 @@ export class Tipos {
       this.barra.configurar({
         titulo: t().tipos.titulo,
         contexto: this.contexto(),
-        busqueda: { marcador: t().tipos.buscar, valor: this.busqueda },
-        accion: { etiqueta: t().tipos.crear, alPulsar: () => this.abrirAlta() },
+        // NI BUSQUEDA NI ACCION AQUI: bajaron a `app-barra-herramientas`, encima de la tabla.
+        // Ver el porque en `marcas.ts`, la pantalla canonica.
+        busqueda: null,
+        accion: null,
       }),
     );
 
@@ -180,7 +183,7 @@ export class Tipos {
     this.editando.set(null);
     this.errorMutacion.set(null);
     this.formulario.reset({ categoriaEquipoId: '', codigo: '', nombre: '' });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
   protected abrirEdicion(tipo: TipoEquipo): void {
@@ -191,15 +194,11 @@ export class Tipos {
       codigo: tipo.codigo,
       nombre: tipo.nombre,
     });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
-  protected cerrarHoja(): void {
-    this.hojaAbierta.set(false);
-  }
-
-  protected filtrarPor(activo: boolean | undefined): void {
-    this.soloActivos.set(activo);
+  protected cerrarPanel(): void {
+    this.panelAbierto.set(false);
   }
 
   protected filtrarPorCategoria(categoriaId: string): void {
@@ -240,7 +239,7 @@ export class Tipos {
     peticion.subscribe({
       next: () => {
         this.enviando.set(false);
-        this.cerrarHoja();
+        this.cerrarPanel();
       },
       error: (e: unknown) => {
         this.errorMutacion.set(mensajeDeError(e));

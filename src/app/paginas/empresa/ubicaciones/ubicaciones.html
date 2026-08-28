@@ -3,72 +3,33 @@
   y que la columna de tipo dice lo que ese tipo PUEDE hacer, no solo cómo se llama.
 -->
 <div class="mx-auto flex flex-col gap-4">
-  <div class="flex flex-wrap items-start justify-between gap-3">
-    <div class="flex flex-col gap-2">
-      <div class="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          (click)="filtrarPor(undefined)"
-          [attr.aria-pressed]="soloActivas() === undefined"
-          [class.chip-activo]="soloActivas() === undefined"
-          class="chip"
-        >
-          {{ t().ubicaciones.todas }}
-        </button>
-        <button
-          type="button"
-          (click)="filtrarPor(true)"
-          [attr.aria-pressed]="soloActivas() === true"
-          [class.chip-activo]="soloActivas() === true"
-          class="chip"
-        >
-          {{ t().ubicaciones.activas }}
-        </button>
-        <button
-          type="button"
-          (click)="filtrarPor(false)"
-          [attr.aria-pressed]="soloActivas() === false"
-          [class.chip-activo]="soloActivas() === false"
-          class="chip"
-        >
-          {{ t().ubicaciones.retiradas }}
-        </button>
-      </div>
-
-      <!--
-        Los tipos son TRES y cerrados, así que caben como chips y se ven de un golpe. Un
-        desplegable escondería que solo hay tres.
-      -->
-      <div class="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          (click)="filtrarPorTipo(undefined)"
-          [attr.aria-pressed]="tipoFiltrado() === undefined"
-          [class.chip-activo]="tipoFiltrado() === undefined"
-          class="chip"
-        >
-          {{ t().ubicaciones.cualquierTipo }}
-        </button>
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().ubicaciones.buscar"
+    [soloActivas]="soloActivas"
+    [etiquetas]="{
+      todas: t().ubicaciones.todas,
+      activas: t().ubicaciones.activas,
+      retiradas: t().ubicaciones.retiradas,
+    }"
+    [accion]="t().ubicaciones.crear"
+    (alPulsarAccion)="abrirAlta()"
+  >
+    <div filtros>
+      <label for="filtro-tipo" class="sr-only">{{ t().ubicaciones.cualquierTipo }}</label>
+      <select
+        id="filtro-tipo"
+        [value]="tipoFiltrado() ?? ''"
+        (change)="elegirTipo($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().ubicaciones.cualquierTipo }}</option>
         @for (tipo of tipos; track tipo) {
-          <button
-            type="button"
-            (click)="filtrarPorTipo(tipo)"
-            [attr.aria-pressed]="tipoFiltrado() === tipo"
-            [class.chip-activo]="tipoFiltrado() === tipo"
-            class="chip"
-          >
-            {{ nombreTipo(tipo) }}
-          </button>
+          <option [value]="tipo">{{ nombreTipo(tipo) }}</option>
         }
-      </div>
+      </select>
     </div>
-
-    @if (total() > 0) {
-      <p class="text-xs tabular-nums text-texto-apagado" aria-live="polite">
-        {{ t().ubicaciones.rango(desde(), hasta(), total()) }}
-      </p>
-    }
-  </div>
+  </app-barra-herramientas>
 
   @if (cargando()) {
     <app-ubicaciones-esqueleto />
@@ -86,8 +47,8 @@
       @if (ubicaciones().length === 0) {
         <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
       } @else {
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-200 text-left text-sm">
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-260 text-center text-sm">
             <thead
               class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
             >
@@ -96,20 +57,26 @@
                   scope="col"
                   class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
                 >
+                  {{ t().ubicaciones.colCodigo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
                   {{ t().ubicaciones.colUbicacion }}
                 </th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().ubicaciones.colTipo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().ubicaciones.colCapacidad }}
+                </th>
                 <th scope="col" class="px-4 py-2.5 font-medium">
                   {{ t().ubicaciones.colDomicilio }}
                 </th>
                 <th scope="col" class="px-4 py-2.5 font-medium">
                   {{ t().ubicaciones.colTelefono }}
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                <th scope="col" class="px-4 py-2.5 font-medium">
                   {{ t().ubicaciones.colEquipos }}
                 </th>
                 <th scope="col" class="px-4 py-2.5 md:px-5">
-                  <span class="sr-only">{{ t().ubicaciones.acciones }}</span>
+                  {{ t().ubicaciones.acciones }}
                 </th>
               </tr>
             </thead>
@@ -118,7 +85,10 @@
               @for (ubicacion of ubicaciones(); track ubicacion.id) {
                 <tr class="border-b border-borde-fila align-top last:border-0">
                   <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
-                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    {{ ubicacion.codigo }}
+                  </td>
+                  <td class="px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
                       <p class="font-medium text-texto">{{ ubicacion.nombre }}</p>
 
                       @if (!ubicacion.activo) {
@@ -129,8 +99,6 @@
                         </span>
                       }
                     </div>
-
-                    <p class="text-xs text-texto-apagado">{{ ubicacion.codigo }}</p>
                   </td>
 
                   <!--
@@ -138,9 +106,17 @@
                     dice nada a quien captura; «guarda equipo, no cotiza» sí, y es lo que
                     decide si esa ubicación sirve para lo que la persona necesita.
                   -->
-                  <td class="px-4 py-3">
-                    <p class="text-texto-secundario">{{ nombreTipo(ubicacion.tipo) }}</p>
-                    <p class="text-xs text-texto-apagado">{{ capacidadDe(ubicacion.tipo) }}</p>
+                  <td class="whitespace-nowrap px-4 py-3 text-texto-secundario">
+                    {{ nombreTipo(ubicacion.tipo) }}
+                  </td>
+
+                  <!--
+                    QUE PUEDE hacer ese tipo, en su propia columna. Colgaba debajo del nombre
+                    del tipo y las dos lineas se leian como una sola cosa; son dos: como se
+                    llama y que permite. Se deriva igual que en el servidor, no se captura.
+                  -->
+                  <td class="px-4 py-3 text-xs text-texto-apagado">
+                    {{ capacidadDe(ubicacion.tipo) }}
                   </td>
 
                   <td class="px-4 py-3 text-texto-secundario">
@@ -155,28 +131,75 @@
                     {{ ubicacion.telefono ?? t().ubicaciones.sinDato }}
                   </td>
 
-                  <td
-                    class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-texto-secundario"
-                  >
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
                     {{ ubicacion.equipos }}
                   </td>
 
-                  <td class="px-4 py-3 text-right md:px-5">
-                    <div class="flex flex-wrap justify-end gap-2">
+                  <td class="px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap justify-center gap-2">
                       <button
                         type="button"
                         (click)="abrirEdicion(ubicacion)"
-                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                        [attr.aria-label]="t().comun.editarA(ubicacion.nombre)"
+                        [title]="t().ubicaciones.editar"
+                        class="boton-icono"
                       >
-                        {{ t().ubicaciones.editar }}
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+                        </svg>
                       </button>
 
                       <button
                         type="button"
                         (click)="alternarActivo(ubicacion)"
-                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                        [attr.aria-label]="
+                          ubicacion.activo
+                            ? t().comun.retirarA(ubicacion.nombre)
+                            : t().comun.reactivarA(ubicacion.nombre)
+                        "
+                        [title]="
+                          ubicacion.activo ? t().ubicaciones.retirar : t().ubicaciones.reactivar
+                        "
+                        class="boton-icono"
                       >
-                        {{ ubicacion.activo ? t().ubicaciones.retirar : t().ubicaciones.reactivar }}
+                        @if (ubicacion.activo) {
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM2 4h20v4H2zM10 12h4"
+                            />
+                          </svg>
+                        } @else {
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" />
+                          </svg>
+                        }
                       </button>
                     </div>
                   </td>
@@ -188,43 +211,54 @@
       }
     </section>
 
-    @if (paginas() > 1) {
-      <nav
-        class="flex items-center justify-between gap-3"
-        [attr.aria-label]="t().ubicaciones.paginacion"
-      >
-        <button
-          type="button"
-          (click)="irA(pagina() - 1)"
-          [disabled]="pagina() <= 1"
-          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
-        >
-          {{ t().ubicaciones.anterior }}
-        </button>
+    <!--
+      El rango y el paginador, DEBAJO de la tabla: es donde se miran despues de recorrerla,
+      y arriba el rango ocupaba el sitio de la accion principal.
+    -->
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().ubicaciones.rango(desde(), hasta(), total()) }}
+        </p>
 
-        <span class="text-xs tabular-nums text-texto-apagado">
-          {{ t().ubicaciones.paginaDe(pagina(), paginas()) }}
-        </span>
+        @if (paginas() > 1) {
+          <nav
+            class="flex items-center justify-between gap-3"
+            [attr.aria-label]="t().ubicaciones.paginacion"
+          >
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().ubicaciones.anterior }}
+            </button>
 
-        <button
-          type="button"
-          (click)="irA(pagina() + 1)"
-          [disabled]="pagina() >= paginas()"
-          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
-        >
-          {{ t().ubicaciones.siguiente }}
-        </button>
-      </nav>
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().ubicaciones.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().ubicaciones.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
     }
   }
 </div>
 
-<app-hoja
-  [abierta]="hojaAbierta()"
-  [anclajes]="[68, 92]"
+<app-panel-lateral
+  [abierto]="panelAbierto()"
   [titulo]="editando() ? t().ubicaciones.editarTitulo : t().ubicaciones.crear"
   [apoyo]="editando() ? t().ubicaciones.editarApoyo : t().ubicaciones.crearApoyo"
-  (cerrar)="cerrarHoja()"
+  (cerrar)="cerrarPanel()"
 >
   <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-ubicacion">
     <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
@@ -372,10 +406,10 @@
     </div>
   </form>
 
-  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-center sm:px-5">
     <button
       type="button"
-      (click)="cerrarHoja()"
+      (click)="cerrarPanel()"
       class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
     >
       {{ t().ubicaciones.cerrar }}
@@ -390,4 +424,4 @@
       {{ enviando() ? t().ubicaciones.guardando : t().ubicaciones.guardar }}
     </button>
   </div>
-</app-hoja>
+</app-panel-lateral>

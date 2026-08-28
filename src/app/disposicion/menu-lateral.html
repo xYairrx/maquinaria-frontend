@@ -56,29 +56,11 @@
     </span>
   </p>
 
-  <div class="mt-2 flex flex-col">
+  <div class="mt-2 flex flex-col gap-1">
     @for (grupo of grupos(); track grupo.titulo) {
-      <div class="flex flex-col gap-1">
-        @if (grupo.titulo) {
-          <p
-            class="px-3 pb-2 pt-6 text-[11px] font-medium uppercase tracking-wide text-texto-inverso-tenue"
-          >
-            {{ grupo.titulo }}
-          </p>
-        }
-
+      @if (grupo.titulo === '') {
+        <!-- Grupo sin nombre: sus opciones van al ras, sin disparador. Hoy, Inicio. -->
         @for (opcion of grupo.opciones; track opcion.ruta) {
-          <!--
-            El estado activo es una PÍLDORA amarilla sólida, no un filete lateral.
-
-            Las clases de estado van en un binding `[class]` y no en el atributo
-            `routerLinkActive` porque las de hover llevan pseudoclase y ganarían por
-            especificidad: al pasar el ratón por encima, la opción activa se volvería
-            negra. Aplicando hover SOLO cuando no está activa, el conflicto no existe.
-
-            `aria-current="page"` se conserva: el color no puede ser el único indicio
-            del estado (WCAG 1.4.1).
-          -->
           <a
             [routerLink]="opcion.ruta"
             routerLinkActive
@@ -91,8 +73,66 @@
                 : 'text-texto-inverso-suave hover:bg-negro-caja hover:text-texto-inverso'
             "
           >
+            @if (opcion.icono; as glifo) {
+              <svg
+                class="size-[18px] shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path [attr.d]="glifo" />
+              </svg>
+            }
+
+            {{ opcion.titulo }}
+          </a>
+        }
+      } @else {
+        <!--
+          Grupo con nombre: un ACORDEÓN.
+
+          ARIA DE DIVULGACIÓN, NO DE MENÚ: `aria-expanded` + `aria-controls` sobre un botón
+          normal, y el panel es una lista de enlaces. Declarar `role="menu"` obligaría a
+          implementar flechas, Home y End; prometer ese contrato sin cumplirlo es peor que no
+          anunciarlo. Es la misma regla que sigue el desplegable del avatar.
+        -->
+        <div class="flex flex-col">
+          <button
+            type="button"
+            (click)="alternarGrupo(grupo)"
+            [attr.aria-expanded]="grupoAbierto(grupo)"
+            [attr.aria-controls]="panelDe(grupo)"
+            class="flex h-10 items-center gap-3 rounded-lg px-3 text-sm text-texto-inverso-suave hover:bg-negro-caja hover:text-texto-inverso focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amarillo"
+          >
+            @if (grupo.icono; as glifo) {
+              <svg
+                class="size-[18px] shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path [attr.d]="glifo" />
+              </svg>
+            }
+
+            <span class="flex-1 text-left">{{ grupo.titulo }}</span>
+
+            <!--
+              El galón gira en lugar de cambiar de glifo: un solo `<path>` y la dirección se
+              lee del ángulo. `aria-hidden` porque lo que anuncia el estado es `aria-expanded`
+              del botón, no el dibujo.
+            -->
             <svg
-              class="size-[18px] shrink-0"
+              class="size-4 shrink-0 transition-transform duration-200"
+              [class.rotate-180]="grupoAbierto(grupo)"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -101,13 +141,42 @@
               stroke-linejoin="round"
               aria-hidden="true"
             >
-              <path [attr.d]="opcion.icono" />
+              <path d="m6 9 6 6 6-6" />
             </svg>
+          </button>
 
-            {{ opcion.titulo }}
-          </a>
-        }
-      </div>
+          <!--
+            Cerrado se quita del DOM con `@if` y no con una clase: una opción fuera de la
+            vista pero presente sigue en el orden de tabulación, que es justo lo que este repo
+            ya corrigió en el cajón del menú.
+          -->
+          @if (grupoAbierto(grupo)) {
+            <ul
+              [id]="panelDe(grupo)"
+              class="ms-5 flex flex-col gap-0.5 border-s border-negro-caja-borde py-1"
+            >
+              @for (opcion of grupo.opciones; track opcion.ruta) {
+                <li class="flex">
+                  <a
+                    [routerLink]="opcion.ruta"
+                    routerLinkActive
+                    ariaCurrentWhenActive="page"
+                    #activo="routerLinkActive"
+                    class="ms-2 flex h-9 flex-1 items-center rounded-lg px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amarillo"
+                    [class]="
+                      activo.isActive
+                        ? 'bg-amarillo font-medium text-sobre-amarillo'
+                        : 'text-texto-inverso-suave hover:bg-negro-caja hover:text-texto-inverso'
+                    "
+                  >
+                    {{ opcion.titulo }}
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
     }
   </div>
 </nav>

@@ -12,7 +12,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { Barra } from '../../../disposicion/barra';
 import { Confirmacion } from '../../../disposicion/confirmacion';
-import { Hoja } from '../../../disposicion/hoja';
+import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
+import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiCatalogos } from '../../../nucleo/api/api-catalogos';
 import type {
   AltaModeloEquipo,
@@ -46,7 +47,7 @@ const TAMANO_PAGINA = 50;
  */
 @Component({
   selector: 'app-modelos',
-  imports: [Hoja, ModelosEsqueleto, ReactiveFormsModule],
+  imports: [BarraHerramientas, ModelosEsqueleto, PanelLateral, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './modelos.html',
 })
@@ -101,7 +102,7 @@ export class Modelos {
   protected readonly recargando = this.listado.cargando;
 
   protected readonly enviando = signal(false);
-  protected readonly hojaAbierta = signal(false);
+  protected readonly panelAbierto = signal(false);
 
   private readonly errorMutacion = signal<string | null>(null);
 
@@ -174,8 +175,10 @@ export class Modelos {
       this.barra.configurar({
         titulo: t().modelos.titulo,
         contexto: this.contexto(),
-        busqueda: { marcador: t().modelos.buscar, valor: this.busqueda },
-        accion: { etiqueta: t().modelos.crear, alPulsar: () => this.abrirAlta() },
+        // NI BUSQUEDA NI ACCION AQUI: bajaron a `app-barra-herramientas`, encima de la tabla.
+        // Ver el porque en `marcas.ts`, la pantalla canonica.
+        busqueda: null,
+        accion: null,
       }),
     );
 
@@ -197,7 +200,7 @@ export class Modelos {
       descripcion: '',
       horasEntreServicios: null,
     });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
   protected abrirEdicion(modelo: ModeloEquipo): void {
@@ -210,15 +213,11 @@ export class Modelos {
       descripcion: modelo.descripcion ?? '',
       horasEntreServicios: modelo.horasEntreServicios ?? null,
     });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
-  protected cerrarHoja(): void {
-    this.hojaAbierta.set(false);
-  }
-
-  protected filtrarPor(activo: boolean | undefined): void {
-    this.soloActivos.set(activo);
+  protected cerrarPanel(): void {
+    this.panelAbierto.set(false);
   }
 
   protected filtrarPorMarca(marcaId: string): void {
@@ -267,7 +266,7 @@ export class Modelos {
     peticion.subscribe({
       next: () => {
         this.enviando.set(false);
-        this.cerrarHoja();
+        this.cerrarPanel();
       },
       error: (e: unknown) => {
         this.errorMutacion.set(mensajeDeError(e));

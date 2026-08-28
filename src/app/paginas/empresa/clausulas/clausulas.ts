@@ -12,7 +12,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { Barra } from '../../../disposicion/barra';
 import { Confirmacion } from '../../../disposicion/confirmacion';
-import { Hoja } from '../../../disposicion/hoja';
+import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
+import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiCatalogos } from '../../../nucleo/api/api-catalogos';
 import type { AltaClausula, Clausula, FiltroClausulas } from '../../../nucleo/api/contratos';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
@@ -39,7 +40,7 @@ const TAMANO_PAGINA = 50;
  */
 @Component({
   selector: 'app-clausulas',
-  imports: [Hoja, ClausulasEsqueleto, ReactiveFormsModule],
+  imports: [BarraHerramientas, ClausulasEsqueleto, PanelLateral, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './clausulas.html',
 })
@@ -88,7 +89,7 @@ export class Clausulas {
   protected readonly recargando = this.listado.cargando;
 
   protected readonly enviando = signal(false);
-  protected readonly hojaAbierta = signal(false);
+  protected readonly panelAbierto = signal(false);
 
   private readonly errorMutacion = signal<string | null>(null);
 
@@ -162,8 +163,10 @@ export class Clausulas {
       this.barra.configurar({
         titulo: t().clausulas.titulo,
         contexto: this.contexto(),
-        busqueda: { marcador: t().clausulas.buscar, valor: this.busqueda },
-        accion: { etiqueta: t().clausulas.crear, alPulsar: () => this.abrirAlta() },
+        // NI BUSQUEDA NI ACCION AQUI: bajaron a `app-barra-herramientas`, encima de la tabla.
+        // Ver el porque en `marcas.ts`, la pantalla canonica.
+        busqueda: null,
+        accion: null,
       }),
     );
 
@@ -179,7 +182,7 @@ export class Clausulas {
     this.editando.set(null);
     this.errorMutacion.set(null);
     this.formulario.reset({ codigo: '', titulo: '', texto: '', orden: 0, obligatoria: false });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
   protected abrirEdicion(clausula: Clausula): void {
@@ -192,15 +195,11 @@ export class Clausulas {
       orden: clausula.orden,
       obligatoria: clausula.obligatoria,
     });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
-  protected cerrarHoja(): void {
-    this.hojaAbierta.set(false);
-  }
-
-  protected filtrarPor(activo: boolean | undefined): void {
-    this.soloActivas.set(activo);
+  protected cerrarPanel(): void {
+    this.panelAbierto.set(false);
   }
 
   protected filtrarObligatorias(valor: boolean | undefined): void {
@@ -243,7 +242,7 @@ export class Clausulas {
     peticion.subscribe({
       next: () => {
         this.enviando.set(false);
-        this.cerrarHoja();
+        this.cerrarPanel();
       },
       error: (e: unknown) => {
         this.errorMutacion.set(mensajeDeError(e));
@@ -275,5 +274,16 @@ export class Clausulas {
     this.api.clausulas.cambiarActivo(clausula.id, !clausula.activo).subscribe({
       error: (e: unknown) => this.errorMutacion.set(mensajeDeError(e)),
     });
+  }
+
+  /**
+   * El filtro de obligatoriedad, desde el `<select>`.
+   *
+   * Un `<option>` solo lleva texto, asi que los tres estados viajan con nombre y se
+   * traducen aqui. La conversion no va en la plantilla: alli seria logica escondida en un
+   * binding, que es justo lo que las convenciones piden no hacer.
+   */
+  protected elegirObligatorias(valor: string): void {
+    this.filtrarObligatorias(valor === 'cualquiera' ? undefined : valor === 'obligatorias');
   }
 }

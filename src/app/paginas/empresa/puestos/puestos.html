@@ -4,44 +4,19 @@
   columna fija, el vacío que explica, el esqueleto solo en la primera carga— está allí.
 -->
 <div class="mx-auto flex flex-col gap-4">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <!-- Tres estados, no un interruptor: «Activas» y «Retiradas» no cubren «Todas». -->
-    <div class="flex flex-wrap gap-1.5">
-      <button
-        type="button"
-        (click)="filtrarPor(undefined)"
-        [attr.aria-pressed]="soloActivas() === undefined"
-        [class.chip-activo]="soloActivas() === undefined"
-        class="chip"
-      >
-        {{ t().puestos.todas }}
-      </button>
-      <button
-        type="button"
-        (click)="filtrarPor(true)"
-        [attr.aria-pressed]="soloActivas() === true"
-        [class.chip-activo]="soloActivas() === true"
-        class="chip"
-      >
-        {{ t().puestos.activas }}
-      </button>
-      <button
-        type="button"
-        (click)="filtrarPor(false)"
-        [attr.aria-pressed]="soloActivas() === false"
-        [class.chip-activo]="soloActivas() === false"
-        class="chip"
-      >
-        {{ t().puestos.retiradas }}
-      </button>
-    </div>
-
-    @if (total() > 0) {
-      <p class="text-xs tabular-nums text-texto-apagado" aria-live="polite">
-        {{ t().puestos.rango(desde(), hasta(), total()) }}
-      </p>
-    }
-  </div>
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().puestos.buscar"
+    [soloActivas]="soloActivas"
+    [etiquetas]="{
+      todas: t().puestos.todas,
+      activas: t().puestos.activas,
+      retiradas: t().puestos.retiradas,
+    }"
+    [accion]="t().puestos.crear"
+    (alPulsarAccion)="abrirAlta()"
+  >
+  </app-barra-herramientas>
 
   @if (cargando()) {
     <app-puestos-esqueleto />
@@ -59,8 +34,8 @@
       @if (puestos().length === 0) {
         <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
       } @else {
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-160 text-left text-sm">
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-180 text-center text-sm">
             <thead
               class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
             >
@@ -69,16 +44,17 @@
                   scope="col"
                   class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
                 >
-                  {{ t().puestos.colPuesto }}
+                  {{ t().puestos.colCodigo }}
                 </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().puestos.colPuesto }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">
                   {{ t().puestos.colDescripcion }}
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                <th scope="col" class="px-4 py-2.5 font-medium">
                   {{ t().puestos.colTrabajadores }}
                 </th>
                 <th scope="col" class="px-4 py-2.5 md:px-5">
-                  <span class="sr-only">{{ t().puestos.acciones }}</span>
+                  {{ t().puestos.acciones }}
                 </th>
               </tr>
             </thead>
@@ -92,7 +68,10 @@
                     teléfono. Mismo criterio que la píldora de estado en planes.
                   -->
                   <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
-                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    {{ puesto.codigo }}
+                  </td>
+                  <td class="px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
                       <p class="font-medium text-texto">{{ puesto.nombre }}</p>
 
                       @if (!puesto.activo) {
@@ -103,8 +82,6 @@
                         </span>
                       }
                     </div>
-
-                    <p class="text-xs text-texto-apagado">{{ puesto.codigo }}</p>
                   </td>
 
                   <td class="px-4 py-3 text-texto-secundario">
@@ -113,28 +90,73 @@
                     }
                   </td>
 
-                  <td
-                    class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-texto-secundario"
-                  >
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
                     {{ puesto.trabajadores }}
                   </td>
 
-                  <td class="px-4 py-3 text-right md:px-5">
-                    <div class="flex flex-wrap justify-end gap-2">
+                  <td class="px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap justify-center gap-2">
                       <button
                         type="button"
                         (click)="abrirEdicion(puesto)"
-                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                        [attr.aria-label]="t().comun.editarA(puesto.nombre)"
+                        [title]="t().puestos.editar"
+                        class="boton-icono"
                       >
-                        {{ t().puestos.editar }}
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+                        </svg>
                       </button>
 
                       <button
                         type="button"
                         (click)="alternarActivo(puesto)"
-                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                        [attr.aria-label]="
+                          puesto.activo
+                            ? t().comun.retirarA(puesto.nombre)
+                            : t().comun.reactivarA(puesto.nombre)
+                        "
+                        [title]="puesto.activo ? t().puestos.retirar : t().puestos.reactivar"
+                        class="boton-icono"
                       >
-                        {{ puesto.activo ? t().puestos.retirar : t().puestos.reactivar }}
+                        @if (puesto.activo) {
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM2 4h20v4H2zM10 12h4"
+                            />
+                          </svg>
+                        } @else {
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" />
+                          </svg>
+                        }
                       </button>
                     </div>
                   </td>
@@ -146,43 +168,54 @@
       }
     </section>
 
-    @if (paginas() > 1) {
-      <nav
-        class="flex items-center justify-between gap-3"
-        [attr.aria-label]="t().puestos.paginacion"
-      >
-        <button
-          type="button"
-          (click)="irA(pagina() - 1)"
-          [disabled]="pagina() <= 1"
-          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
-        >
-          {{ t().puestos.anterior }}
-        </button>
+    <!--
+      El rango y el paginador, DEBAJO de la tabla: es donde se miran despues de recorrerla,
+      y arriba el rango ocupaba el sitio de la accion principal.
+    -->
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().puestos.rango(desde(), hasta(), total()) }}
+        </p>
 
-        <span class="text-xs tabular-nums text-texto-apagado">
-          {{ t().puestos.paginaDe(pagina(), paginas()) }}
-        </span>
+        @if (paginas() > 1) {
+          <nav
+            class="flex items-center justify-between gap-3"
+            [attr.aria-label]="t().puestos.paginacion"
+          >
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().puestos.anterior }}
+            </button>
 
-        <button
-          type="button"
-          (click)="irA(pagina() + 1)"
-          [disabled]="pagina() >= paginas()"
-          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
-        >
-          {{ t().puestos.siguiente }}
-        </button>
-      </nav>
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().puestos.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().puestos.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
     }
   }
 </div>
 
-<app-hoja
-  [abierta]="hojaAbierta()"
-  [anclajes]="[55, 80]"
+<app-panel-lateral
+  [abierto]="panelAbierto()"
   [titulo]="editando() ? t().puestos.editarTitulo : t().puestos.crear"
   [apoyo]="editando() ? t().puestos.editarApoyo : t().puestos.crearApoyo"
-  (cerrar)="cerrarHoja()"
+  (cerrar)="cerrarPanel()"
 >
   <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-puesto">
     <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
@@ -239,10 +272,10 @@
     </div>
   </form>
 
-  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-center sm:px-5">
     <button
       type="button"
-      (click)="cerrarHoja()"
+      (click)="cerrarPanel()"
       class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
     >
       {{ t().puestos.cerrar }}
@@ -257,4 +290,4 @@
       {{ enviando() ? t().puestos.guardando : t().puestos.guardar }}
     </button>
   </div>
-</app-hoja>
+</app-panel-lateral>

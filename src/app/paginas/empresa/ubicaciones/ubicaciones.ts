@@ -12,7 +12,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { Barra } from '../../../disposicion/barra';
 import { Confirmacion } from '../../../disposicion/confirmacion';
-import { Hoja } from '../../../disposicion/hoja';
+import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
+import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiOrganizacion } from '../../../nucleo/api/api-organizacion';
 import type {
   AltaUbicacion,
@@ -50,7 +51,7 @@ const TIPOS: readonly TipoUbicacion[] = [1, 2, 3];
  */
 @Component({
   selector: 'app-ubicaciones',
-  imports: [Hoja, UbicacionesEsqueleto, ReactiveFormsModule],
+  imports: [BarraHerramientas, PanelLateral, ReactiveFormsModule, UbicacionesEsqueleto],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ubicaciones.html',
 })
@@ -99,7 +100,7 @@ export class Ubicaciones {
   protected readonly recargando = this.listado.cargando;
 
   protected readonly enviando = signal(false);
-  protected readonly hojaAbierta = signal(false);
+  protected readonly panelAbierto = signal(false);
 
   private readonly errorMutacion = signal<string | null>(null);
 
@@ -211,8 +212,10 @@ export class Ubicaciones {
       this.barra.configurar({
         titulo: t().ubicaciones.titulo,
         contexto: this.contexto(),
-        busqueda: { marcador: t().ubicaciones.buscar, valor: this.busqueda },
-        accion: { etiqueta: t().ubicaciones.crear, alPulsar: () => this.abrirAlta() },
+        // NI BUSQUEDA NI ACCION AQUI: bajaron a `app-barra-herramientas`, encima de la tabla.
+        // Ver el porque en `marcas.ts`, la pantalla canonica.
+        busqueda: null,
+        accion: null,
       }),
     );
 
@@ -245,7 +248,7 @@ export class Ubicaciones {
       latitud: null,
       longitud: null,
     });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
   protected abrirEdicion(ubicacion: Ubicacion): void {
@@ -260,15 +263,11 @@ export class Ubicaciones {
       latitud: ubicacion.latitud ?? null,
       longitud: ubicacion.longitud ?? null,
     });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
-  protected cerrarHoja(): void {
-    this.hojaAbierta.set(false);
-  }
-
-  protected filtrarPor(activo: boolean | undefined): void {
-    this.soloActivas.set(activo);
+  protected cerrarPanel(): void {
+    this.panelAbierto.set(false);
   }
 
   protected filtrarPorTipo(tipo: TipoUbicacion | undefined): void {
@@ -313,7 +312,7 @@ export class Ubicaciones {
     peticion.subscribe({
       next: () => {
         this.enviando.set(false);
-        this.cerrarHoja();
+        this.cerrarPanel();
       },
       error: (e: unknown) => {
         this.errorMutacion.set(mensajeDeError(e));
@@ -346,5 +345,16 @@ export class Ubicaciones {
     this.api.ubicaciones.cambiarActivo(ubicacion.id, !ubicacion.activo).subscribe({
       error: (e: unknown) => this.errorMutacion.set(mensajeDeError(e)),
     });
+  }
+
+  /**
+   * El filtro de tipo, desde el `<select>`.
+   *
+   * `Number(...)` y no `+valor` a secas por legibilidad, pero la conversion es obligatoria
+   * igualmente: `TipoUbicacion` es un enum NUMERICO y el `<select>` entrega la cadena «2».
+   * Es el mismo motivo por el que un `<option>` con valor no textual necesita `[ngValue]`.
+   */
+  protected elegirTipo(valor: string): void {
+    this.filtrarPorTipo(valor === '' ? undefined : (Number(valor) as TipoUbicacion));
   }
 }

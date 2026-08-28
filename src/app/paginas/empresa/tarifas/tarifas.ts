@@ -12,7 +12,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { Barra } from '../../../disposicion/barra';
 import { Confirmacion } from '../../../disposicion/confirmacion';
-import { Hoja } from '../../../disposicion/hoja';
+import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
+import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiCatalogos } from '../../../nucleo/api/api-catalogos';
 import type {
   AltaTarifa,
@@ -53,7 +54,7 @@ const UNIDADES = [1, 2, 3, 4, 5, 6] as const;
  */
 @Component({
   selector: 'app-tarifas',
-  imports: [Hoja, TarifasEsqueleto, ReactiveFormsModule],
+  imports: [BarraHerramientas, PanelLateral, ReactiveFormsModule, TarifasEsqueleto],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tarifas.html',
 })
@@ -109,7 +110,7 @@ export class Tarifas {
   protected readonly recargando = this.listado.cargando;
 
   protected readonly enviando = signal(false);
-  protected readonly hojaAbierta = signal(false);
+  protected readonly panelAbierto = signal(false);
 
   private readonly errorMutacion = signal<string | null>(null);
 
@@ -183,8 +184,10 @@ export class Tarifas {
       this.barra.configurar({
         titulo: t().tarifas.titulo,
         contexto: this.contexto(),
-        busqueda: { marcador: t().tarifas.buscar, valor: this.busqueda },
-        accion: { etiqueta: t().tarifas.crear, alPulsar: () => this.abrirAlta() },
+        // NI BUSQUEDA NI ACCION AQUI: bajaron a `app-barra-herramientas`, encima de la tabla.
+        // Ver el porque en `marcas.ts`, la pantalla canonica.
+        busqueda: null,
+        accion: null,
       }),
     );
 
@@ -211,7 +214,7 @@ export class Tarifas {
       aplicaRenta: true,
       aplicaVenta: false,
     });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
   protected abrirEdicion(tarifa: Tarifa): void {
@@ -225,15 +228,11 @@ export class Tarifas {
       aplicaRenta: tarifa.aplicaRenta,
       aplicaVenta: tarifa.aplicaVenta,
     });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
-  protected cerrarHoja(): void {
-    this.hojaAbierta.set(false);
-  }
-
-  protected filtrarPor(activo: boolean | undefined): void {
-    this.soloActivas.set(activo);
+  protected cerrarPanel(): void {
+    this.panelAbierto.set(false);
   }
 
   protected filtrarAplicaA(valor: 'renta' | 'venta' | undefined): void {
@@ -283,7 +282,7 @@ export class Tarifas {
     peticion.subscribe({
       next: () => {
         this.enviando.set(false);
-        this.cerrarHoja();
+        this.cerrarPanel();
       },
       error: (e: unknown) => {
         this.errorMutacion.set(mensajeDeError(e));
@@ -311,5 +310,10 @@ export class Tarifas {
     this.api.tarifas.cambiarActivo(tarifa.id, !tarifa.activo).subscribe({
       error: (e: unknown) => this.errorMutacion.set(mensajeDeError(e)),
     });
+  }
+
+  /** El filtro de aplicacion, desde el `<select>`. Ver la nota de `clausulas.ts`. */
+  protected elegirAplicaA(valor: string): void {
+    this.filtrarAplicaA(valor === 'ambas' ? undefined : (valor as 'renta' | 'venta'));
   }
 }

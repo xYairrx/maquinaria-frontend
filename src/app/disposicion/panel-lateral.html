@@ -1,0 +1,68 @@
+<!--
+  Panel lateral derecho, sobre un `<dialog>` nativo.
+
+  `(click)` cierra al pulsar el velo, y eso el navegador NO lo da: un `<dialog>` modal cierra
+  con Escape pero ignora los clics en su velo. `(close)` tampoco es opcional — Escape lo cierra
+  el navegador sin pasar por el componente.
+
+  Las tres correcciones a los valores por defecto del `<dialog>` —el `display: none` del
+  cerrado, el `max-height` y el `max-width`— viven en la utilidad `panel-lateral` de
+  `src/styles.css`, con el síntoma de cada una anotado.
+-->
+<dialog
+  #dialogo
+  class="panel-lateral"
+  [attr.aria-label]="titulo()"
+  (click)="alPulsarVelo($event)"
+  (close)="alCerrarse()"
+>
+  <header
+    class="flex items-start gap-4 border-b border-borde bg-superficie-sutil px-4 py-4 sm:px-5"
+  >
+    <div class="min-w-0 flex-1">
+      <h2 class="font-titulo text-lg font-bold text-texto">{{ titulo() }}</h2>
+      @if (apoyo(); as linea) {
+        <p class="mt-0.5 text-sm text-texto-secundario">{{ linea }}</p>
+      }
+    </div>
+
+    <!--
+      El botón de cerrar explícito. No sobra teniendo Escape y el velo: quien navega con
+      teclado y no conoce Escape, y quien usa un lector de pantalla, necesitan un control
+      anunciado (WCAG 2.1.1).
+    -->
+    <button
+      type="button"
+      (click)="cerrar.emit()"
+      [attr.aria-label]="t().comun.cerrar"
+      class="-me-1 flex size-9 shrink-0 items-center justify-center rounded-lg text-texto-secundario hover:bg-superficie-hover hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      <svg
+        class="size-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M18 6 6 18M6 6l12 12" />
+      </svg>
+    </button>
+  </header>
+
+  <!--
+    El cuerpo es lo único que se desplaza: `flex-1` contra la columna del panel, y `min-h-0`
+    para que pueda encogerse por debajo de su contenido — sin él, un formulario largo empuja al
+    pie fuera de la pantalla en lugar de desplazarse.
+  -->
+  <div class="min-h-0 flex-1 overflow-y-auto">
+    <ng-content />
+  </div>
+
+  <!-- El pie, proyectado y pegado abajo: la acción principal no se va con el desplazamiento. -->
+  <div class="border-t border-borde bg-superficie-sutil">
+    <ng-content select="[pie]" />
+  </div>
+</dialog>

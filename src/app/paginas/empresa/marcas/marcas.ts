@@ -12,7 +12,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { Barra } from '../../../disposicion/barra';
 import { Confirmacion } from '../../../disposicion/confirmacion';
-import { Hoja } from '../../../disposicion/hoja';
+import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
+import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiCatalogos } from '../../../nucleo/api/api-catalogos';
 import type { FiltroListado, Marca } from '../../../nucleo/api/contratos';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
@@ -26,9 +27,10 @@ const TAMANO_PAGINA = 50;
  * Marcas de maquinaria. **La pantalla canónica de un módulo de catálogo.**
  *
  * Las otras seis —modelos, tipos, categorías, tarifas, cláusulas y puestos— copian esta
- * forma: listado paginado con búsqueda y filtro de activos, hoja inferior para el alta y
- * la edición, y `PATCH .../activo` para retirar. Lo que cambia entre ellas son los campos,
- * no la forma. Ver `docs/plan-fase1-front.md` §8.
+ * forma: barra de herramientas con búsqueda, filtros y acción principal encima de la tabla,
+ * panel lateral derecho para el alta y la edición, acciones de fila como iconos, y
+ * `PATCH .../activo` para retirar. Lo que cambia entre ellas son los campos, no la forma.
+ * Ver `docs/plan-fase1-front.md` §8.
  *
  * DOS COSAS QUE NO SON OBVIAS:
  *
@@ -39,11 +41,11 @@ const TAMANO_PAGINA = 50;
  *
  * **El filtro de activos tiene TRES estados, no dos.** Sin valor trae activas y retiradas;
  * `true` solo activas; `false` solo retiradas. Un interruptor de dos posiciones no puede
- * representar eso, de ahí los tres chips.
+ * representar eso, de ahí un `<select>` de tres opciones y no una casilla.
  */
 @Component({
   selector: 'app-marcas',
-  imports: [Hoja, MarcasEsqueleto, ReactiveFormsModule],
+  imports: [BarraHerramientas, MarcasEsqueleto, PanelLateral, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './marcas.html',
 })
@@ -124,7 +126,7 @@ export class Marcas {
   protected readonly recargando = this.listado.cargando;
 
   protected readonly enviando = signal(false);
-  protected readonly hojaAbierta = signal(false);
+  protected readonly panelAbierto = signal(false);
 
   /** El error de la mutación. El del listado lo trae el recurso. */
   private readonly errorMutacion = signal<string | null>(null);
@@ -206,17 +208,19 @@ export class Marcas {
     this.total() === 0 ? 0 : (this.pagina() - 1) * TAMANO_PAGINA + 1,
   );
 
-  protected readonly hasta = computed(() =>
-    Math.min(this.pagina() * TAMANO_PAGINA, this.total()),
-  );
+  protected readonly hasta = computed(() => Math.min(this.pagina() * TAMANO_PAGINA, this.total()));
 
   constructor() {
     effect(() =>
       this.barra.configurar({
         titulo: t().marcas.titulo,
         contexto: this.contexto(),
-        busqueda: { marcador: t().marcas.buscar, valor: this.busqueda },
-        accion: { etiqueta: t().marcas.crear, alPulsar: () => this.abrirAlta() },
+        // NI BUSQUEDA NI ACCION AQUI. Las dos bajaron a `app-barra-herramientas`, encima de
+        // la tabla: gobiernan la lista, y tenerlas al otro extremo de la pantalla obligaba a
+        // subir la vista para usarlas. La barra superior se queda con el `<h1>` y el
+        // contexto, que es lo que si describe a la pantalla entera.
+        busqueda: null,
+        accion: null,
       }),
     );
 
@@ -237,22 +241,18 @@ export class Marcas {
     this.editando.set(null);
     this.errorMutacion.set(null);
     this.formulario.reset({ nombre: '' });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
   protected abrirEdicion(marca: Marca): void {
     this.editando.set(marca);
     this.errorMutacion.set(null);
     this.formulario.reset({ nombre: marca.nombre });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
-  protected cerrarHoja(): void {
-    this.hojaAbierta.set(false);
-  }
-
-  protected filtrarPor(activo: boolean | undefined): void {
-    this.soloActivas.set(activo);
+  protected cerrarPanel(): void {
+    this.panelAbierto.set(false);
   }
 
   protected irA(numero: number): void {
@@ -283,7 +283,7 @@ export class Marcas {
       next: () => {
         // Sin recargar a mano: las dos mutaciones refrescan el listado en el servicio.
         this.enviando.set(false);
-        this.cerrarHoja();
+        this.cerrarPanel();
       },
       error: (e: unknown) => {
         // El 409 llega aquí con su `detail` del servidor —«ya existe una marca con ese

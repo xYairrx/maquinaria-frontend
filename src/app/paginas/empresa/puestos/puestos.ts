@@ -12,7 +12,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { Barra } from '../../../disposicion/barra';
 import { Confirmacion } from '../../../disposicion/confirmacion';
-import { Hoja } from '../../../disposicion/hoja';
+import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
+import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiCatalogos } from '../../../nucleo/api/api-catalogos';
 import type { Puesto, FiltroListado } from '../../../nucleo/api/contratos';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
@@ -35,7 +36,7 @@ const TAMANO_PAGINA = 50;
  */
 @Component({
   selector: 'app-puestos',
-  imports: [Hoja, PuestosEsqueleto, ReactiveFormsModule],
+  imports: [BarraHerramientas, PanelLateral, PuestosEsqueleto, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './puestos.html',
 })
@@ -80,7 +81,7 @@ export class Puestos {
   protected readonly recargando = this.listado.cargando;
 
   protected readonly enviando = signal(false);
-  protected readonly hojaAbierta = signal(false);
+  protected readonly panelAbierto = signal(false);
 
   private readonly errorMutacion = signal<string | null>(null);
 
@@ -143,8 +144,10 @@ export class Puestos {
       this.barra.configurar({
         titulo: t().puestos.titulo,
         contexto: this.contexto(),
-        busqueda: { marcador: t().puestos.buscar, valor: this.busqueda },
-        accion: { etiqueta: t().puestos.crear, alPulsar: () => this.abrirAlta() },
+        // NI BUSQUEDA NI ACCION AQUI: bajaron a `app-barra-herramientas`, encima de la tabla.
+        // Ver el porque en `marcas.ts`, la pantalla canonica.
+        busqueda: null,
+        accion: null,
       }),
     );
 
@@ -159,7 +162,7 @@ export class Puestos {
     this.editando.set(null);
     this.errorMutacion.set(null);
     this.formulario.reset({ codigo: '', nombre: '', descripcion: '' });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
   protected abrirEdicion(puesto: Puesto): void {
@@ -170,15 +173,11 @@ export class Puestos {
       nombre: puesto.nombre,
       descripcion: puesto.descripcion ?? '',
     });
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
-  protected cerrarHoja(): void {
-    this.hojaAbierta.set(false);
-  }
-
-  protected filtrarPor(activo: boolean | undefined): void {
-    this.soloActivas.set(activo);
+  protected cerrarPanel(): void {
+    this.panelAbierto.set(false);
   }
 
   protected irA(numero: number): void {
@@ -217,7 +216,7 @@ export class Puestos {
     peticion.subscribe({
       next: () => {
         this.enviando.set(false);
-        this.cerrarHoja();
+        this.cerrarPanel();
       },
       error: (e: unknown) => {
         this.errorMutacion.set(mensajeDeError(e));
