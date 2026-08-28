@@ -8,7 +8,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "api:sync": "openapi-typescript http://localhost:5123/openapi/v1.json -o src/app/nucleo/api/generado.ts --immutable --alphabetize",
-    "api:check": "openapi-typescript http://localhost:5123/openapi/v1.json -o src/app/nucleo/api/generado.ts --immutable --alphabetize --check"
+    "api:check": "openapi-typescript http://localhost:5123/openapi/v1.json -o src/app/nucleo/api/generado.ts --immutable --alphabetize --check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "private": true,
   "packageManager": "npm@11.6.2",
