@@ -3,11 +3,11 @@
  *
  * Un solo archivo en lugar de `src/environments/`: Angular 21 ya no genera esa carpeta
  * y el reemplazo de archivos por configuración es una capa más que mantener. Para
- * producción, el valor se sustituye en el build de Cloudflare Pages.
+ * producción, el valor se sustituye en el build de Vercel.
  */
 export const configuracion = {
   /** La API en el perfil `http` de launchSettings.json. */
-  urlApi: 'maquinaria-backend-development.up.railway.app',
+  urlApi: 'https://maquinaria-backend-development.up.railway.app',
 
   /**
    * Dominio bajo el cual cada empresa tiene su subdominio: `bajio.<dominioBase>`.
