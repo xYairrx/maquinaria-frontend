@@ -7,7 +7,7 @@
  */
 export const configuracion = {
   /** La API en el perfil `http` de launchSettings.json. */
-  urlApi: 'http://localhost:5123',
+  urlApi: 'maquinaria-backend-development.up.railway.app',
 
   /**
    * Dominio bajo el cual cada empresa tiene su subdominio: `bajio.<dominioBase>`.
@@ -17,5 +17,5 @@ export const configuracion = {
    * nativa. En producción es el dominio real, y tiene que coincidir con
    * `Cors:DominioBase` de la API o el navegador bloqueará todas las llamadas.
    */
-  dominioBase: 'localhost',
+  dominioBase: 'maquinaria-frontend.vercel.app',
 } as const;
