@@ -1,0 +1,304 @@
+<!--
+  Historial de traspasos. SIN COLUMNA DE ACCIONES: un traspaso es un hecho, no se edita ni se
+  borra. Es la primera tabla del producto que no la lleva.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().traspasos.buscar"
+    [accion]="t().traspasos.crear"
+    (alPulsarAccion)="abrirAlta()"
+  >
+    <div filtros>
+      <label for="filtro-equipo" class="sr-only">{{ t().traspasos.equipo }}</label>
+      <select
+        id="filtro-equipo"
+        [value]="equipoFiltrado()"
+        (change)="filtrarPorEquipo($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().traspasos.cualquierEquipo }}</option>
+        @for (equipo of equipos(); track equipo.id) {
+          <option [value]="equipo.id">{{ equipo.codigoInterno }}</option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-ubicacion" class="sr-only">{{ t().traspasos.colOrigen }}</label>
+      <select
+        id="filtro-ubicacion"
+        [value]="ubicacionFiltrada()"
+        (change)="filtrarPorUbicacion($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().traspasos.cualquierUbicacion }}</option>
+        @for (ubicacion of ubicaciones(); track ubicacion.id) {
+          <option [value]="ubicacion.id">{{ ubicacion.nombre }}</option>
+        }
+      </select>
+    </div>
+  </app-barra-herramientas>
+
+  @if (cargando()) {
+    <app-traspasos-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (traspasos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-220 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().traspasos.colFecha }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().traspasos.colEquipo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().traspasos.colOrigen }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().traspasos.colDestino }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().traspasos.colResponsable }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().traspasos.colMotivo }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (traspaso of traspasos(); track traspaso.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 whitespace-nowrap border-r border-borde bg-superficie px-4 py-3 tabular-nums md:px-5"
+                  >
+                    {{ traspaso.fecha }}
+                  </td>
+                  <td class="px-4 py-3 font-medium text-texto">{{ traspaso.codigoInterno }}</td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ traspaso.origen }}</td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ traspaso.destino }}</td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ traspaso.trabajador }}</td>
+                  <td class="px-4 py-3 text-texto-secundario md:px-5">
+                    {{ traspaso.motivo ?? t().traspasos.sinDato }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().traspasos.rango(desde(), hasta(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav class="flex items-center gap-3" [attr.aria-label]="t().traspasos.paginacion">
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().traspasos.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().traspasos.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().traspasos.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="t().traspasos.crear"
+  [apoyo]="t().traspasos.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-traspaso">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="equipoId" class="text-sm font-medium text-texto-secundario">
+          {{ t().traspasos.equipo }}
+        </label>
+        <select
+          id="equipoId"
+          formControlName="equipoId"
+          [attr.aria-invalid]="mal(formulario.controls.equipoId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.equipoId) ? 'ayuda-equipo error-equipo' : 'ayuda-equipo'
+          "
+          class="campo-formulario"
+        >
+          <option value=""></option>
+          @for (equipo of equipos(); track equipo.id) {
+            <option [value]="equipo.id">
+              {{ equipo.codigoInterno }} — {{ equipo.marca }} {{ equipo.modelo }}
+            </option>
+          }
+        </select>
+        <p id="ayuda-equipo" class="text-xs text-texto-apagado">
+          {{ equipos().length === 0 ? t().traspasos.sinEquipos : t().traspasos.ayudaEquipo }}
+        </p>
+        <app-error-campo
+          id="error-equipo"
+          [visible]="mal(formulario.controls.equipoId)"
+          [mensaje]="t().traspasos.errorEquipo"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="destinoId" class="text-sm font-medium text-texto-secundario">
+          {{ t().traspasos.destino }}
+        </label>
+        <select
+          id="destinoId"
+          formControlName="destinoId"
+          [attr.aria-invalid]="mal(formulario.controls.destinoId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.destinoId) ? 'ayuda-destino error-destino' : 'ayuda-destino'
+          "
+          class="campo-formulario"
+        >
+          <option value=""></option>
+          @for (ubicacion of almacenes(); track ubicacion.id) {
+            <option [value]="ubicacion.id">{{ ubicacion.nombre }}</option>
+          }
+        </select>
+        <p id="ayuda-destino" class="text-xs text-texto-apagado">
+          {{ t().traspasos.ayudaDestino }}
+        </p>
+        <app-error-campo
+          id="error-destino"
+          [visible]="mal(formulario.controls.destinoId)"
+          [mensaje]="t().traspasos.errorDestino"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="trabajadorId" class="text-sm font-medium text-texto-secundario">
+          {{ t().traspasos.responsable }}
+        </label>
+        <select
+          id="trabajadorId"
+          formControlName="trabajadorId"
+          [attr.aria-invalid]="mal(formulario.controls.trabajadorId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.trabajadorId) ? 'ayuda-resp error-resp' : 'ayuda-resp'
+          "
+          class="campo-formulario"
+        >
+          <option value=""></option>
+          @for (trabajador of trabajadores(); track trabajador.id) {
+            <option [value]="trabajador.id">
+              {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }}
+            </option>
+          }
+        </select>
+        <p id="ayuda-resp" class="text-xs text-texto-apagado">
+          {{
+            trabajadores().length === 0
+              ? t().traspasos.sinTrabajadores
+              : t().traspasos.ayudaResponsable
+          }}
+        </p>
+        <app-error-campo
+          id="error-resp"
+          [visible]="mal(formulario.controls.trabajadorId)"
+          [mensaje]="t().traspasos.errorResponsable"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="fecha" class="text-sm font-medium text-texto-secundario">
+            {{ t().traspasos.fecha }}
+          </label>
+          <input id="fecha" formControlName="fecha" type="date" class="campo-formulario" />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="fin" class="text-sm font-medium text-texto-secundario">
+            {{ t().traspasos.fin }}
+          </label>
+          <input
+            id="fin"
+            formControlName="fin"
+            type="date"
+            aria-describedby="ayuda-fin"
+            class="campo-formulario"
+          />
+        </div>
+
+        <p id="ayuda-fin" class="text-xs text-texto-apagado sm:col-span-2">
+          {{ t().traspasos.ayudaFin }}
+        </p>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="motivo" class="text-sm font-medium text-texto-secundario">
+            {{ t().traspasos.motivo }}
+          </label>
+          <input id="motivo" formControlName="motivo" autocomplete="off" class="campo-formulario" />
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().traspasos.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-traspaso"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().traspasos.guardando : t().traspasos.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

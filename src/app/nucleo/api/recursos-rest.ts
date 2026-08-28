@@ -133,12 +133,86 @@ export class FabricaDeRecursos {
         conRecarga(this.http.put<TDto>(`${url}/${encodeURIComponent(id)}`, alta)),
 
       cambiarActivo: (id: string, activo: boolean) =>
-        conRecarga(
-          this.http.patch<TDto>(`${url}/${encodeURIComponent(id)}/activo`, { activo }),
-        ),
+        conRecarga(this.http.patch<TDto>(`${url}/${encodeURIComponent(id)}/activo`, { activo })),
     };
   }
 
+  /**
+   * Un PATCH que NO es una de las cuatro operaciones, pero que muta y por tanto tiene que
+   * recargar lo mismo que ellas.
+   *
+   * EXISTE PARA NO GENERALIZAR `cambiarActivo`. El primer caso es el estado de un trabajador:
+   * tres valores en vez de un booleano, y con una fecha obligatoria cuando es Baja. Meter eso
+   * en `RecursoRest` le cargaría a las ocho pantallas que hoy solo apagan y encienden un caso
+   * que ninguna tiene, y la advertencia de §10.5 del plan del backend —no abstraer con un solo
+   * ejemplo escrito— aplica igual aquí.
+   *
+   * Lo que sí se comparte es la PLOMERÍA: los dos mapas de recarga son privados, así que sin
+   * este método cada servicio reimplementaría la doble recarga, y las copias se separan.
+   *
+   * @param ruta Relativa a la base, con el id ya codificado. Ej: `trabajadores/<id>/estado`.
+   * @param recargar Nombre del recurso cuyo listado y selector hay que recargar.
+   */
+  parcheo<T>(
+    ruta: string,
+    cuerpo: unknown,
+    opciones: { readonly recargar: string },
+  ): Observable<T> {
+    return this.http.patch<T>(`${this.base}/${ruta}`, cuerpo).pipe(
+      tap(() => {
+        this.recargarListado.get(opciones.recargar)?.();
+        this.recargarSelector.get(opciones.recargar)?.();
+      }),
+    );
+  }
+
+  /**
+   * Un POST a una SUBRUTA del recurso, que también muta y también tiene que recargar.
+   *
+   * El hermano de `parcheo`, y por la misma razón: los dos mapas de recarga son privados.
+   * El primer caso es la línea de una cotización —`POST cotizaciones/<id>/lineas`—, que no es
+   * el alta del recurso sino el alta de algo DENTRO de él, y que cambia el total del documento
+   * y por tanto lo que muestra el listado.
+   *
+   * No confundir con `RecursoRest.crear`: ese da de alta el recurso en su colección y devuelve
+   * el recurso. Este devuelve la COSA CREADA DENTRO, que suele ser de otro tipo.
+   *
+   * @param ruta Relativa a la base, con el id ya codificado. Ej: `cotizaciones/<id>/lineas`.
+   * @param recargar Nombre del recurso cuyo listado y selector hay que recargar.
+   */
+  publicar<T>(
+    ruta: string,
+    cuerpo: unknown,
+    opciones: { readonly recargar: string },
+  ): Observable<T> {
+    return this.http.post<T>(`${this.base}/${ruta}`, cuerpo).pipe(
+      tap(() => {
+        this.recargarListado.get(opciones.recargar)?.();
+        this.recargarSelector.get(opciones.recargar)?.();
+      }),
+    );
+  }
+
+  /**
+   * El borrado LOGICO de un recurso que si lo tiene.
+   *
+   * NO ESTA EN `RecursoRest` A PROPOSITO. De las entidades de esta fase solo `equipo`,
+   * `archivo` y `tenant` tienen borrado logico; el resto se retiran con `PATCH .../activo` o
+   * `.../estado` y **no tienen DELETE**. Ponerlo en la interfaz comun ofreceria a diecisiete
+   * pantallas una operacion que su endpoint no expone.
+   *
+   * Devuelve `void`: el servidor contesta 204 sin cuerpo. Y puede contestar **409** —el equipo
+   * tiene calendario ocupado—, que la pantalla debe explicar en lugar de convertirlo en un
+   * «error al guardar» generico.
+   */
+  borrar(ruta: string, opciones: { readonly recargar: string }): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${ruta}`).pipe(
+      tap(() => {
+        this.recargarListado.get(opciones.recargar)?.();
+        this.recargarSelector.get(opciones.recargar)?.();
+      }),
+    );
+  }
   /**
    * La lista de lo ACTIVO de un recurso, para poblar un desplegable.
    *
@@ -164,6 +238,43 @@ export class FabricaDeRecursos {
     return senal;
   }
 
+  /**
+   * Un selector RECORTADO por un filtro extra del servidor.
+   *
+   * `selector()` trae todo lo activo, que es lo que quieren casi todos los desplegables. Este
+   * existe para los que NO: el destino de un traspaso solo admite ubicaciones que almacenan
+   * —una sucursal cotiza, no guarda maquinas— y ese recorte lo hace el SERVIDOR con
+   * `AlmacenaEquipo`, no un `filter` en memoria sobre la lista completa.
+   *
+   * La clave de memorizacion incluye los parametros, o dos desplegables del mismo recurso con
+   * filtros distintos se pisarian el uno al otro.
+   */
+  selectorFiltrado<TDto>(
+    nombre: string,
+    extra: Record<string, string | number | boolean>,
+  ): Signal<readonly TDto[]> {
+    const clave = `${nombre}?${JSON.stringify(extra)}`;
+    const guardado = this.selectores.get(clave);
+
+    if (guardado !== undefined) {
+      return guardado as Signal<readonly TDto[]>;
+    }
+
+    const senal = runInInjectionContext(this.inyector, () => {
+      const rec = httpResource<Pagina<TDto>>(() => ({
+        url: `${this.base}/${nombre}`,
+        params: { Activo: true, Tamano: TAMANO_SELECTOR, Orden: 'nombre', ...extra },
+      }));
+
+      this.recargarSelector.set(clave, () => rec.reload());
+
+      return computed(() => (rec.hasValue() ? rec.value().filas : []));
+    });
+
+    this.selectores.set(clave, senal as Signal<readonly unknown[]>);
+
+    return senal;
+  }
   /**
    * Se pide de una sola vez con el techo del servidor. Paginar un desplegable sería peor
    * experiencia que el problema que resuelve, y ninguno de estos recursos llega a 200.

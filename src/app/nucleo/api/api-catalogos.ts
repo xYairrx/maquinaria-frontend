@@ -69,4 +69,40 @@ export class ApiCatalogos {
   selectorTipos(): Signal<readonly TipoEquipo[]> {
     return this.fabrica.selector<TipoEquipo>('tipos-equipo');
   }
+
+  /**
+   * Los modelos activos, para el alta de equipo.
+   *
+   * De un modelo salen la MARCA y el TIPO ya resueltos en el DTO del equipo, asi que el
+   * formulario no tiene que pedir la marca por separado.
+   */
+  selectorModelos(): Signal<readonly ModeloEquipo[]> {
+    return this.fabrica.selector<ModeloEquipo>('modelos-equipo');
+  }
+
+  /** Los conceptos cobrables activos, para cargar un precio en el expediente de un equipo. */
+  selectorTarifas(): Signal<readonly Tarifa[]> {
+    return this.fabrica.selector<Tarifa>('tarifas');
+  }
+
+  /**
+   * Los puestos activos, para el desplegable del alta de trabajador.
+   *
+   * Vive aqui y no en `ApiOrganizacion` porque su URL es `/api/catalogos/puestos`: el puesto
+   * es un catalogo, aunque la pantalla que lo consume sea de organizacion.
+   */
+  selectorPuestos(): Signal<readonly Puesto[]> {
+    return this.fabrica.selector<Puesto>('puestos');
+  }
+
+  /**
+   * Las cláusulas ACTIVAS del catálogo, para elegir cuáles copia un contrato nuevo.
+   *
+   * Se ordenan por `orden` en el servidor —es el campo que dice en qué secuencia van dentro
+   * del documento—, no alfabéticamente: una cláusula de penalización no va después de una de
+   * «Anexos» solo porque la P siga a la A.
+   */
+  selectorClausulas(): Signal<readonly Clausula[]> {
+    return this.fabrica.selectorFiltrado<Clausula>('clausulas', { Orden: 'orden' });
+  }
 }

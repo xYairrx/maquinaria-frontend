@@ -1,0 +1,1139 @@
+<div class="mx-auto flex flex-col gap-5">
+  <a
+    routerLink="/rentas"
+    class="inline-flex w-fit items-center gap-2 text-sm text-texto-secundario hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+  >
+    <svg
+      class="size-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+    {{ t().renta.volver }}
+  </a>
+
+  @if (error(); as mensaje) {
+    <!--
+      Aqui aterriza el 409 del EXCLUDE —«el equipo ya esta dado en esas fechas»—, el de
+      confirmar sin equipos y el 400 de un estado que tiene endpoint propio. Con el texto del
+      servidor: explica que paso mejor que cualquier mensaje generico.
+    -->
+    <p
+      class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+      role="alert"
+    >
+      {{ mensaje }}
+    </p>
+  }
+
+  @if (cargando() && renta() === null) {
+    <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+    <div aria-hidden="true" class="flex flex-col gap-5">
+      <div class="esqueleto h-44 rounded-xl"></div>
+      <div class="esqueleto h-56 rounded-xl"></div>
+      <div class="esqueleto h-40 rounded-xl"></div>
+    </div>
+  } @else if (renta(); as r) {
+    <section class="rounded-xl border border-borde bg-superficie p-4 md:p-5">
+      <div class="mb-4 flex flex-wrap items-center gap-2">
+        <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().renta.seccionDatos }}
+        </h2>
+
+        <span
+          class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+        >
+          {{ nombreEstado(r.estado) }}
+        </span>
+
+        <!-- Derivados de la fecha, AL LADO del estado y nunca en su lugar. -->
+        @if (r.vencida) {
+          <span
+            class="inline-block whitespace-nowrap rounded-full border border-amarillo bg-alerta-fondo px-2 py-0.5 text-[11px] font-medium text-alerta-texto"
+          >
+            {{ t().renta.vencida }}
+          </span>
+        } @else if (r.porVencer) {
+          <span
+            class="inline-block whitespace-nowrap rounded-full border border-borde-campo px-2 py-0.5 text-[11px] font-medium text-texto-secundario"
+          >
+            {{ t().renta.porVencer }}
+          </span>
+        }
+      </div>
+
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().renta.cliente }}</dt>
+          <dd class="text-texto">{{ r.cliente }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().renta.responsable }}</dt>
+          <dd class="text-texto">{{ r.trabajador }}</dd>
+        </div>
+        <div class="col-span-2">
+          <dt class="text-xs text-texto-apagado">{{ t().renta.periodo }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ r.inicio | date: 'short' : undefined : locale() }}
+            –
+            {{ r.fin | date: 'short' : undefined : locale() }}
+          </dd>
+        </div>
+        <div class="col-span-2 sm:col-span-3">
+          <dt class="text-xs text-texto-apagado">{{ t().renta.lugar }}</dt>
+          <dd class="text-texto">{{ r.lugar.descripcion }}</dd>
+        </div>
+        <div>
+          <!-- La cotizacion de origen, cuando la hay: una renta puede nacer suelta. -->
+          <dt class="text-xs text-texto-apagado">{{ t().renta.cotizacion }}</dt>
+          <dd class="text-texto">{{ r.cotizacionFolio ?? t().renta.sinDato }}</dd>
+        </div>
+
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().renta.deposito }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ r.deposito | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().renta.anticipo }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ r.anticipo | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().renta.subtotal }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ r.subtotal | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().renta.descuento }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ r.descuento | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().renta.impuestos }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ r.impuestos | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().renta.total }}</dt>
+          <dd class="text-lg font-semibold tabular-nums text-texto">
+            {{ r.total | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().renta.saldo }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ r.saldo | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+
+        @if (r.notas) {
+          <div class="col-span-2 sm:col-span-4">
+            <dt class="text-xs text-texto-apagado">{{ t().rentas.notas }}</dt>
+            <dd class="whitespace-pre-line text-texto">{{ r.notas }}</dd>
+          </div>
+        }
+      </dl>
+
+      <!--
+        LAS CUATRO QUE MUEVEN EL CALENDARIO. Se dibujan solo las que el estado admite; desde un
+        estado terminal no sale ninguna y en su lugar va una frase. `ACCIONES` en el `.ts` es el
+        espejo de la tabla del servidor.
+      -->
+      <div class="mt-5 flex flex-wrap gap-2 border-t border-borde pt-4">
+        @if (sinAcciones()) {
+          <p class="text-xs text-texto-apagado">{{ t().renta.sinAcciones }}</p>
+        }
+
+        @if (puedeConfirmar()) {
+          <button
+            type="button"
+            (click)="confirmar()"
+            [disabled]="enviando()"
+            class="rounded-lg bg-amarillo px-4 py-2 text-[13px] font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+          >
+            {{ t().renta.confirmar }}
+          </button>
+        }
+
+        @if (puedeActivar()) {
+          <button
+            type="button"
+            (click)="activar()"
+            [disabled]="enviando()"
+            class="rounded-lg bg-amarillo px-4 py-2 text-[13px] font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+          >
+            {{ t().renta.activar }}
+          </button>
+        }
+
+        @if (puedeDevolver()) {
+          <button
+            type="button"
+            (click)="devolver()"
+            [disabled]="enviando()"
+            class="rounded-lg bg-amarillo px-4 py-2 text-[13px] font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+          >
+            {{ t().renta.devolver }}
+          </button>
+        }
+
+        @if (puedeExtender()) {
+          <button
+            type="button"
+            (click)="abrirExtension()"
+            [disabled]="enviando()"
+            class="rounded-lg border border-borde-campo px-4 py-2 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed"
+          >
+            {{ t().renta.extender }}
+          </button>
+        }
+
+        @if (puedeCerrar()) {
+          <button
+            type="button"
+            (click)="abrirCierre()"
+            [disabled]="enviando()"
+            class="rounded-lg border border-borde-campo px-4 py-2 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed"
+          >
+            {{ t().renta.cerrarRenta }}
+          </button>
+        }
+
+        @if (puedeCancelar()) {
+          <!--
+            Destructiva, asi que va SIN el amarillo: la paleta es monocroma mas amarillo y
+            quitarle el amarillo es lo que dice «esta no es la ruta feliz».
+          -->
+          <button
+            type="button"
+            (click)="cancelar()"
+            [disabled]="enviando()"
+            class="ms-auto rounded-lg border border-borde-campo px-4 py-2 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed"
+          >
+            {{ t().renta.cancelar }}
+          </button>
+        }
+      </div>
+    </section>
+
+    <!--
+      COTIZADO POR TIPO. Solo aparece si la renta salio de una cotizacion Y esa cotizacion trae
+      lineas sin maquina. Va ANTES de la tabla de equipos porque es lo que falta por hacer, no
+      un historico.
+    -->
+    @if (esBorrador() && cotizadasPorTipo().length > 0) {
+      <section class="rounded-xl border border-amarillo bg-superficie">
+        <div class="border-b border-borde px-4 py-3 md:px-5">
+          <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+            {{ t().renta.seccionPorAsignar }}
+          </h2>
+          <p class="mt-1 text-xs text-texto-apagado">{{ t().renta.ayudaPorAsignar }}</p>
+          <p class="mt-1 text-xs text-texto-apagado">{{ t().renta.avisoNoSeEncoge }}</p>
+        </div>
+
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-200 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().renta.colTipo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colConcepto }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colCantidad }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colPrecio }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().renta.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (cotizada of cotizadasPorTipo(); track cotizada.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium md:px-5"
+                  >
+                    {{ cotizada.tipoEquipo }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ cotizada.tarifa }}</td>
+                  <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ cotizada.cantidad }} {{ cotizada.unidad }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                    {{ cotizada.precioUnitario | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+                  <td class="px-4 py-2 md:px-5">
+                    <button
+                      type="button"
+                      (click)="asignarDesde(cotizada)"
+                      [disabled]="enviando()"
+                      [attr.aria-label]="t().renta.asignarA(cotizada.tipoEquipo ?? '')"
+                      class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed"
+                    >
+                      {{ t().renta.asignar }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+
+    <!-- ------------------------------------------------------------- equipos -->
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div class="flex flex-wrap items-center gap-3 border-b border-borde px-4 py-3 md:px-5">
+        <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().renta.seccionLineas }}
+        </h2>
+
+        @if (esBorrador()) {
+          <button
+            type="button"
+            (click)="abrirLinea()"
+            class="ms-auto rounded-lg bg-amarillo px-3 py-1.5 text-[13px] font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+          >
+            {{ t().renta.agregarLinea }}
+          </button>
+        } @else {
+          <p class="ms-auto text-xs text-texto-apagado">{{ t().renta.soloBorradorLineas }}</p>
+        }
+      </div>
+
+      @if (lineas().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ t().renta.sinLineas }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-240 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().renta.colEquipo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colModelo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colConcepto }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colCantidad }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colPrecio }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colImporte }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().renta.colHorometroSalida }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().renta.colHorometroDevolucion }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().renta.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (linea of lineas(); track linea.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium md:px-5"
+                  >
+                    {{ linea.codigoInterno }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ linea.modelo }}</td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ linea.tarifa }}</td>
+                  <td class="px-4 py-3 tabular-nums text-texto-secundario">{{ linea.cantidad }}</td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ linea.precioUnitario | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                    {{ linea.importe | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+                  <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ linea.horometroSalida ?? t().renta.sinDato }}
+                  </td>
+                  <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ linea.horometroDevolucion ?? t().renta.sinDato }}
+                  </td>
+                  <td class="px-4 py-2 md:px-5">
+                    <div class="flex justify-center gap-1">
+                      @if (esBorrador()) {
+                        <button
+                          type="button"
+                          (click)="quitarLinea(linea)"
+                          [disabled]="enviando()"
+                          [attr.aria-label]="t().renta.quitarEquipoA(linea.codigoInterno)"
+                          [title]="t().renta.quitar"
+                          class="boton-icono"
+                        >
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" />
+                          </svg>
+                        </button>
+                      } @else {
+                        <span class="text-xs text-texto-apagado">—</span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <!-- -------------------------------------------------------------- cargos -->
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div class="flex flex-wrap items-center gap-3 border-b border-borde px-4 py-3 md:px-5">
+        <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().renta.seccionConceptos }}
+        </h2>
+
+        <!--
+          A DIFERENCIA DE LOS EQUIPOS, esto se puede en cualquier estado salvo Cerrada y
+          Cancelada: un cargo no lleva equipo, asi que no toca el calendario.
+        -->
+        @if (admiteCargos()) {
+          <button
+            type="button"
+            (click)="abrirConcepto()"
+            class="ms-auto rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+          >
+            {{ t().renta.agregarConcepto }}
+          </button>
+        } @else {
+          <p class="ms-auto text-xs text-texto-apagado">{{ t().renta.cerradaOCancelada }}</p>
+        }
+      </div>
+
+      @if (conceptos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ t().renta.sinConceptos }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-200 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().renta.colConcepto }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.descripcion }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colTrabajador }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colCantidad }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colPrecio }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colCosto }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colImporte }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().renta.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (concepto of conceptos(); track concepto.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium md:px-5"
+                  >
+                    {{ concepto.tarifa }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ concepto.descripcion ?? t().renta.sinDato }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ concepto.trabajador ?? t().renta.sinTrabajador }}
+                  </td>
+                  <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ concepto.cantidad }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ concepto.precioUnitario | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{
+                      concepto.costo === null
+                        ? t().renta.sinDato
+                        : (concepto.costo | currency: moneda : 'symbol' : '1.2-2' : locale())
+                    }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                    {{ concepto.importe | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+                  <td class="px-4 py-2 md:px-5">
+                    <div class="flex justify-center gap-1">
+                      @if (admiteCargos()) {
+                        <button
+                          type="button"
+                          (click)="quitarConcepto(concepto)"
+                          [disabled]="enviando()"
+                          [attr.aria-label]="t().renta.quitarCargoA(concepto.tarifa)"
+                          [title]="t().renta.quitar"
+                          class="boton-icono"
+                        >
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" />
+                          </svg>
+                        </button>
+                      } @else {
+                        <span class="text-xs text-texto-apagado">—</span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <!-- ---------------------------------------------------------- extensiones -->
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div class="border-b border-borde px-4 py-3 md:px-5">
+        <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().renta.seccionExtensiones }}
+        </h2>
+      </div>
+
+      @if (extensiones().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">
+          {{ t().renta.sinExtensiones }}
+        </p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-200 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().renta.colFinAnterior }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colFinNuevo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colMotivo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colQuien }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().renta.colCuando }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (extension of extensiones(); track extension.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 tabular-nums md:px-5"
+                  >
+                    {{ extension.finAnterior | date: 'short' : undefined : locale() }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                    {{ extension.finNuevo | date: 'short' : undefined : locale() }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ extension.motivo ?? t().renta.sinDato }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ extension.trabajador }}</td>
+                  <td
+                    class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario md:px-5"
+                  >
+                    {{ extension.creadoEn | date: 'short' : undefined : locale() }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  } @else {
+    <p class="rounded-xl border border-borde bg-superficie px-4 py-6 text-sm text-texto-secundario">
+      {{ t().renta.noEncontrada }}
+    </p>
+  }
+</div>
+
+<!-- =================================================================== equipo -->
+<app-panel-lateral
+  [abierto]="panelLinea()"
+  [titulo]="t().renta.agregarLineaTitulo"
+  [apoyo]="t().renta.agregarLineaApoyo"
+  (cerrar)="cerrarLinea()"
+>
+  <form [formGroup]="formularioLinea" (ngSubmit)="agregarLinea()" id="formulario-renta-linea">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="equipoId" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.equipo }}
+        </label>
+        <select
+          id="equipoId"
+          formControlName="equipoId"
+          [attr.aria-invalid]="mal(formularioLinea.controls.equipoId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formularioLinea.controls.equipoId) ? 'ayuda-equipo error-equipo' : 'ayuda-equipo'
+          "
+          class="campo-formulario"
+        >
+          <option value="">{{ t().renta.sinDato }}</option>
+          @for (equipo of equiposDisponibles(); track equipo.id) {
+            <option [value]="equipo.id">
+              {{ equipo.codigoInterno }} — {{ equipo.marca }} {{ equipo.modelo }}
+            </option>
+          }
+        </select>
+        <p id="ayuda-equipo" class="text-xs text-texto-apagado">{{ t().renta.ayudaEquipo }}</p>
+        @if (equiposDisponibles().length === 0) {
+          <p class="aviso text-sm text-texto-secundario">{{ t().renta.sinEquipos }}</p>
+        }
+        <app-error-campo
+          id="error-equipo"
+          [visible]="mal(formularioLinea.controls.equipoId)"
+          [mensaje]="t().renta.errorEquipo"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="linea-tarifaId" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.concepto }}
+        </label>
+        <select
+          id="linea-tarifaId"
+          formControlName="tarifaId"
+          [attr.aria-invalid]="mal(formularioLinea.controls.tarifaId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formularioLinea.controls.tarifaId)
+              ? 'ayuda-linea-concepto error-linea-concepto'
+              : 'ayuda-linea-concepto'
+          "
+          class="campo-formulario"
+        >
+          <option value="">{{ t().renta.sinDato }}</option>
+          @for (tarifa of tarifas(); track tarifa.id) {
+            <option [value]="tarifa.id">{{ tarifa.codigo }} — {{ tarifa.nombre }}</option>
+          }
+        </select>
+        <p id="ayuda-linea-concepto" class="text-xs text-texto-apagado">
+          {{ t().renta.ayudaConcepto }}
+        </p>
+        @if (tarifas().length === 0) {
+          <p class="aviso text-sm text-texto-secundario">{{ t().renta.sinTarifas }}</p>
+        }
+        <app-error-campo
+          id="error-linea-concepto"
+          [visible]="mal(formularioLinea.controls.tarifaId)"
+          [mensaje]="t().renta.errorConcepto"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="linea-cantidad" class="text-sm font-medium text-texto-secundario">
+            {{ t().renta.cantidad }}
+          </label>
+          <input
+            id="linea-cantidad"
+            formControlName="cantidad"
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formularioLinea.controls.cantidad) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formularioLinea.controls.cantidad) ? 'error-linea-cantidad' : null
+            "
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-linea-cantidad"
+            [visible]="mal(formularioLinea.controls.cantidad)"
+            [mensaje]="t().renta.errorCantidad"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="linea-precio" class="text-sm font-medium text-texto-secundario">
+            {{ t().renta.precioUnitario }}
+          </label>
+          <input
+            id="linea-precio"
+            formControlName="precioUnitario"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formularioLinea.controls.precioUnitario) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formularioLinea.controls.precioUnitario) ? 'error-linea-precio' : null
+            "
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-linea-precio"
+            [visible]="mal(formularioLinea.controls.precioUnitario)"
+            [mensaje]="t().renta.errorPrecio"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="horasIncluidas" class="text-sm font-medium text-texto-secundario">
+            {{ t().renta.horasIncluidas }}
+          </label>
+          <input
+            id="horasIncluidas"
+            formControlName="horasIncluidas"
+            type="number"
+            min="0"
+            step="0.5"
+            inputmode="decimal"
+            autocomplete="off"
+            aria-describedby="ayuda-horas"
+            class="campo-formulario"
+          />
+          <p id="ayuda-horas" class="text-xs text-texto-apagado">
+            {{ t().renta.ayudaHorasIncluidas }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarLinea()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().renta.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-renta-linea"
+      [disabled]="!puedeAgregarLinea()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().renta.guardando : t().renta.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<!-- ==================================================================== cargo -->
+<app-panel-lateral
+  [abierto]="panelConcepto()"
+  [titulo]="t().renta.agregarConceptoTitulo"
+  [apoyo]="t().renta.agregarConceptoApoyo"
+  (cerrar)="cerrarConcepto()"
+>
+  <form [formGroup]="formularioConcepto" (ngSubmit)="agregarConcepto()" id="formulario-renta-cargo">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="cargo-tarifaId" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.concepto }}
+        </label>
+        <select
+          id="cargo-tarifaId"
+          formControlName="tarifaId"
+          [attr.aria-invalid]="mal(formularioConcepto.controls.tarifaId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formularioConcepto.controls.tarifaId) ? 'error-cargo-concepto' : null
+          "
+          class="campo-formulario"
+        >
+          <option value="">{{ t().renta.sinDato }}</option>
+          @for (tarifa of tarifas(); track tarifa.id) {
+            <option [value]="tarifa.id">{{ tarifa.codigo }} — {{ tarifa.nombre }}</option>
+          }
+        </select>
+        <app-error-campo
+          id="error-cargo-concepto"
+          [visible]="mal(formularioConcepto.controls.tarifaId)"
+          [mensaje]="t().renta.errorConcepto"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="cargo-trabajadorId" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.trabajador }}
+        </label>
+        <select
+          id="cargo-trabajadorId"
+          formControlName="trabajadorId"
+          aria-describedby="ayuda-cargo-trabajador"
+          class="campo-formulario"
+        >
+          <option value="">{{ t().renta.sinTrabajador }}</option>
+          @for (trabajador of trabajadores(); track trabajador.id) {
+            <option [value]="trabajador.id">
+              {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }} {{ trabajador.apellidos }}
+            </option>
+          }
+        </select>
+        <p id="ayuda-cargo-trabajador" class="text-xs text-texto-apagado">
+          {{ t().renta.ayudaTrabajador }}
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="cargo-descripcion" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.descripcion }}
+        </label>
+        <textarea
+          id="cargo-descripcion"
+          formControlName="descripcion"
+          rows="2"
+          class="campo-formulario"
+        ></textarea>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="flex flex-col gap-1">
+          <label for="cargo-cantidad" class="text-sm font-medium text-texto-secundario">
+            {{ t().renta.cantidad }}
+          </label>
+          <input
+            id="cargo-cantidad"
+            formControlName="cantidad"
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formularioConcepto.controls.cantidad) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formularioConcepto.controls.cantidad) ? 'error-cargo-cantidad' : null
+            "
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-cargo-cantidad"
+            [visible]="mal(formularioConcepto.controls.cantidad)"
+            [mensaje]="t().renta.errorCantidad"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="cargo-precio" class="text-sm font-medium text-texto-secundario">
+            {{ t().renta.precioUnitario }}
+          </label>
+          <input
+            id="cargo-precio"
+            formControlName="precioUnitario"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formularioConcepto.controls.precioUnitario) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formularioConcepto.controls.precioUnitario) ? 'error-cargo-precio' : null
+            "
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-cargo-precio"
+            [visible]="mal(formularioConcepto.controls.precioUnitario)"
+            [mensaje]="t().renta.errorPrecio"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="cargo-costo" class="text-sm font-medium text-texto-secundario">
+            {{ t().renta.costo }}
+          </label>
+          <input
+            id="cargo-costo"
+            formControlName="costo"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            aria-describedby="ayuda-costo"
+            class="campo-formulario"
+          />
+        </div>
+
+        <p id="ayuda-costo" class="text-xs text-texto-apagado sm:col-span-3">
+          {{ t().renta.ayudaCosto }}
+        </p>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarConcepto()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().renta.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-renta-cargo"
+      [disabled]="!puedeAgregarConcepto()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().renta.guardando : t().renta.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<!-- ================================================================ extensión -->
+<app-panel-lateral
+  [abierto]="panelExtension()"
+  [titulo]="t().renta.extenderTitulo"
+  [apoyo]="t().renta.extenderApoyo"
+  (cerrar)="cerrarExtension()"
+>
+  <form [formGroup]="formularioExtension" (ngSubmit)="extender()" id="formulario-renta-extension">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="finNuevo" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.finNuevo }}
+        </label>
+        <input
+          id="finNuevo"
+          formControlName="finNuevo"
+          type="datetime-local"
+          [attr.aria-invalid]="mal(formularioExtension.controls.finNuevo) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formularioExtension.controls.finNuevo)
+              ? 'ayuda-fin-nuevo error-fin-nuevo'
+              : 'ayuda-fin-nuevo'
+          "
+          class="campo-formulario"
+        />
+        <p id="ayuda-fin-nuevo" class="text-xs text-texto-apagado">
+          {{ t().renta.ayudaFinNuevo }}
+        </p>
+        <app-error-campo
+          id="error-fin-nuevo"
+          [visible]="mal(formularioExtension.controls.finNuevo)"
+          [mensaje]="t().renta.errorFinNuevo"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="ext-trabajadorId" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.responsable }}
+        </label>
+        <select
+          id="ext-trabajadorId"
+          formControlName="trabajadorId"
+          [attr.aria-invalid]="mal(formularioExtension.controls.trabajadorId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formularioExtension.controls.trabajadorId) ? 'error-ext-responsable' : null
+          "
+          class="campo-formulario"
+        >
+          <option value="">{{ t().renta.sinDato }}</option>
+          @for (trabajador of trabajadores(); track trabajador.id) {
+            <option [value]="trabajador.id">
+              {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }} {{ trabajador.apellidos }}
+            </option>
+          }
+        </select>
+        <app-error-campo
+          id="error-ext-responsable"
+          [visible]="mal(formularioExtension.controls.trabajadorId)"
+          [mensaje]="t().rentas.errorResponsable"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="motivo" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.motivo }}
+        </label>
+        <textarea id="motivo" formControlName="motivo" rows="2" class="campo-formulario"></textarea>
+      </div>
+
+      <p class="aviso text-sm text-texto-secundario">{{ t().renta.ayudaExtension }}</p>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarExtension()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().renta.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-renta-extension"
+      [disabled]="!puedeExtenderYa()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().renta.guardando : t().renta.extender }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<!-- ==================================================================== cierre -->
+<app-panel-lateral
+  [abierto]="panelCierre()"
+  [titulo]="t().renta.cerrarTitulo"
+  [apoyo]="t().renta.cerrarApoyo"
+  (cerrar)="cerrarPanelCierre()"
+>
+  <form [formGroup]="formularioCierre" (ngSubmit)="cerrarRenta()" id="formulario-renta-cierre">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <!--
+        Los horometros van FUERA del formulario reactivo: cantidad variable y solo viajan los
+        que tienen valor. Mandar 0 por un equipo sin horometro seria inventarse una lectura.
+
+        LA CLAVE ES `equipoId`, no `linea.id`: asi lo lee el servidor, y una clave que no case
+        se descarta sin decir nada. Ver el comentario en `renta.ts`.
+      -->
+      <fieldset class="flex flex-col gap-3">
+        <legend class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().renta.horometros }}
+        </legend>
+
+        <p id="ayuda-horometros" class="text-xs text-texto-apagado">
+          {{ t().renta.ayudaHorometros }}
+        </p>
+
+        @for (linea of lineas(); track linea.id) {
+          <div class="flex flex-col gap-1">
+            <label
+              [attr.for]="'horometro-' + linea.equipoId"
+              class="text-sm font-medium text-texto-secundario"
+            >
+              {{ linea.codigoInterno }} — {{ linea.modelo }}
+            </label>
+            <input
+              [id]="'horometro-' + linea.equipoId"
+              type="number"
+              min="0"
+              step="0.1"
+              inputmode="decimal"
+              autocomplete="off"
+              [placeholder]="linea.horometroSalida ?? ''"
+              (input)="escribirHorometro(linea.equipoId, $any($event.target).value)"
+              aria-describedby="ayuda-horometros"
+              class="campo-formulario"
+            />
+          </div>
+        }
+      </fieldset>
+
+      <div class="flex flex-col gap-1">
+        <label for="nota-cierre" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.nota }}
+        </label>
+        <textarea
+          id="nota-cierre"
+          formControlName="nota"
+          rows="3"
+          class="campo-formulario"
+        ></textarea>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanelCierre()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().renta.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-renta-cierre"
+      [disabled]="enviando()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().renta.guardando : t().renta.cerrarRenta }}
+    </button>
+  </div>
+</app-panel-lateral>

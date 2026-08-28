@@ -1,0 +1,413 @@
+<!-- Molde estandar de pantalla de modulo. El porque de cada pieza esta en `marcas.html`. -->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().proveedores.buscar"
+    [soloActivas]="soloActivos"
+    [etiquetas]="{
+      todas: t().proveedores.todos,
+      activas: t().proveedores.activos,
+      retiradas: t().proveedores.retirados,
+    }"
+    [accion]="t().proveedores.crear"
+    (alPulsarAccion)="abrirAlta()"
+  />
+
+  @if (cargando()) {
+    <app-proveedores-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (proveedores().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-220 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().proveedores.colCodigo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().proveedores.colProveedor }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().proveedores.colRfc }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().proveedores.colContacto }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().proveedores.colOrdenes }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().proveedores.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (proveedor of proveedores(); track proveedor.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    {{ proveedor.codigo }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+                      <p class="font-medium text-texto">{{ proveedor.razonSocial }}</p>
+
+                      @if (!proveedor.activo) {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                        >
+                          {{ t().proveedores.retirado }}
+                        </span>
+                      }
+                    </div>
+
+                    @if (proveedor.nombreComercial) {
+                      <p class="text-xs text-texto-apagado">{{ proveedor.nombreComercial }}</p>
+                    }
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 text-texto-secundario">
+                    {{ proveedor.rfc ?? t().proveedores.sinDato }}
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    <p>{{ proveedor.contacto ?? t().proveedores.sinDato }}</p>
+                    @if (proveedor.telefono) {
+                      <p class="text-xs text-texto-apagado">{{ proveedor.telefono }}</p>
+                    }
+                  </td>
+
+                  <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ proveedor.ordenesCompra }}
+                  </td>
+
+                  <td class="px-4 py-2 md:px-5">
+                    <div class="flex justify-center gap-1">
+                      <button
+                        type="button"
+                        (click)="abrirEdicion(proveedor)"
+                        [attr.aria-label]="t().comun.editarA(proveedor.razonSocial)"
+                        [title]="t().proveedores.editar"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+                        </svg>
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="alternarActivo(proveedor)"
+                        [attr.aria-label]="
+                          proveedor.activo
+                            ? t().comun.retirarA(proveedor.razonSocial)
+                            : t().comun.reactivarA(proveedor.razonSocial)
+                        "
+                        [title]="
+                          proveedor.activo ? t().proveedores.retirar : t().proveedores.reactivar
+                        "
+                        class="boton-icono"
+                      >
+                        @if (proveedor.activo) {
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM2 4h20v4H2zM10 12h4"
+                            />
+                          </svg>
+                        } @else {
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" />
+                          </svg>
+                        }
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().proveedores.rango(desde(), hasta(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav class="flex items-center gap-3" [attr.aria-label]="t().proveedores.paginacion">
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().proveedores.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().proveedores.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().proveedores.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="editando() ? t().proveedores.editarTitulo : t().proveedores.crear"
+  [apoyo]="editando() ? t().proveedores.editarApoyo : t().proveedores.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-proveedor">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="codigo" class="text-sm font-medium text-texto-secundario">
+            {{ t().proveedores.codigo }}
+          </label>
+          <input
+            id="codigo"
+            formControlName="codigo"
+            maxlength="30"
+            autocapitalize="characters"
+            autocomplete="off"
+            spellcheck="false"
+            [attr.aria-invalid]="mal(formulario.controls.codigo) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.codigo) ? 'ayuda-codigo error-codigo' : 'ayuda-codigo'
+            "
+            class="campo-formulario"
+          />
+          <p id="ayuda-codigo" class="text-xs text-texto-apagado">
+            {{ t().proveedores.ayudaCodigo }}
+          </p>
+          <app-error-campo
+            id="error-codigo"
+            [visible]="mal(formulario.controls.codigo)"
+            [mensaje]="t().proveedores.errorCodigo"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="rfc" class="text-sm font-medium text-texto-secundario">
+            {{ t().proveedores.rfc }}
+          </label>
+          <input
+            id="rfc"
+            formControlName="rfc"
+            maxlength="13"
+            autocapitalize="characters"
+            autocomplete="off"
+            spellcheck="false"
+            [attr.aria-invalid]="mal(formulario.controls.rfc) ? 'true' : null"
+            [attr.aria-describedby]="mal(formulario.controls.rfc) ? 'error-rfc' : null"
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-rfc"
+            [visible]="mal(formulario.controls.rfc)"
+            [mensaje]="t().validacion.rfc"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="razonSocial" class="text-sm font-medium text-texto-secundario">
+            {{ t().proveedores.razonSocial }}
+          </label>
+          <input
+            id="razonSocial"
+            formControlName="razonSocial"
+            maxlength="200"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formulario.controls.razonSocial) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.razonSocial) ? 'ayuda-razon error-razon' : 'ayuda-razon'
+            "
+            class="campo-formulario"
+          />
+          <p id="ayuda-razon" class="text-xs text-texto-apagado">
+            {{ t().proveedores.ayudaRazonSocial }}
+          </p>
+          <app-error-campo
+            id="error-razon"
+            [visible]="mal(formulario.controls.razonSocial)"
+            [mensaje]="t().proveedores.errorRazonSocial"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="nombreComercial" class="text-sm font-medium text-texto-secundario">
+            {{ t().proveedores.nombreComercial }}
+          </label>
+          <input
+            id="nombreComercial"
+            formControlName="nombreComercial"
+            maxlength="200"
+            autocomplete="off"
+            aria-describedby="ayuda-comercial"
+            class="campo-formulario"
+          />
+          <p id="ayuda-comercial" class="text-xs text-texto-apagado">
+            {{ t().proveedores.ayudaNombreComercial }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="telefono" class="text-sm font-medium text-texto-secundario">
+            {{ t().proveedores.telefono }}
+          </label>
+          <input
+            id="telefono"
+            formControlName="telefono"
+            type="tel"
+            inputmode="tel"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formulario.controls.telefono) ? 'true' : null"
+            [attr.aria-describedby]="mal(formulario.controls.telefono) ? 'error-telefono' : null"
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-telefono"
+            [visible]="mal(formulario.controls.telefono)"
+            [mensaje]="t().validacion.telefono"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="correo" class="text-sm font-medium text-texto-secundario">
+            {{ t().proveedores.correo }}
+          </label>
+          <input
+            id="correo"
+            formControlName="correo"
+            type="email"
+            inputmode="email"
+            autocomplete="off"
+            spellcheck="false"
+            [attr.aria-invalid]="mal(formulario.controls.correo) ? 'true' : null"
+            [attr.aria-describedby]="mal(formulario.controls.correo) ? 'error-correo' : null"
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-correo"
+            [visible]="mal(formulario.controls.correo)"
+            [mensaje]="t().validacion.correo"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="contacto" class="text-sm font-medium text-texto-secundario">
+            {{ t().proveedores.contacto }}
+          </label>
+          <input
+            id="contacto"
+            formControlName="contacto"
+            autocomplete="off"
+            aria-describedby="ayuda-contacto"
+            class="campo-formulario"
+          />
+          <p id="ayuda-contacto" class="text-xs text-texto-apagado">
+            {{ t().proveedores.ayudaContacto }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="domicilio" class="text-sm font-medium text-texto-secundario">
+            {{ t().proveedores.domicilio }}
+          </label>
+          <textarea
+            id="domicilio"
+            formControlName="domicilio"
+            rows="2"
+            class="campo-formulario"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().proveedores.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-proveedor"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().proveedores.guardando : t().proveedores.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

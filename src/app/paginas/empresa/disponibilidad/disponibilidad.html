@@ -1,0 +1,419 @@
+<!--
+  NO ES UN LISTADO, ES UNA PREGUNTA. Por eso no lleva `app-barra-herramientas`: no hay busqueda
+  que filtre lo que ya esta en pantalla, hay un periodo que decide QUE se pregunta.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <section class="rounded-xl border border-borde bg-superficie p-4 md:p-5">
+    <h2 class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+      {{ t().disponibilidad.sinPeriodo }}
+    </h2>
+    <p class="mb-4 text-sm text-texto-secundario">{{ t().disponibilidad.apoyoConsulta }}</p>
+
+    <form [formGroup]="formularioPeriodo" (ngSubmit)="consultar()" class="flex flex-col gap-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="flex flex-col gap-1">
+          <label for="desde" class="text-sm font-medium text-texto-secundario">
+            {{ t().disponibilidad.desde }}
+          </label>
+          <input id="desde" formControlName="desde" type="date" class="campo-formulario" />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="hasta" class="text-sm font-medium text-texto-secundario">
+            {{ t().disponibilidad.hasta }}
+          </label>
+          <input id="hasta" formControlName="hasta" type="date" class="campo-formulario" />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="filtro-tipo" class="text-sm font-medium text-texto-secundario">
+            {{ t().disponibilidad.tipo }}
+          </label>
+          <select
+            id="filtro-tipo"
+            [value]="tipoFiltrado()"
+            (change)="filtrarPorTipo($any($event.target).value)"
+            class="campo-formulario"
+          >
+            <option value="">{{ t().disponibilidad.cualquierTipo }}</option>
+            @for (tipo of tipos(); track tipo.id) {
+              <option [value]="tipo.id">{{ tipo.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="filtro-ubicacion" class="text-sm font-medium text-texto-secundario">
+            {{ t().disponibilidad.ubicacion }}
+          </label>
+          <select
+            id="filtro-ubicacion"
+            [value]="ubicacionFiltrada()"
+            (change)="filtrarPorUbicacion($any($event.target).value)"
+            class="campo-formulario"
+          >
+            <option value="">{{ t().disponibilidad.cualquierUbicacion }}</option>
+            @for (ubicacion of ubicaciones(); track ubicacion.id) {
+              <option [value]="ubicacion.id">{{ ubicacion.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="filtro-cliente" class="text-sm font-medium text-texto-secundario">
+            {{ t().disponibilidad.cliente }}
+          </label>
+          <select
+            id="filtro-cliente"
+            [value]="clienteFiltrado()"
+            (change)="filtrarPorCliente($any($event.target).value)"
+            aria-describedby="ayuda-cliente"
+            class="campo-formulario"
+          >
+            <option value="">{{ t().disponibilidad.precioLista }}</option>
+            @for (cliente of clientes(); track cliente.id) {
+              <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
+            }
+          </select>
+          <p id="ayuda-cliente" class="text-xs text-texto-apagado">
+            {{ t().disponibilidad.ayudaCliente }}
+          </p>
+        </div>
+
+        <div class="flex items-end sm:col-span-2 lg:col-span-2 lg:justify-end">
+          <button type="submit" class="boton-principal w-full sm:w-auto">
+            {{ t().disponibilidad.consultar }}
+          </button>
+        </div>
+      </div>
+
+      <p class="text-xs text-texto-apagado">{{ t().disponibilidad.ayudaPeriodo }}</p>
+
+      <app-error-campo
+        id="error-periodo"
+        [visible]="!periodoValido() && formularioPeriodo.controls.desde.touched"
+        [mensaje]="t().disponibilidad.errorPeriodo"
+      />
+    </form>
+  </section>
+
+  @if (error(); as mensaje) {
+    <p
+      class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+      role="alert"
+    >
+      {{ mensaje }}
+    </p>
+  }
+
+  @if (!hayConsulta()) {
+    <!--
+      El vacio dice POR QUE esta vacio, igual que en las demas: aqui no es que no haya equipos,
+      es que todavia no se ha preguntado nada.
+    -->
+    <p
+      class="rounded-xl border border-borde bg-superficie px-4 py-6 text-sm text-texto-secundario md:px-5"
+    >
+      {{ t().disponibilidad.sinConsulta }}
+    </p>
+  } @else if (cargando() && libres().length === 0) {
+    <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+    <div aria-hidden="true" class="esqueleto h-56 rounded-xl"></div>
+  } @else {
+    <section class="rounded-xl border border-borde bg-superficie">
+      @if (libres().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">
+          {{ t().disponibilidad.sinLibres }}
+        </p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-220 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().disponibilidad.colCodigo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().disponibilidad.colEquipo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().disponibilidad.colTipo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().disponibilidad.colUbicacion }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().disponibilidad.colPrecioDiario }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().disponibilidad.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (equipo of libres(); track equipo.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    {{ equipo.codigoInterno }}
+                  </td>
+                  <td class="px-4 py-3 font-medium text-texto">
+                    {{ equipo.marca }} {{ equipo.modelo }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ equipo.tipoEquipo }}</td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ equipo.ubicacion ?? t().disponibilidad.sinDato }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                    {{ equipo.precioRentaDiaria ?? t().disponibilidad.sinPrecio }}
+                  </td>
+                  <td class="px-4 py-2 md:px-5">
+                    <button
+                      type="button"
+                      (click)="abrirCalendario(equipo)"
+                      [attr.aria-label]="t().disponibilidad.verCalendarioDe(equipo.codigoInterno)"
+                      [title]="t().disponibilidad.verCalendario"
+                      class="boton-icono"
+                    >
+                      <svg
+                        class="size-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2"
+                        />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <p class="ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+        {{ t().disponibilidad.rango(1, libres().length, total()) }}
+      </p>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelCalendario()"
+  [titulo]="t().disponibilidad.calendarioTitulo"
+  [apoyo]="
+    equipoDelCalendario()
+      ? t().disponibilidad.calendarioApoyo(equipoDelCalendario()!.codigoInterno)
+      : ''
+  "
+  (cerrar)="cerrarCalendario()"
+>
+  <div class="flex flex-col gap-4 px-4 py-4 sm:px-5">
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    @if (cargandoCalendario() && ocupaciones().length === 0) {
+      <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+      <div aria-hidden="true" class="esqueleto h-32 rounded-lg"></div>
+    } @else if (ocupaciones().length === 0) {
+      <p class="text-sm text-texto-secundario">{{ t().disponibilidad.sinOcupaciones }}</p>
+    } @else {
+      <ul class="flex flex-col gap-2">
+        @for (ocupacion of ocupaciones(); track ocupacion.id) {
+          <li class="rounded-lg border border-borde p-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-medium text-texto">{{ nombreMotivo(ocupacion.motivo) }}</p>
+                <p class="text-xs tabular-nums text-texto-apagado">
+                  {{ ocupacion.inicio }} —
+                  {{ ocupacion.fin ?? t().disponibilidad.sinFin }}
+                </p>
+                @if (ocupacion.nota) {
+                  <p class="mt-1 text-xs text-texto-secundario">{{ ocupacion.nota }}</p>
+                }
+              </div>
+
+              <div class="flex items-center gap-2">
+                @if (!ocupacion.activo) {
+                  <span
+                    class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                  >
+                    {{ t().disponibilidad.liberado }}
+                  </span>
+                }
+
+                <!--
+                  Solo se libera lo que se capturo a mano y sigue activo. Una ocupacion de renta
+                  o de traslado se quita cerrando su documento, no desde aqui.
+                -->
+                @if (ocupacion.activo && motivosManuales.includes(ocupacion.motivo)) {
+                  <button
+                    type="button"
+                    (click)="liberar(ocupacion)"
+                    [attr.aria-label]="t().disponibilidad.liberarA(nombreMotivo(ocupacion.motivo))"
+                    [title]="t().disponibilidad.liberar"
+                    class="boton-icono"
+                  >
+                    <svg
+                      class="size-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M7 11V7a5 5 0 0 1 9.9-1M5 11h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1"
+                      />
+                    </svg>
+                  </button>
+                }
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarCalendario()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().disponibilidad.cerrar }}
+    </button>
+
+    <button type="button" (click)="abrirBloqueo()" class="boton-principal">
+      {{ t().disponibilidad.bloquear }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<app-panel-lateral
+  [abierto]="panelBloqueo()"
+  [titulo]="t().disponibilidad.bloquearTitulo"
+  [apoyo]="t().disponibilidad.bloquearApoyo"
+  (cerrar)="cancelarBloqueo()"
+>
+  <form [formGroup]="formularioBloqueo" (ngSubmit)="crearBloqueo()" id="formulario-bloqueo">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="motivo" class="text-sm font-medium text-texto-secundario">
+          {{ t().disponibilidad.colMotivo }}
+        </label>
+        <select
+          id="motivo"
+          formControlName="motivo"
+          aria-describedby="aviso-motivos"
+          class="campo-formulario"
+        >
+          @for (motivo of motivosManuales; track motivo) {
+            <!-- `ngValue`: enum numerico. -->
+            <option [ngValue]="motivo">{{ nombreMotivo(motivo) }}</option>
+          }
+        </select>
+      </div>
+
+      <p id="aviso-motivos" class="aviso text-sm text-texto-secundario">
+        {{ t().disponibilidad.avisoMotivos }}
+      </p>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="inicio" class="text-sm font-medium text-texto-secundario">
+            {{ t().disponibilidad.inicio }}
+          </label>
+          <input id="inicio" formControlName="inicio" type="date" class="campo-formulario" />
+          <app-error-campo
+            id="error-inicio"
+            [visible]="
+              formularioBloqueo.controls.inicio.value === '' &&
+              formularioBloqueo.controls.inicio.touched
+            "
+            [mensaje]="t().disponibilidad.errorInicio"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="fin" class="text-sm font-medium text-texto-secundario">
+            {{ t().disponibilidad.fin }}
+          </label>
+          <input
+            id="fin"
+            formControlName="fin"
+            type="date"
+            aria-describedby="ayuda-fin"
+            class="campo-formulario"
+          />
+          <p id="ayuda-fin" class="text-xs text-texto-apagado">{{ t().disponibilidad.ayudaFin }}</p>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="nota" class="text-sm font-medium text-texto-secundario">
+          {{ t().disponibilidad.nota }}
+        </label>
+        <textarea
+          id="nota"
+          formControlName="nota"
+          rows="2"
+          aria-describedby="ayuda-nota"
+          class="campo-formulario"
+        ></textarea>
+        <p id="ayuda-nota" class="text-xs text-texto-apagado">{{ t().disponibilidad.ayudaNota }}</p>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cancelarBloqueo()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().disponibilidad.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-bloqueo"
+      [disabled]="enviando()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().disponibilidad.guardando : t().disponibilidad.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

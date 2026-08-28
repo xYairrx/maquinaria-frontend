@@ -36,9 +36,7 @@ describe('mensajeDeError', () => {
       errors: { codigo: ['Requerido.'], nombre: ['Requerido.', 'Muy largo.'] },
     });
 
-    expect(mensajeDeError(e)).toBe(
-      'codigo: Requerido. · nombre: Requerido. · nombre: Muy largo.',
-    );
+    expect(mensajeDeError(e)).toBe('codigo: Requerido. · nombre: Requerido. · nombre: Muy largo.');
   });
 
   it('un error sin nombre de campo se muestra sin prefijo', () => {

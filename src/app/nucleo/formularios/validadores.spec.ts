@@ -10,6 +10,8 @@ import {
   rfcEsValido,
   soloDigitos,
   telefonoEsValido,
+  validadorCantidad,
+  validadorImporte,
   validadorRequerido,
 } from './validadores';
 
@@ -196,5 +198,68 @@ describe('validadorRequerido', () => {
 
   it('acepta un valor con espacios alrededor: recortar no es rechazar', () => {
     expect(control('  Grupo Teckio  ').valid).toBe(true);
+  });
+});
+
+/** Un control con el valor ya puesto, tal como lo deja un accesor de valor. */
+const crudo = (valor: unknown) => new FormControl(valor);
+
+/**
+ * `validadorRequerido` ES SOLO PARA TEXTO, Y EN UN CAMPO NUMÉRICO NUNCA DEJA ENVIAR.
+ *
+ * Pasa por `texto()`, que devuelve `''` para cualquier valor que no sea una cadena. Un
+ * `<input type="number">` mete un **number** en el control —o `null` al vaciarse—, así que el
+ * validador ve `''`, lo declara vacío y devuelve `{ required: true }` **se escriba lo que se
+ * escriba**.
+ *
+ * El síntoma que provocó, en el alta de línea de una cotización: el formulario se veía completo,
+ * no salía ni un mensaje de error —los avisos aparecen con `touched` y el campo se había
+ * rellenado sin tocarlo— y el botón de guardar simplemente estaba apagado. Nada en la pantalla
+ * decía por qué.
+ *
+ * Es la misma familia que la trampa del `NumberValueAccessor` fijada en `modelos.spec.ts`: lo
+ * que acaba dentro del control lo decide el ACCESOR, no la declaración del formulario.
+ */
+describe('validadorRequerido sobre un valor numérico', () => {
+  it('rechaza un número perfectamente válido — este es el defecto que documenta', () => {
+    expect(validadorRequerido(crudo(3))).toEqual({ required: true });
+    expect(validadorRequerido(crudo(1500))).toEqual({ required: true });
+  });
+});
+
+/**
+ * Los dos numéricos. Sus límites son los del SERVIDOR, no una preferencia de la pantalla:
+ * `AgregarLineaAsync` responde 400 con «La cantidad tiene que ser mayor que cero» y «El precio
+ * no puede ser negativo».
+ */
+describe('validadorCantidad', () => {
+  it('acepta un número mayor que cero, con decimales incluidos', () => {
+    expect(validadorCantidad(crudo(1))).toBeNull();
+    expect(validadorCantidad(crudo(2.5))).toBeNull();
+  });
+
+  it('rechaza el cero y el negativo, que es lo que el servidor rechaza', () => {
+    expect(validadorCantidad(crudo(0))).toEqual({ required: true });
+    expect(validadorCantidad(crudo(-1))).toEqual({ required: true });
+  });
+
+  it('rechaza el campo vacío, que llega como null y no como cadena', () => {
+    expect(validadorCantidad(crudo(null))).toEqual({ required: true });
+  });
+
+  it('rechaza una cadena aunque parezca un número', () => {
+    expect(validadorCantidad(crudo('3'))).toEqual({ required: true });
+  });
+});
+
+describe('validadorImporte', () => {
+  it('acepta el cero: una línea de cortesía es válida', () => {
+    expect(validadorImporte(crudo(0))).toBeNull();
+    expect(validadorImporte(crudo(1500.5))).toBeNull();
+  });
+
+  it('rechaza el negativo y el vacío', () => {
+    expect(validadorImporte(crudo(-0.01))).toEqual({ required: true });
+    expect(validadorImporte(crudo(null))).toEqual({ required: true });
   });
 });

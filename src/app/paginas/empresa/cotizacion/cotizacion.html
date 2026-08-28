@@ -1,0 +1,748 @@
+<div class="mx-auto flex flex-col gap-5">
+  <a
+    routerLink="/cotizaciones"
+    class="inline-flex w-fit items-center gap-2 text-sm text-texto-secundario hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+  >
+    <svg
+      class="size-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+    {{ t().cotizacion.volver }}
+  </a>
+
+  @if (error(); as mensaje) {
+    <!--
+      Aqui aterriza el 409 de una transicion invalida, el de «sin lineas» al enviar y el de
+      tocar lineas fuera de Borrador, con el texto del servidor.
+    -->
+    <p
+      class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+      role="alert"
+    >
+      {{ mensaje }}
+    </p>
+  }
+
+  @if (cargando() && cotizacion() === null) {
+    <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+    <div aria-hidden="true" class="flex flex-col gap-5">
+      <div class="esqueleto h-36 rounded-xl"></div>
+      <div class="esqueleto h-64 rounded-xl"></div>
+    </div>
+  } @else if (cotizacion(); as c) {
+    <!-- Los datos del encabezado, de solo lectura: se corrigen en el listado, no aqui. -->
+    <section class="rounded-xl border border-borde bg-superficie p-4 md:p-5">
+      <div class="mb-4 flex flex-wrap items-center gap-3">
+        <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().cotizacion.seccionDatos }}
+        </h2>
+
+        <span
+          class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+        >
+          {{ nombreEstado(c.estado) }}
+        </span>
+
+        <!--
+          CONVERTIR es la accion primaria cuando la cotizacion esta Aceptada: es el paso
+          siguiente del ciclo —cotizar, aprobar, RENTAR— y por eso lleva el amarillo, mientras
+          que cambiar el estado se queda como accion secundaria.
+        -->
+        @if (esAceptada()) {
+          <button
+            type="button"
+            (click)="abrirConversion()"
+            [disabled]="enviando()"
+            class="ms-auto rounded-lg bg-amarillo px-3 py-1.5 text-[13px] font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+          >
+            {{ t().cotizacion.convertir }}
+          </button>
+        }
+
+        <!--
+          El boton solo si hay a donde ir. Desde un estado terminal no se dibuja: un desplegable
+          vacio seria una promesa que no se puede cumplir.
+
+          El `ms-auto` lo lleva el PRIMERO que se dibuje: si Convertir esta, el empuje ya lo dio
+          el, y ponerlo aqui tambien separaria los dos botones a los extremos.
+        -->
+        @if (siguientes().length > 0) {
+          <button
+            type="button"
+            (click)="abrirEstado()"
+            class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+            [class.ms-auto]="!esAceptada()"
+          >
+            {{ t().cotizacion.cambiarEstado }}
+          </button>
+        }
+      </div>
+
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.cliente }}</dt>
+          <dd class="text-texto">{{ c.cliente }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.ubicacion }}</dt>
+          <dd class="text-texto">{{ c.ubicacion }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.responsable }}</dt>
+          <dd class="text-texto">{{ c.trabajador }}</dd>
+        </div>
+        <div>
+          <!--
+            En UTC a proposito: `fecha` es un `DateOnly` —una fecha sin hora—, y dejarla en la
+            zona local la corre un dia hacia atras al oeste de Greenwich.
+          -->
+          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.fecha }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ c.fecha | date: 'mediumDate' : 'UTC' : locale() }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.vigenciaHasta }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{
+              c.vigenciaHasta
+                ? (c.vigenciaHasta | date: 'mediumDate' : 'UTC' : locale())
+                : t().cotizacion.sinDato
+            }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.subtotal }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ c.subtotal | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.descuento }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ c.descuento | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.impuestos }}</dt>
+          <dd class="tabular-nums text-texto">
+            {{ c.impuestos | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+        <div class="col-span-2 sm:col-span-4">
+          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.total }}</dt>
+          <dd class="text-lg font-semibold tabular-nums text-texto">
+            {{ c.total | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+          </dd>
+        </div>
+
+        @if (c.notas) {
+          <div class="col-span-2 sm:col-span-4">
+            <dt class="text-xs text-texto-apagado">{{ t().cotizaciones.notas }}</dt>
+            <dd class="whitespace-pre-line text-texto">{{ c.notas }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div class="flex flex-wrap items-center gap-3 border-b border-borde px-4 py-3 md:px-5">
+        <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().cotizacion.seccionLineas }}
+        </h2>
+
+        @if (esBorrador()) {
+          <button
+            type="button"
+            (click)="abrirLinea()"
+            class="ms-auto rounded-lg bg-amarillo px-3 py-1.5 text-[13px] font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+          >
+            {{ t().cotizacion.agregarLinea }}
+          </button>
+        } @else {
+          <!--
+            Fuera de Borrador el boton no se dibuja, y en su lugar se explica por que. Un boton
+            deshabilitado sin motivo se lee como un fallo de la aplicacion.
+          -->
+          <p class="ms-auto text-xs text-texto-apagado">{{ t().cotizacion.soloBorrador }}</p>
+        }
+      </div>
+
+      @if (lineas().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">
+          {{ t().cotizacion.sinLineas }}
+        </p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-200 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().cotizacion.colConcepto }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().cotizacion.colEquipo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().cotizacion.descripcion }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().cotizacion.colCantidad }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().cotizacion.colPrecio }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().cotizacion.colImporte }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().cotizacion.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (linea of lineas(); track linea.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium md:px-5"
+                  >
+                    {{ linea.tarifa }}
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ linea.equipo ?? t().cotizacion.sinEquipo }}
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ linea.descripcion ?? t().cotizacion.sinDato }}
+                  </td>
+
+                  <!-- La unidad va junto a la cantidad: «3 Dia» dice mas que «3» solo. -->
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ linea.cantidad }} {{ linea.unidad }}
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ linea.precioUnitario | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                    {{ linea.importe | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+
+                  <td class="px-4 py-2 md:px-5">
+                    <div class="flex justify-center gap-1">
+                      @if (esBorrador()) {
+                        <button
+                          type="button"
+                          (click)="quitar(linea)"
+                          [disabled]="enviando()"
+                          [attr.aria-label]="t().cotizacion.quitarA(linea.tarifa)"
+                          [title]="t().cotizacion.quitar"
+                          class="boton-icono"
+                        >
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" />
+                          </svg>
+                        </button>
+                      } @else {
+                        <span class="text-xs text-texto-apagado">—</span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  } @else {
+    <p class="rounded-xl border border-borde bg-superficie px-4 py-6 text-sm text-texto-secundario">
+      {{ t().cotizacion.noEncontrada }}
+    </p>
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelLinea()"
+  [titulo]="t().cotizacion.agregarLineaTitulo"
+  [apoyo]="t().cotizacion.agregarLineaApoyo"
+  (cerrar)="cerrarLinea()"
+>
+  <form [formGroup]="formularioLinea" (ngSubmit)="agregar()" id="formulario-linea">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="tarifaId" class="text-sm font-medium text-texto-secundario">
+          {{ t().cotizacion.concepto }}
+        </label>
+        <!-- El id de la tarifa es un GUID, que YA es cadena: `value` basta, no hace falta `ngValue`. -->
+        <select
+          id="tarifaId"
+          formControlName="tarifaId"
+          [attr.aria-invalid]="mal(formularioLinea.controls.tarifaId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formularioLinea.controls.tarifaId)
+              ? 'ayuda-concepto error-concepto'
+              : 'ayuda-concepto'
+          "
+          class="campo-formulario"
+        >
+          <option value="">{{ t().cotizacion.sinDato }}</option>
+          @for (tarifa of tarifas(); track tarifa.id) {
+            <option [value]="tarifa.id">{{ tarifa.codigo }} — {{ tarifa.nombre }}</option>
+          }
+        </select>
+        <p id="ayuda-concepto" class="text-xs text-texto-apagado">
+          {{ t().cotizacion.ayudaConcepto }}
+        </p>
+        @if (tarifas().length === 0) {
+          <p class="aviso text-sm text-texto-secundario">{{ t().cotizacion.sinTarifas }}</p>
+        }
+        <app-error-campo
+          id="error-concepto"
+          [visible]="mal(formularioLinea.controls.tarifaId)"
+          [mensaje]="t().cotizacion.errorConcepto"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="equipoId" class="text-sm font-medium text-texto-secundario">
+          {{ t().cotizacion.equipo }}
+        </label>
+        <select
+          id="equipoId"
+          formControlName="equipoId"
+          aria-describedby="ayuda-equipo"
+          class="campo-formulario"
+        >
+          <option value="">{{ t().cotizacion.sinEquipo }}</option>
+          @for (equipo of equiposDisponibles(); track equipo.id) {
+            <option [value]="equipo.id">
+              {{ equipo.codigoInterno }} — {{ equipo.marca }} {{ equipo.modelo }}
+            </option>
+          }
+        </select>
+        <p id="ayuda-equipo" class="text-xs text-texto-apagado">{{ t().cotizacion.ayudaEquipo }}</p>
+      </div>
+
+      <!--
+        COTIZAR POR TIPO: «una excavadora de 20 t», sin decir cual. Es lo normal cuando se cotiza
+        con semanas de anticipacion y todavia no se sabe que maquina va a estar libre.
+
+        Se deshabilita si ya se eligio equipo, porque entonces sobra: la conversion mira
+        `equipoId` primero y el tipo solo cuenta cuando no hay maquina.
+      -->
+      <div class="flex flex-col gap-1">
+        <label for="tipoEquipoId" class="text-sm font-medium text-texto-secundario">
+          {{ t().cotizacion.tipoEquipo }}
+        </label>
+        <select
+          id="tipoEquipoId"
+          formControlName="tipoEquipoId"
+          [disabled]="formularioLinea.controls.equipoId.value !== ''"
+          aria-describedby="ayuda-tipo"
+          class="campo-formulario"
+        >
+          <option value="">{{ t().cotizacion.sinTipo }}</option>
+          @for (tipo of tipos(); track tipo.id) {
+            <option [value]="tipo.id">{{ tipo.nombre }}</option>
+          }
+        </select>
+        <p id="ayuda-tipo" class="text-xs text-texto-apagado">
+          {{
+            formularioLinea.controls.equipoId.value !== ''
+              ? t().cotizacion.tipoSobra
+              : t().cotizacion.ayudaTipo
+          }}
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+          {{ t().cotizacion.descripcion }}
+        </label>
+        <textarea
+          id="descripcion"
+          formControlName="descripcion"
+          rows="2"
+          class="campo-formulario"
+        ></textarea>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="cantidad" class="text-sm font-medium text-texto-secundario">
+            {{ t().cotizacion.cantidad }}
+          </label>
+          <input
+            id="cantidad"
+            formControlName="cantidad"
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formularioLinea.controls.cantidad) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formularioLinea.controls.cantidad) ? 'error-cantidad' : null
+            "
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-cantidad"
+            [visible]="mal(formularioLinea.controls.cantidad)"
+            [mensaje]="t().cotizacion.errorCantidad"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="precioUnitario" class="text-sm font-medium text-texto-secundario">
+            {{ t().cotizacion.precioUnitario }}
+          </label>
+          <input
+            id="precioUnitario"
+            formControlName="precioUnitario"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formularioLinea.controls.precioUnitario) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formularioLinea.controls.precioUnitario)
+                ? 'ayuda-precio error-precio'
+                : 'ayuda-precio'
+            "
+            class="campo-formulario"
+          />
+          <p id="ayuda-precio" class="text-xs text-texto-apagado">
+            {{ t().cotizacion.ayudaPrecio }}
+          </p>
+          <app-error-campo
+            id="error-precio"
+            [visible]="mal(formularioLinea.controls.precioUnitario)"
+            [mensaje]="t().cotizacion.errorPrecio"
+          />
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarLinea()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().cotizacion.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-linea"
+      [disabled]="!puedeAgregar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().cotizacion.guardando : t().cotizacion.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<!--
+  Panel del estado. Solo se abre si hay a donde ir, asi que el desplegable nunca sale vacio; el
+  mensaje de «no hay a donde ir» esta por si el estado cambia con el panel abierto.
+-->
+<app-panel-lateral
+  [abierto]="panelEstado()"
+  [titulo]="t().cotizacion.cambiarEstadoTitulo"
+  [apoyo]="cotizacion() ? t().cotizacion.cambiarEstadoApoyo(cotizacion()!.folio) : ''"
+  (cerrar)="cerrarEstado()"
+>
+  <form
+    [formGroup]="formularioEstado"
+    (ngSubmit)="enviarEstado()"
+    id="formulario-estado-cotizacion"
+  >
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      @if (siguientes().length === 0) {
+        <p class="aviso text-sm text-texto-secundario">{{ t().cotizacion.sinTransiciones }}</p>
+      } @else {
+        <div class="flex flex-col gap-1">
+          <label for="estado" class="text-sm font-medium text-texto-secundario">
+            {{ t().cotizacion.estado }}
+          </label>
+          <select
+            id="estado"
+            formControlName="estado"
+            aria-describedby="ayuda-transiciones"
+            class="campo-formulario"
+          >
+            @for (estado of siguientes(); track estado) {
+              <!-- `ngValue` y NO `value`: el estado es un enum numerico. -->
+              <option [ngValue]="estado">{{ nombreEstado(estado) }}</option>
+            }
+          </select>
+          <p id="ayuda-transiciones" class="text-xs text-texto-apagado">
+            {{ t().cotizacion.avisoTransiciones }}
+          </p>
+        </div>
+      }
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarEstado()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().cotizacion.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-estado-cotizacion"
+      [disabled]="enviando() || siguientes().length === 0"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().cotizacion.guardando : t().cotizacion.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<!-- ================================================================ conversión -->
+<app-panel-lateral
+  [abierto]="panelConversion()"
+  [titulo]="t().cotizacion.convertirTitulo"
+  [apoyo]="t().cotizacion.convertirApoyo"
+  (cerrar)="cerrarConversion()"
+>
+  <!--
+    DOS CARAS: antes de convertir, el formulario; despues, el resultado. No se navega solo a la
+    renta porque `pendientes` viene en esta respuesta y en ningun otro sitio.
+  -->
+  @if (conversion(); as hecho) {
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      <p class="rounded-lg border border-borde bg-superficie-hover p-3 text-sm text-texto">
+        {{ t().cotizacion.convertidaEn(hecho.renta.folio) }}
+      </p>
+
+      @if (hecho.pendientes.length > 0) {
+        <div class="flex flex-col gap-2">
+          <h3 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+            {{ t().cotizacion.pendientes }}
+          </h3>
+
+          <p class="aviso text-sm text-texto-secundario">
+            {{ t().cotizacion.ayudaPendientes }}
+          </p>
+
+          <!--
+            Una linea por pendiente, con el texto TAL CUAL lo manda el servidor: ya viene
+            redactado —«2 x Excavadora 20 (Renta diaria) a 3,500.00: falta asignar el equipo»— y
+            reformatearlo aqui seria recomponer una frase que ya esta hecha.
+          -->
+          <ul class="flex flex-col gap-1">
+            @for (pendiente of hecho.pendientes; track pendiente) {
+              <li
+                class="rounded-lg border border-amarillo bg-alerta-fondo px-3 py-2 text-sm text-alerta-texto"
+              >
+                {{ pendiente }}
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+  } @else {
+    <form [formGroup]="formularioConversion" (ngSubmit)="convertir()" id="formulario-conversion">
+      <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+        @if (error(); as mensaje) {
+          <p
+            class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+            role="alert"
+          >
+            {{ mensaje }}
+          </p>
+        }
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1">
+            <label for="conv-inicio" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.inicio }}
+            </label>
+            <input
+              id="conv-inicio"
+              formControlName="inicio"
+              type="datetime-local"
+              [attr.aria-invalid]="mal(formularioConversion.controls.inicio) ? 'true' : null"
+              [attr.aria-describedby]="
+                mal(formularioConversion.controls.inicio) ? 'error-conv-inicio' : null
+              "
+              class="campo-formulario"
+            />
+            <app-error-campo
+              id="error-conv-inicio"
+              [visible]="mal(formularioConversion.controls.inicio)"
+              [mensaje]="t().rentas.errorInicio"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="conv-fin" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.fin }}
+            </label>
+            <input
+              id="conv-fin"
+              formControlName="fin"
+              type="datetime-local"
+              [attr.aria-invalid]="mal(formularioConversion.controls.fin) ? 'true' : null"
+              [attr.aria-describedby]="
+                mal(formularioConversion.controls.fin)
+                  ? 'ayuda-conv-periodo error-conv-fin'
+                  : 'ayuda-conv-periodo'
+              "
+              class="campo-formulario"
+            />
+            <app-error-campo
+              id="error-conv-fin"
+              [visible]="mal(formularioConversion.controls.fin)"
+              [mensaje]="t().rentas.errorFin"
+            />
+          </div>
+
+          <p id="ayuda-conv-periodo" class="text-xs text-texto-apagado sm:col-span-2">
+            {{ t().rentas.ayudaPeriodo }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="conv-lugar" class="text-sm font-medium text-texto-secundario">
+            {{ t().rentas.lugar }}
+          </label>
+          <input
+            id="conv-lugar"
+            formControlName="lugarDescripcion"
+            autocomplete="off"
+            [attr.aria-invalid]="
+              mal(formularioConversion.controls.lugarDescripcion) ? 'true' : null
+            "
+            [attr.aria-describedby]="
+              mal(formularioConversion.controls.lugarDescripcion)
+                ? 'ayuda-conv-lugar error-conv-lugar'
+                : 'ayuda-conv-lugar'
+            "
+            class="campo-formulario"
+          />
+          <p id="ayuda-conv-lugar" class="text-xs text-texto-apagado">
+            {{ t().rentas.ayudaLugar }}
+          </p>
+          <app-error-campo
+            id="error-conv-lugar"
+            [visible]="mal(formularioConversion.controls.lugarDescripcion)"
+            [mensaje]="t().rentas.errorLugar"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1">
+            <label for="conv-deposito" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.deposito }}
+            </label>
+            <input
+              id="conv-deposito"
+              formControlName="deposito"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="conv-anticipo" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.anticipo }}
+            </label>
+            <input
+              id="conv-anticipo"
+              formControlName="anticipo"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+        </div>
+      </div>
+    </form>
+  }
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarConversion()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().cotizacion.cerrar }}
+    </button>
+
+    @if (conversion()) {
+      <button
+        type="button"
+        (click)="irALaRenta()"
+        class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+      >
+        {{ t().cotizacion.verRenta }}
+      </button>
+    } @else {
+      <button
+        type="submit"
+        form="formulario-conversion"
+        [disabled]="!puedeConvertir()"
+        class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+      >
+        {{ enviando() ? t().cotizacion.convirtiendo : t().cotizacion.convertir }}
+      </button>
+    }
+  </div>
+</app-panel-lateral>

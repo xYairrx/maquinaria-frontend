@@ -121,12 +121,14 @@ describe('ApiCatalogos — listado de marcas', () => {
     api.marcas.crear({ nombre: 'Komatsu' }).subscribe();
     await asentar();
 
-    http.expectOne((r) => r.method === 'POST' && r.url === URL).flush({
-      id: 'b',
-      nombre: 'Komatsu',
-      activo: true,
-      modelos: 0,
-    });
+    http
+      .expectOne((r) => r.method === 'POST' && r.url === URL)
+      .flush({
+        id: 'b',
+        nombre: 'Komatsu',
+        activo: true,
+        modelos: 0,
+      });
     await asentar();
 
     // El `tap` del servicio: nadie pidió esta segunda lectura desde la pantalla.
