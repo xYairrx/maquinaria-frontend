@@ -2,6 +2,71 @@
 
 Las reglas del repo están en [`AGENTS.md`](../AGENTS.md), y `.claude/CLAUDE.md` es **byte a byte el mismo archivo** (ambos vienen del preset de instrucciones para IA del Angular CLI). Si se cambia uno, hay que cambiar el otro.
 
+## Un validador escrito para texto MIENTE en un campo numérico
+
+`validadorRequerido` pasa por `texto()`, que devuelve `''` para cualquier valor que no sea una
+cadena. Y un `<input type="number">` mete un **number** en el control, o `null` al vaciarse.
+
+Resultado: puesto en un campo numérico devuelve `{ required: true }` **siempre**, se escriba lo
+que se escriba, y **el botón de enviar no se habilita nunca**.
+
+```ts
+cantidad: [1 as number | null, validadorRequerido],     // no — inválido para siempre
+cantidad: [1 as number | null, validadorCantidad],      // sí — > 0
+precioUnitario: [0 as number | null, validadorImporte], // sí — >= 0
+```
+
+**El síntoma no señala al culpable.** El formulario se ve completo; no sale ningún mensaje de
+error, porque los avisos aparecen con `touched` y un campo con valor por omisión se rellena sin
+tocarlo; el botón está apagado y nada dice por qué. Pasó en el alta de línea de una cotización y
+solo se vio usando la pantalla.
+
+Es la misma familia que las trampas de `[ngValue]` y `NumberValueAccessor`: **lo que acaba dentro
+del control lo decide el ACCESOR, no la declaración del formulario** — y aquí el validador estaba
+escrito creyéndole a la declaración. La regla derivada es una sola:
+
+> Antes de poner un validador en un control, pregunta de qué TIPO es el valor que el accesor
+> escribe ahí, no de qué tipo lo declaraste.
+
+Pruebas: `nucleo/formularios/validadores.spec.ts`, donde `validadorRequerido(control(3))`
+devolviendo `{ required: true }` queda fijado como el defecto que documenta.
+
+## `datetime-local` entrega hora de PARED, la base guarda un INSTANTE
+
+Un `<input type="datetime-local">` da `2026-09-01T08:00`, **sin zona**. Una columna
+`timestamptz` guarda un instante. Son cosas distintas y cruzar mal esa frontera **no da un
+error**: da un dato corrido las horas del huso.
+
+Dos formas de equivocarse, y las dos ya pasaron o estuvieron a punto:
+
+- **Mandar el texto tal cual** → `System.Text.Json` lo lee como `DateTime` con
+  `Kind=Unspecified`, y **Npgsql solo escribe `Kind=Utc` en un `timestamptz`**. La excepción no
+  es una violación de restricción, así que no la atrapa el `catch` del servicio: **500**. Pasó
+  al crear la primera renta.
+- **Pegarle una `Z` al final** → es lo que hacen Traspasos y el alta de precio, y ahí es
+  CORRECTO porque el campo es `date` y la hora es arbitraria. En un campo donde la hora ES el
+  dato, alguien en México capturando las 08:00 guardaría las 08:00 UTC, o sea las 02:00
+  locales. Seis horas de corrimiento, sin ningún síntoma.
+
+La conversión la hace `nucleo/formularios/fecha-hora.ts`, que se apoya en el navegador —el
+único que sabe en qué zona está—:
+
+```ts
+inicio: aInstante(v.inicio) ?? '',   // hora de pared → instante UTC
+inicio: aCampoLocal(renta.inicio),   // instante → campo, para editar
+```
+
+**Y el camino de vuelta importa igual.** `iso.slice(0, 16)` parece razonable y es el mismo
+defecto del otro lado: recorta el texto UTC y lo enseña en un campo que significa hora local.
+
+**Limitación conocida:** la zona es la del NAVEGADOR, no la de la empresa.
+`tenant.zona_horaria` existe en la base central y no se usa en ningún cálculo. Mientras la
+operación esté en un solo huso da igual; el día que un capturista en Tijuana registre la renta
+de una máquina en Cancún, ese archivo es el que hay que cambiar.
+
+Pruebas: `nucleo/formularios/fecha-hora.spec.ts`, escritas **sin fijar un huso** —el de la
+máquina que corre las pruebas no se controla— comprobando la relación: que ida y vuelta cierren.
+
 ## Componentes
 
 - Standalone siempre; **no** poner `standalone: true` en el decorador — es el valor por omisión desde v20.
@@ -169,8 +234,8 @@ idioma de ese instante.
 **Hay UNA sola barra por pantalla, y la dibuja el armazón.** Mezcla dos ámbitos a
 propósito, porque así es como se ve en el diseño:
 
-| Del armazón | De la pantalla |
-|---|---|
+| Del armazón                                              | De la pantalla                               |
+| -------------------------------------------------------- | -------------------------------------------- |
 | Botón del menú (`lg:hidden`), Salir, avatar de iniciales | Título, contexto, búsqueda, acción principal |
 
 La pantalla no dibuja nada de eso: **lo publica como datos** en el servicio
@@ -320,7 +385,7 @@ veintiséis pantallas.
 ### Tres trampas, las tres pagadas ya
 
 **1. `value()` LANZA si el recurso está en error.** Está en su documentación, en una frase de
-paso: *«the current value, or throws an error if the resource is in an error state»*. Como
+paso: _«the current value, or throws an error if the resource is in an error state»_. Como
 las pantallas leen los datos dentro de un `effect` sin condición, exponer `.value` directo
 hacía que un fallo de la petición reventara el efecto en lugar de pintar el aviso. La
 envoltura obligatoria:
@@ -404,8 +469,14 @@ cabecera, compartida por las dos sesiones) y el orden en `app.config.ts`.
 
 ```ts
 this.enVuelo = this.api.refrescarSesion(datos.empresa, datos.tokenRefresco).pipe(
-  map((sesion) => { this.sesion.abrir(sesion); return sesion.token; }),
-  catchError((error: unknown) => { this.terminarSesion(); return throwError(() => error); }),
+  map((sesion) => {
+    this.sesion.abrir(sesion);
+    return sesion.token;
+  }),
+  catchError((error: unknown) => {
+    this.terminarSesion();
+    return throwError(() => error);
+  }),
   finalize(() => (this.enVuelo = null)),
   shareReplay({ bufferSize: 1, refCount: false }),
 );
@@ -452,7 +523,7 @@ deja su pantalla en «enviando» para siempre.
 ### El orden de los interceptores es carga funcional
 
 ```ts
-provideHttpClient(withInterceptors([interceptorRefresco, interceptorToken]))
+provideHttpClient(withInterceptors([interceptorRefresco, interceptorToken]));
 ```
 
 `interceptorRefresco` va **por fuera**, así que su `siguiente(peticion)` vuelve a pasar por
@@ -550,11 +621,11 @@ el gesto y los anclajes.
 
 Las tres dieron fallos reales, y ninguna avisa: no hay error, solo algo que se ve mal.
 
-| Lo que pone el navegador | Síntoma | Qué se escribe |
-|---|---|---|
-| `display: none` al cerrado | **La hoja se ve en la página estando cerrada** — con su formulario y todo. Lo pisaba nuestro `display: flex`, que tiene la misma especificidad y gana por orden | `&:not([open]) { display: none }` |
-| `max-height: calc(100% - 6px - 2em)` | Alto constante que ignora el anclaje | El tope va **en línea** desde el componente |
-| `max-width: calc(100% - 6px - 2em)` | 38 px de hueco a la derecha | `max-width: 100%` |
+| Lo que pone el navegador             | Síntoma                                                                                                                                                         | Qué se escribe                              |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `display: none` al cerrado           | **La hoja se ve en la página estando cerrada** — con su formulario y todo. Lo pisaba nuestro `display: flex`, que tiene la misma especificidad y gana por orden | `&:not([open]) { display: none }`           |
+| `max-height: calc(100% - 6px - 2em)` | Alto constante que ignora el anclaje                                                                                                                            | El tope va **en línea** desde el componente |
+| `max-width: calc(100% - 6px - 2em)`  | 38 px de hueco a la derecha                                                                                                                                     | `max-width: 100%`                           |
 
 La regla general: al usar `<dialog>` para algo que no es un cuadro centrado, **hay que anular
 sus valores por defecto uno por uno**, y comprobar el estado CERRADO además del abierto.
@@ -569,10 +640,10 @@ real sobre una ventana de **720 px** de alto: **200 px de arrastre daban 200 px 
 
 Una hoja inferior no se mueve hacia arriba, **crece** hacia arriba. El reparto que hay escrito:
 
-| Dirección | Dónde va | Por qué |
-|---|---|---|
-| **Arriba** | el tope de alto: `min(98dvh, calc(<anclaje>dvh + <subida>px))` | Su borde de abajo no se separa nunca del de la pantalla |
-| **Abajo** | el `translate`, y solo positivo | Ahí sí es un desplazamiento de verdad: la hoja se va **por debajo** del borde, que es lo que tiene que parecer al descartarla |
+| Dirección  | Dónde va                                                       | Por qué                                                                                                                       |
+| ---------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Arriba** | el tope de alto: `min(98dvh, calc(<anclaje>dvh + <subida>px))` | Su borde de abajo no se separa nunca del de la pantalla                                                                       |
+| **Abajo**  | el `translate`, y solo positivo                                | Ahí sí es un desplazamiento de verdad: la hoja se va **por debajo** del borde, que es lo que tiene que parecer al descartarla |
 
 Medido después del arreglo, misma ventana de 720: **360 px en reposo, 560 px con 200 px de
 arrastre y 0 de hueco**, y 706 px con un arrastre enorme — que es el freno de `98dvh`
@@ -786,13 +857,13 @@ coincide es peor que ninguno, porque promete una forma y entrega otra.
 
 Medido en el dashboard, esqueleto contra cargado:
 
-| | Diferencia |
-|---|---|
-| Ancho del contenedor | 0 px |
-| Alto de la gráfica | 0 px |
-| Tarjeta de indicador | 1 px |
-| Un elemento de la lista de avisos | 7 px |
-| La tarjeta de avisos completa | 141 px |
+|                                   | Diferencia |
+| --------------------------------- | ---------- |
+| Ancho del contenedor              | 0 px       |
+| Alto de la gráfica                | 0 px       |
+| Tarjeta de indicador              | 1 px       |
+| Un elemento de la lista de avisos | 7 px       |
+| La tarjeta de avisos completa     | 141 px     |
 
 Lo de altura fija coincide exacto. **Lo que no puede coincidir es una lista cuyo largo se
 desconoce hasta que llegan los datos**: el esqueleto pinta tres avisos y llegaron cuatro. Se
@@ -838,13 +909,12 @@ el caso pequeño —que es el más apretado— definido por descarte.
 ```html
 <!-- Sí: declara la forma estrecha y la ensancha -->
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
-<!-- No: el caso del teléfono queda implícito -->
-<div class="grid grid-cols-4 gap-4 sm:grid-cols-1">
+  <!-- No: el caso del teléfono queda implícito -->
+  <div class="grid grid-cols-4 gap-4 sm:grid-cols-1"></div>
+</div>
 ```
 
-Los cortes son los de Tailwind, sin personalizar: `sm` 640, `md` 768, `lg` 1024, `xl`
-1280. El que más pesa aquí es **`lg`**, porque es donde el menú lateral pasa de cajón a
+Los cortes son los de Tailwind, sin personalizar: `sm` 640, `md` 768, `lg` 1024, `xl` 1280. El que más pesa aquí es **`lg`**, porque es donde el menú lateral pasa de cajón a
 columna fija: por debajo de `lg` el contenido tiene todo el ancho.
 
 ### Las cinco reglas
@@ -908,9 +978,11 @@ navega con teclado se mete en un menú que no ve. Para eso está `visibility: hi
 saca del foco, y se revierte con `lg:visible`. Es exactamente lo que hace `menu-lateral`:
 
 ```html
-<nav class="fixed ... transition-transform lg:static lg:visible lg:translate-x-0"
-     [class.-translate-x-full]="!abierto()"
-     [class.invisible]="!abierto()">
+<nav
+  class="fixed ... transition-transform lg:static lg:visible lg:translate-x-0"
+  [class.-translate-x-full]="!abierto()"
+  [class.invisible]="!abierto()"
+></nav>
 ```
 
 `display: none` también sirve, pero mata la transición; con `visibility` el cajón entra
@@ -934,13 +1006,13 @@ eso exige, y que no es opcional:
 En los tres anchos, y son tres números concretos: **375** (teléfono), **768** (tableta) y
 **1280** (escritorio). Lo que se mira en cada uno:
 
-| Qué | Cómo se ve que está mal |
-|---|---|
-| `document.documentElement.scrollWidth > innerWidth` | Hay desborde horizontal del documento |
-| El menú cerrado | Algún enlace suyo sigue siendo alcanzable con Tab |
-| Los grupos de tarjetas | Cifras o pies cortados |
-| La tabla | Se desplaza la página en vez de la tabla |
-| La columna fija | Se va con el desplazamiento, o el contenido se le transparenta por debajo |
+| Qué                                                 | Cómo se ve que está mal                                                   |
+| --------------------------------------------------- | ------------------------------------------------------------------------- |
+| `document.documentElement.scrollWidth > innerWidth` | Hay desborde horizontal del documento                                     |
+| El menú cerrado                                     | Algún enlace suyo sigue siendo alcanzable con Tab                         |
+| Los grupos de tarjetas                              | Cifras o pies cortados                                                    |
+| La tabla                                            | Se desplaza la página en vez de la tabla                                  |
+| La columna fija                                     | Se va con el desplazamiento, o el contenido se le transparenta por debajo |
 
 ## Accesibilidad
 
@@ -1024,11 +1096,11 @@ archivos, se agrupa por responsabilidad.
 
 Qué va en cada una:
 
-| Carpeta | Qué contiene | Cómo saber si algo va aquí |
-|---|---|---|
-| `ambiente/` | `configuracion.ts`, `tenant.ts`, `sitio.ts`, `titulo-pagina.ts` | Responde «¿dónde estoy?»: la URL de la API, el dominio base, qué empresa dice el subdominio, cómo se llama el producto |
-| `api/` | clientes HTTP, `contratos*.ts`, `mensaje-error.ts` | Habla con el backend o describe lo que este devuelve |
-| `sesion/` | almacenes de sesión, guards, los dos interceptores, el refresco serializado, `acceso.ts` | Depende de quién entró |
+| Carpeta     | Qué contiene                                                                             | Cómo saber si algo va aquí                                                                                             |
+| ----------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `ambiente/` | `configuracion.ts`, `tenant.ts`, `sitio.ts`, `titulo-pagina.ts`                          | Responde «¿dónde estoy?»: la URL de la API, el dominio base, qué empresa dice el subdominio, cómo se llama el producto |
+| `api/`      | clientes HTTP, `contratos*.ts`, `mensaje-error.ts`                                       | Habla con el backend o describe lo que este devuelve                                                                   |
+| `sesion/`   | almacenes de sesión, guards, los dos interceptores, el refresco serializado, `acceso.ts` | Depende de quién entró                                                                                                 |
 
 **Los archivos de prueba viven junto a lo que prueban**, no en una carpeta aparte:
 `tenant.spec.ts` al lado de `tenant.ts`.
@@ -1043,12 +1115,12 @@ carpeta de lo que las tres comparten cuando todavía no hay sesión. No tiene ru
 `rutas-acceso.ts`, y ninguno de sus componentes es una pantalla: son piezas que las
 pantallas de `empresa/`, `plataforma/` y `portal/` montan dentro de las suyas.
 
-| Componente | Qué es |
-|---|---|
-| `marco-acceso` | El armazón de dos columnas. Cada pantalla proyecta su formulario con `<ng-content>`; el marco no sabe de campos, validaciones ni API |
-| `campo-contrasena` | El campo con el botón de mostrar/ocultar, la etiqueta en `sr-only` y `aria-invalid` |
-| `selector-idioma` | El desplegable de idioma de la barra superior |
-| `bandera` | La banderita de un idioma, como `<img>` |
+| Componente         | Qué es                                                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `marco-acceso`     | El armazón de dos columnas. Cada pantalla proyecta su formulario con `<ng-content>`; el marco no sabe de campos, validaciones ni API |
+| `campo-contrasena` | El campo con el botón de mostrar/ocultar, la etiqueta en `sr-only` y `aria-invalid`                                                  |
+| `selector-idioma`  | El desplegable de idioma de la barra superior                                                                                        |
+| `bandera`          | La banderita de un idioma, como `<img>`                                                                                              |
 
 La razón de que existan es siempre la misma: **el detalle que se copia mal**. El
 alternador de contraseña tiene más partes de las que parece —el `type="button"` del botón,

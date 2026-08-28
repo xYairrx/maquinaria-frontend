@@ -14,17 +14,43 @@ const MODULOS_DEL_CATALOGO = 26;
 /**
  * Los módulos con pantalla propia. El resto se muestra apagado.
  *
- * EL CRITERIO ES «se puede operar el módulo», no «existe alguna pantalla suya». Marcas ya
- * está construida y su endpoint exige `equipos.consultar`, pero el módulo de equipos en sí
- * —el alta de una máquina, su expediente— todavía no: marcar `equipos` aquí diría que se
- * puede administrar el parque, y no se puede.
+ * **EL CRITERIO ES «se puede operar el módulo», no «existe alguna pantalla suya».** Cuando solo
+ * existía el catálogo de Marcas, `equipos` NO se marcaba pese a que su endpoint exigía
+ * `equipos.consultar`: decirlo habría prometido que se administra el parque, y no se podía.
  *
- * Decía `new Set(['usuarios'])` y era falso en dos sentidos: no hay ruta `/usuarios` en
- * `rutas-empresa.ts`, y el backend **no expone endpoints de usuarios ni de roles** para una
- * empresa —solo `/api/mi/sesion` y aceptar una invitación—. Hoy invitar gente a una empresa
- * es una acción de plataforma. Ver `docs/plan-fase1-front.md` §3.1.
+ * Ese listón es el que hay que seguir aplicando. Hoy los diez de abajo lo pasan porque su ciclo
+ * completo está construido, no porque tengan una pantalla.
+ *
+ * HISTORIA, para que no vuelva: decía `new Set(['usuarios'])` y era falso en dos sentidos —no
+ * hay ruta `/usuarios` y el backend no expone endpoints de usuarios ni de roles para una
+ * empresa—. Después estuvo VACÍO durante toda la Fase 1, y el «Implementados 0» se quedó
+ * mintiendo al revés mientras se construían veintitantas pantallas. Se llenó al cerrar el
+ * alcance. Ver `docs/plan-fase1-front.md` §3.1.
  */
-const IMPLEMENTADOS = new Set<string>();
+const IMPLEMENTADOS = new Set<string>([
+  // Alta de máquina, expediente con documentos y precios, traspasos, y sus cuatro catálogos
+  // —marcas, categorías, tipos, modelos—. El parque se administra de verdad.
+  'equipos',
+  'sucursales',
+  'clientes',
+  'proveedores',
+  'disponibilidad',
+  'cotizaciones',
+  // Las cinco operaciones: confirmar, entregar, extender, devolver y cerrar.
+  'rentas',
+  'contratos',
+  // Órdenes de compra y de venta. Las dos declaran `compras` en el servidor, incluida la de
+  // venta: `[RequierePermiso("compras.consultar")]` en los dos controladores.
+  'compras',
+
+  // `usuarios` NO ESTÁ, y es deliberado. Puestos y Trabajadores existen y usan esa clave, pero
+  // el módulo se llama «Usuarios y permisos» y eso NO se puede administrar: el backend no
+  // expone endpoints de usuarios ni de roles para una empresa —solo `/api/mi/sesion` y aceptar
+  // una invitación—, así que invitar gente sigue siendo una acción de plataforma.
+  //
+  // Marcarlo diría que se pueden dar de alta usuarios y repartir permisos desde aquí. Es la
+  // misma vara que dejó fuera a `equipos` cuando solo existía su catálogo. Ver §3.1 del plan.
+]);
 
 @Component({
   selector: 'app-inicio',

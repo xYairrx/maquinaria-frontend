@@ -10,29 +10,29 @@ trabajo del 2026-08-25, que todavía está en el árbol de trabajo sin commitear
 
 Verificado en disco hoy:
 
-| Medida | Valor |
-|---|---|
-| Pruebas | **116 en 9 archivos**, todas pasan (`npx ng test --watch=false`) |
-| Componentes | **26**, todos con `OnPush`, y **26** `.html` hermanos |
-| Plantillas dentro de un `.ts` | **cero** (`grep -rn "template:" src/` no devuelve nada) |
-| Build de producción | **373.59 kB** crudos / **103.85 kB** transferidos, más **22** chunks diferidos |
-| Salida | `dist/maquinaria-frontend/browser` |
+| Medida                        | Valor                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| Pruebas                       | **116 en 9 archivos**, todas pasan (`npx ng test --watch=false`)               |
+| Componentes                   | **26**, todos con `OnPush`, y **26** `.html` hermanos                          |
+| Plantillas dentro de un `.ts` | **cero** (`grep -rn "template:" src/` no devuelve nada)                        |
+| Build de producción           | **373.59 kB** crudos / **103.85 kB** transferidos, más **22** chunks diferidos |
+| Salida                        | `dist/maquinaria-frontend/browser`                                             |
 
 Las cifras del documento anterior —39 pruebas en 2 archivos, 17 componentes, 290.25 kB—
 eran de tres tandas de trabajo atrás y hoy son falsas en los tres casos. El reparto por
 archivo de prueba, que es lo que dice de verdad dónde hay red y dónde no:
 
-| Archivo | Pruebas |
-|---|---|
-| `nucleo/ambiente/tenant.spec.ts` | 31 (casi todas `it.each`) |
-| `paginas/plataforma/dashboard/resumen.spec.ts` | 21 |
-| `nucleo/i18n/i18n.spec.ts` | 11 |
-| `nucleo/sesion/interceptor-refresco.spec.ts` | 11 |
-| `nucleo/api/api-plataforma.spec.ts` | 10 |
-| `nucleo/api/api.spec.ts` | 9 |
-| `paginas/plataforma/salud-esquemas/esquema.spec.ts` | 9 |
-| `nucleo/sesion/acceso.spec.ts` | 8 |
-| `disposicion/hoja.spec.ts` | 6 |
+| Archivo                                             | Pruebas                   |
+| --------------------------------------------------- | ------------------------- |
+| `nucleo/ambiente/tenant.spec.ts`                    | 31 (casi todas `it.each`) |
+| `paginas/plataforma/dashboard/resumen.spec.ts`      | 21                        |
+| `nucleo/i18n/i18n.spec.ts`                          | 11                        |
+| `nucleo/sesion/interceptor-refresco.spec.ts`        | 11                        |
+| `nucleo/api/api-plataforma.spec.ts`                 | 10                        |
+| `nucleo/api/api.spec.ts`                            | 9                         |
+| `paginas/plataforma/salud-esquemas/esquema.spec.ts` | 9                         |
+| `nucleo/sesion/acceso.spec.ts`                      | 8                         |
+| `disposicion/hoja.spec.ts`                          | 6                         |
 
 Los chunks diferidos que importan por tamaño son los de las pantallas del panel:
 `dashboard` 20.01 / 5.37 kB, `planes` 15.61 / 4.31 kB, `empresas` 13.23 / 3.65 kB y
@@ -47,28 +47,28 @@ La plantilla de bienvenida de Angular ya no existe: `src/app/app.html` es
 un árbol según el anfitrión. No hay un guard tapando rutas ajenas — esas rutas
 sencillamente no se registran, igual que el backend aísla por base de datos.
 
-| Anfitrión | Aplicación | Árbol |
-|---|---|---|
-| `admin.<dominio>` | Superadministración | `rutas-plataforma.ts` |
-| `<slug>.<dominio>` | La empresa `<slug>` | `rutas-empresa.ts` |
-| `<dominio>`, `login.<dominio>` | Portal de entrada | `rutas-portal.ts` |
+| Anfitrión                      | Aplicación          | Árbol                 |
+| ------------------------------ | ------------------- | --------------------- |
+| `admin.<dominio>`              | Superadministración | `rutas-plataforma.ts` |
+| `<slug>.<dominio>`             | La empresa `<slug>` | `rutas-empresa.ts`    |
+| `<dominio>`, `login.<dominio>` | Portal de entrada   | `rutas-portal.ts`     |
 
 Se resuelve una vez al arrancar: el anfitrión no cambia sin recargar, y cambiar de
 empresa es cambiar de origen.
 
 ### Cómo está organizado `src/app/`
 
-| Carpeta | Qué hay |
-|---|---|
-| `nucleo/ambiente/` | `configuracion.ts`, `tenant.ts` (+ `tenant.spec.ts`), `sitio.ts`, `titulo-pagina.ts` |
-| `nucleo/api/` | `api.ts` (+ `api.spec.ts`), `api-plataforma.ts` (+ `api-plataforma.spec.ts`), `contratos.ts`, `contratos-plataforma.ts`, `mensaje-error.ts` |
-| `nucleo/i18n/` | `i18n.ts` (+ `i18n.spec.ts`) y `textos.ts` con los dos idiomas |
-| `nucleo/sesion/` | `sesion.ts`, `sesion-plataforma.ts`, `acceso.ts` (+ `acceso.spec.ts`), `guard-sesion.ts`, `guard-plataforma.ts`, `interceptor-token.ts`, `refresco-sesion.ts`, `interceptor-refresco.ts` (+ `interceptor-refresco.spec.ts`) |
-| `disposicion/` | `disposicion-empresa`, `disposicion-plataforma`, `menu-lateral`, `menu-usuario`, `opciones-menu.ts`, `barra.ts`, `hoja` (+ `hoja.spec.ts`) |
-| `paginas/acceso/` | Piezas compartidas del acceso: `marco-acceso`, `campo-contrasena`, `selector-idioma`, `bandera` |
-| `paginas/empresa/` | `iniciar-sesion`, `aceptar-invitacion`, `solicitar-restablecimiento`, `restablecer-contrasena`, `inicio` (con `esqueleto`) |
-| `paginas/plataforma/` | `iniciar-sesion`, `dashboard` (+ `resumen.ts`, `esqueleto`), `empresas` (+ `esqueleto`), `planes` (+ `esqueleto`), `salud-esquemas` (+ `esquema.ts`, `esqueleto`) |
-| `paginas/portal/` | `seleccionar-empresa` |
+| Carpeta               | Qué hay                                                                                                                                                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nucleo/ambiente/`    | `configuracion.ts`, `tenant.ts` (+ `tenant.spec.ts`), `sitio.ts`, `titulo-pagina.ts`                                                                                                                                        |
+| `nucleo/api/`         | `api.ts` (+ `api.spec.ts`), `api-plataforma.ts` (+ `api-plataforma.spec.ts`), `contratos.ts`, `contratos-plataforma.ts`, `mensaje-error.ts`                                                                                 |
+| `nucleo/i18n/`        | `i18n.ts` (+ `i18n.spec.ts`) y `textos.ts` con los dos idiomas                                                                                                                                                              |
+| `nucleo/sesion/`      | `sesion.ts`, `sesion-plataforma.ts`, `acceso.ts` (+ `acceso.spec.ts`), `guard-sesion.ts`, `guard-plataforma.ts`, `interceptor-token.ts`, `refresco-sesion.ts`, `interceptor-refresco.ts` (+ `interceptor-refresco.spec.ts`) |
+| `disposicion/`        | `disposicion-empresa`, `disposicion-plataforma`, `menu-lateral`, `menu-usuario`, `opciones-menu.ts`, `barra.ts`, `hoja` (+ `hoja.spec.ts`)                                                                                  |
+| `paginas/acceso/`     | Piezas compartidas del acceso: `marco-acceso`, `campo-contrasena`, `selector-idioma`, `bandera`                                                                                                                             |
+| `paginas/empresa/`    | `iniciar-sesion`, `aceptar-invitacion`, `solicitar-restablecimiento`, `restablecer-contrasena`, `inicio` (con `esqueleto`)                                                                                                  |
+| `paginas/plataforma/` | `iniciar-sesion`, `dashboard` (+ `resumen.ts`, `esqueleto`), `empresas` (+ `esqueleto`), `planes` (+ `esqueleto`), `salud-esquemas` (+ `esquema.ts`, `esqueleto`)                                                           |
+| `paginas/portal/`     | `seleccionar-empresa`                                                                                                                                                                                                       |
 
 Cada pantalla se renombró por **lo que se hace en ella**. **Las URL no cambiaron**:
 `/entrar`, `/invitacion`, `/recuperar`, `/restablecer`, `/inicio`, `/empresas`. Las que
@@ -113,6 +113,7 @@ los 26 componentes.
   Cuando el canje falla no hay reintento posible: se limpia la sesión y se navega a
   `/entrar?expirada=1`, con `entrarEmpresa.expirada` en los dos idiomas y su bloque ya
   pintado en la pantalla de acceso — el mismo patrón de `?activada=1` y `?restablecida=1`.
+
 - **Armazones con menú lateral**, uno por aplicación. El menú es **datos**
   (`opciones-menu.ts`) y se filtra por la intersección **permisos del rol ∩ módulos del
   plan**; los grupos que quedan vacíos desaparecen. La superadministración no filtra por
@@ -156,6 +157,7 @@ los 26 componentes.
   propósito: **sin reporte no se afirma nada del esquema de nadie.** `resumen.spec.ts`
   pasó de 19 a 21 `it`, y en el camino se borraron los tres de `describe('esquemaReferencia')`:
   describían el comportamiento roto y por eso no podían verlo.
+
 - **Salud de esquemas** (`/esquemas`), contra `GET /api/plataforma/salud/esquemas`. Una
   tabla por empresa con la versión aplicada, las migraciones pendientes y su estado, más
   la leyenda de los tres estados debajo. Las dos funciones puras que la sostienen viven en
@@ -173,6 +175,7 @@ los 26 componentes.
   conecta a las bases de las empresas**, así que una migración aplicada a mano no se ve
   hasta la siguiente corrida de `migrar-empresas`. La pantalla lo dice en su nota de
   limitación en lugar de dejar que se lea como un reporte infalible.
+
 - **Tarjetas de indicador, listas de aviso, chips de filtro y campos de formulario** como
   `@utility` en `src/styles.css`, siguiendo la especificación del sistema de diseño. De los
   cinco componentes que ese documento describía sin que existieran, el único que sigue sin
@@ -203,6 +206,7 @@ los 26 componentes.
   defecto, así que `token() === ''` era falso, se pedía la liga `undefined` y el 404 hacía
   que **una liga que faltaba se viera como una liga caducada**. Arreglado con
   comprobaciones falsy y fijado con pruebas.
+
 - **Una sola barra superior por pantalla**, dibujada por el armazón y alimentada por la
   pantalla como DATOS a través de `disposicion/barra.ts` — título, contexto, búsqueda y
   acción principal—, junto al botón del menú, Salir y el avatar de iniciales, que son del
@@ -219,6 +223,7 @@ los 26 componentes.
   buscando el botón: la suscripción no guarda importe —solo apunta al plan— así que cambiar
   el precio reescribiría lo que pagaron los suscriptores anteriores, y quitar un módulo se lo
   quita a todos retroactivamente. Se retira el plan y se crea su sucesor.
+
 - **El alta de empresa vive en la hoja inferior**, con la misma fórmula que planes. La barra
   de `/empresas` por fin tiene acción principal —«Nueva empresa», con `alPulsar` y no `ruta`,
   así que el armazón pinta un `<button>`— y el formulario de siete campos está en
@@ -230,6 +235,7 @@ los 26 componentes.
   dentro de una hoja que se descarta con un gesto desaparecería con el mismo movimiento que
   la abrió. Y `puedeEnviar()` exige que haya al menos un plan activo, porque
   `AprovisionarEmpresa` lo rechaza en el servidor.
+
 - **Hoja inferior arrastrable reutilizable** (`disposicion/hoja.ts`), sobre un `<dialog>`
   nativo con `showModal()`: se agarra del asa, tiene anclajes configurables y se cierra
   tirándola hacia abajo o con un gesto rápido. La usan el alta de plan y el alta de empresa.
@@ -243,13 +249,14 @@ los 26 componentes.
   Medido en navegador real a 720 px de alto: 200 px de arrastre daban **200 px de hueco**.
 
   El gesto ahora es **asimétrico**: **subir es CRECER** —`min(98dvh, calc(<anclaje>dvh +
-  <subida>px))`— y **bajar es DESPLAZARSE**, que sigue en el `translate` porque al descartarla
+<subida>px))`— y **bajar es DESPLAZARSE**, que sigue en el `translate` porque al descartarla
   la hoja sí tiene que irse por debajo del borde. Medido después: 360 px en reposo, **560 px
   con 200 de arrastre y 0 de hueco**, y 706 px con un arrastre enorme, que es el freno de
   98dvh sobre 720. El `min()` va en CSS y no en JS porque mezcla `dvh` con `px`. Se quitó la
   goma elástica del anclaje más alto: amortiguaba a un cuarto, pero lo conseguía levantando
   la hoja del fondo — el mismo fallo en pequeño. `hoja.spec.ts` fija la regla con 6 pruebas:
   **el `translate` nunca es negativo.**
+
 - **Tablas con la primera columna fija.** `planes` pasó de **seis columnas a cinco**: la
   píldora de estado se mudó DENTRO de la celda del plan, pegada al nombre, donde se lee
   mejor, en vez de ocupar columna propia (`planes.colEstado` quedó sin uso y se retiró de los
@@ -261,6 +268,7 @@ los 26 componentes.
   desplaza dentro de su caja, `position: sticky` calculado, fondo opaco, y tras desplazar
   265 px la primera columna seguía en `left: 0`. El documento **no** se desplaza en
   horizontal, que es la regla dura de la convención.
+
 - **Esqueletos de carga en todas las pantallas con datos en vuelo**: `dashboard`, `empresas`,
   `planes`, `salud-esquemas` y `empresa/inicio`, cada uno en un componente hermano. El texto
   de «Cargando…» no se perdió, se movió: `comun.cargando` ya solo aparece como el
@@ -327,9 +335,11 @@ número.
     guarda de coordenadas de Ubicaciones (6). Las tres últimas, abajo.
 
     Lo que **sigue sin una sola prueba**: los dos guards (`guard-sesion`, `guard-plataforma`),
-    `interceptor-token`, los dos almacenes de sesión, `titulo-pagina`, `opciones-menu` y
-    **las diecisiete pantallas** (doce de empresa, cinco de plataforma, una de portal). De
-    los 34 componentes, los únicos probados son `hoja` y `dialogo-confirmacion`.
+    `interceptor-token`, los dos almacenes de sesión, `titulo-pagina` y `opciones-menu`.
+
+    De las pantallas hay **cuatro** con archivo de prueba —Modelos, Ubicaciones, Trabajadores
+    y el detalle de Cotización—, y ninguna de ellas prueba la pantalla: cada una fija **una
+    regla que el compilador no ve** y que ya costó una depuración. Están listadas abajo.
 
     Las pruebas nuevas de esta tanda no son de pantalla sino **de lo que Angular hace por
     debajo**, que es donde el compilador no ayuda:
@@ -337,6 +347,11 @@ número.
     - `nucleo/api/mensaje-error.spec.ts`: los `errors` por campo ganan al `title` genérico.
     - `paginas/empresa/modelos/modelos.spec.ts`: un `<input type="number">` mete un number en
       el control —y `null` al vaciarse, nunca cadena vacía—.
+    - `paginas/empresa/cotizacion/cotizacion.spec.ts` (7 casos): la forma de la tabla de
+      transiciones copiada del servidor. Lo que fija no es que la copia esté al día —eso no
+      se puede comprobar desde aquí— sino que un estado TERMINAL esté ausente y no con lista
+      vacía: con `[]` el botón de cambiar estado se seguiría dibujando y abriría un
+      desplegable sin opciones.
     - `paginas/empresa/ubicaciones/ubicaciones.spec.ts`: un `computed` que lee
       `getRawValue()` **no reacciona**. Guarda la versión rota junto a la buena para que la
       diferencia se vea.
@@ -365,6 +380,7 @@ número.
     `AddOpenApi()` se llamaba pelado: 279 campos salían como `number | string` y 15 enums
     como `number` sin sus valores. Con el transformador `Arranque/EsquemaOpenApi.cs` quedan
     en **0** y `EstadoRenta` pasó de `number` a `1 | 2 | … | 10`.
+
 15. **El token de refresco vive en `localStorage`**, no en cookie `HttpOnly`. Es una
     divergencia consciente con el diseño y hay que resolverla antes de producción; está
     explicada en
@@ -372,9 +388,9 @@ número.
     y no se repite aquí. **El cambio es de los dos lados a la vez**: el backend tampoco
     manda hoy el token de refresco por cookie, lo devuelve en el cuerpo de la respuesta de
     login y de refresco.
-18. **`SaludEsquemas.versionDisponible` está tipado como `string` y el servidor puede
+16. **`SaludEsquemas.versionDisponible` está tipado como `string` y el servidor puede
     mandar `null`.** El backend lo calcula como `disponibles.Count > 0 ? disponibles[^1] :
-    null` (`SaludEsquemas.cs`), o sea nulo si el ensamblado no trajera ninguna migración —no
+null` (`SaludEsquemas.cs`), o sea nulo si el ensamblado no trajera ninguna migración —no
     puede pasar en producción, pero el contrato lo permite—. `resumen.ts` ya lo trata como
     `string | null`; el tipo de `contratos-plataforma.ts` es más optimista que la API.
 
@@ -405,6 +421,7 @@ número.
       `menu.operacion`, `menu.equipos`, `menu.clientes` y `menu.rentas` **se quedaron en
       `textos.ts` a propósito**, para que vuelvan con su pantalla; hoy están sin uso y eso
       es intencional, no basura por limpiar.
+
 17. **El dominio de producción no está registrado**, así que la configuración de
     Cloudflare Pages sigue pendiente. La ruta de salida que hay que darle es
     `dist/maquinaria-frontend/browser`.
@@ -457,15 +474,15 @@ Entidad → Migración → Caso de uso → Endpoint → Pruebas → Pantalla Ang
 No "todo el backend y luego todo el frontend": con 26 módulos, esa separación son seis
 meses sin nada demostrable.
 
-| Fase | Alcance | Lo que aporta el front |
-|---|---|---|
-| **0 — Fundación** | Multi-tenancy, aprovisionamiento, auth | Shell: layout, login, guards, interceptores, navegación |
-| **1 — Núcleo** | Equipos, clientes, obras, tarifas, disponibilidad, cotizaciones, rentas | Pantallas del ciclo cotizar → aprobar → rentar → cerrar |
-| **2 — Operación** | Contratos, logística, inspecciones, evidencias, horómetros, daños | Captura con fotografías |
-| **3 — Taller** | Mantenimiento, órdenes de trabajo, refacciones, compras | |
-| **4 — Finanzas** | Pagos, cobranza, CFDI, rentabilidad | Reportes |
-| **5 — Campo** | PWA con offline, sincronización, GPS, firmas, QR | La fase más difícil del front |
-| **6 — Inteligencia** | Predicción, pricing dinámico, analítica | Requiere histórico real |
+| Fase                 | Alcance                                                                 | Lo que aporta el front                                  |
+| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------- |
+| **0 — Fundación**    | Multi-tenancy, aprovisionamiento, auth                                  | Shell: layout, login, guards, interceptores, navegación |
+| **1 — Núcleo**       | Equipos, clientes, obras, tarifas, disponibilidad, cotizaciones, rentas | Pantallas del ciclo cotizar → aprobar → rentar → cerrar |
+| **2 — Operación**    | Contratos, logística, inspecciones, evidencias, horómetros, daños       | Captura con fotografías                                 |
+| **3 — Taller**       | Mantenimiento, órdenes de trabajo, refacciones, compras                 |                                                         |
+| **4 — Finanzas**     | Pagos, cobranza, CFDI, rentabilidad                                     | Reportes                                                |
+| **5 — Campo**        | PWA con offline, sincronización, GPS, firmas, QR                        | La fase más difícil del front                           |
+| **6 — Inteligencia** | Predicción, pricing dinámico, analítica                                 | Requiere histórico real                                 |
 
 **La Fase 0 del front está CERRADA (2026-08-25)**: armazones, accesos, guards, interceptor
 de token, interceptor de refresco y navegación. Lo que queda pegado a la Fase 0 no es
@@ -486,19 +503,19 @@ ahí uuid v7) y hay resolución de conflictos.
 Los documentos de `maquinaria-backend/docs/` son especificación, no inventario.
 Diferencias detectadas al 2026-08-25:
 
-| Documento dice | Realidad en disco |
-|---|---|
-| Angular 22 / Angular CLI 22.1.4 | **Angular 21.2.21** (`@angular/core`, CLI y `@angular/build`, los tres 21.2.21) |
-| Node v24.19.0, npm 11.17.0 | **Node v22.14.0, npm 10.9.2**, medido hoy en esta máquina — y `package.json` declara `packageManager: npm@11.6.2`, que no es el que corre. La revisión anterior anotaba v24.11.1 / 11.6.2: ese dato también quedó viejo |
-| Repos `maquinaria_back` / `maquinaria_front` | `maquinaria-backend` / `maquinaria-frontend` |
-| Salida del build `dist/maquinaria-front/browser` (§10, línea 127) | **`dist/maquinaria-frontend/browser`** |
-| Checklist marca el frontend como "Angular 22 listo" | Es Angular 21, y ya no es scaffolding: tres aplicaciones en pie y la Fase 0 cerrada |
-| Login con tres campos, incluido el identificador de empresa | **Dos campos**: la empresa sale del subdominio |
-| Organización por feature en `core/` / `features/` / `shared/` | `nucleo/` + `disposicion/` + `paginas/` agrupadas por aplicación |
-| `src/environments/` con reemplazo de archivos por configuración | Un solo archivo, `nucleo/ambiente/configuracion.ts` |
-| Cliente de API generado desde OpenAPI | `contratos.ts` escrito **a mano**; `api:sync` no existe (pendiente 13), y ya se le escapó un tipo (pendiente 18) |
-| Refresh token en cookie `HttpOnly` | En `localStorage`, y el backend lo devuelve en el cuerpo (pendiente 15) |
-| §9 prevé cuatro interceptores: JWT, refresh, errores y `tenant` | Tres decididos: JWT y refresh **existen**, `tenant` **no hace falta** —el slug va en la ruta—, y el de errores sigue pendiente: cada pantalla llama a `mensajeDeError` a mano |
+| Documento dice                                                    | Realidad en disco                                                                                                                                                                                                       |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Angular 22 / Angular CLI 22.1.4                                   | **Angular 21.2.21** (`@angular/core`, CLI y `@angular/build`, los tres 21.2.21)                                                                                                                                         |
+| Node v24.19.0, npm 11.17.0                                        | **Node v22.14.0, npm 10.9.2**, medido hoy en esta máquina — y `package.json` declara `packageManager: npm@11.6.2`, que no es el que corre. La revisión anterior anotaba v24.11.1 / 11.6.2: ese dato también quedó viejo |
+| Repos `maquinaria_back` / `maquinaria_front`                      | `maquinaria-backend` / `maquinaria-frontend`                                                                                                                                                                            |
+| Salida del build `dist/maquinaria-front/browser` (§10, línea 127) | **`dist/maquinaria-frontend/browser`**                                                                                                                                                                                  |
+| Checklist marca el frontend como "Angular 22 listo"               | Es Angular 21, y ya no es scaffolding: tres aplicaciones en pie y la Fase 0 cerrada                                                                                                                                     |
+| Login con tres campos, incluido el identificador de empresa       | **Dos campos**: la empresa sale del subdominio                                                                                                                                                                          |
+| Organización por feature en `core/` / `features/` / `shared/`     | `nucleo/` + `disposicion/` + `paginas/` agrupadas por aplicación                                                                                                                                                        |
+| `src/environments/` con reemplazo de archivos por configuración   | Un solo archivo, `nucleo/ambiente/configuracion.ts`                                                                                                                                                                     |
+| Cliente de API generado desde OpenAPI                             | `contratos.ts` escrito **a mano**; `api:sync` no existe (pendiente 13), y ya se le escapó un tipo (pendiente 18)                                                                                                        |
+| Refresh token en cookie `HttpOnly`                                | En `localStorage`, y el backend lo devuelve en el cuerpo (pendiente 15)                                                                                                                                                 |
+| §9 prevé cuatro interceptores: JWT, refresh, errores y `tenant`   | Tres decididos: JWT y refresh **existen**, `tenant` **no hace falta** —el slug va en la ruta—, y el de errores sigue pendiente: cada pantalla llama a `mensajeDeError` a mano                                           |
 
 Lo que **dejó de ser divergencia** en esta revisión: el comando `migrar-empresas` del
 backend, que el documento anterior daba por pendiente y hoy existe
