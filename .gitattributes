@@ -1,0 +1,28 @@
+# TODO EL CODIGO FUENTE EN LF, tambien en el arbol de trabajo.
+#
+# Sin esto, `core.autocrlf=true` —el valor por omision en Windows— deja los archivos en CRLF
+# al clonar y `prettier --check` marca 73 archivos con el contenido IDENTICO, solo por el
+# final de linea. Una puerta que siempre esta roja no la mira nadie, asi que no protege: era
+# imposible usar prettier en CI.
+#
+# `text=auto eol=lf` normaliza en el repositorio Y al sacar los archivos. Git lo aplica en el
+# siguiente checkout; los que ya estan en disco se convirtieron una vez, en su propio commit,
+# para que ese diff de puro final de linea no se mezcle con ningun cambio real.
+* text=auto eol=lf
+
+# Binarios: que git no les toque nada.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# `generado.ts` lo escribe `openapi-typescript` SIEMPRE en LF, y `npm run api:check` compara
+# BYTES contra lo que regenera. Con `core.autocrlf=true` —el valor por omision en Windows— git
+# lo dejaria en CRLF al clonar, y entonces `api:check` FALLA en un clon recien hecho aunque el
+# contrato este perfectamente al dia. Pasó exactamente eso el 2026-08-28.
+#
+# Fijarlo a LF en el arbol de trabajo es lo que hace que la comprobacion signifique algo.
+src/app/nucleo/api/generado.ts text eol=lf

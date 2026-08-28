@@ -6,6 +6,7 @@ import { ApiPlataforma } from '../nucleo/api/api-plataforma';
 import { SesionPlataformaStore } from '../nucleo/sesion/sesion-plataforma';
 import { menuPlataforma } from './opciones-menu';
 import { Barra } from './barra';
+import { DialogoConfirmacion } from './dialogo-confirmacion';
 import { MenuLateral } from './menu-lateral';
 import { MenuUsuario } from './menu-usuario';
 import { sitio } from '../nucleo/ambiente/sitio';
@@ -24,7 +25,7 @@ import { t } from '../nucleo/i18n/i18n';
  */
 @Component({
   selector: 'app-disposicion-plataforma',
-  imports: [RouterLink, RouterOutlet, MenuLateral, MenuUsuario],
+  imports: [RouterLink, RouterOutlet, DialogoConfirmacion, MenuLateral, MenuUsuario],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Escape cierra el cajon, como cualquier capa modal (WCAG 2.1.2). Va en `host` y
   // no con @HostListener, que la convencion del repo prohibe.

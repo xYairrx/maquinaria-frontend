@@ -11,7 +11,7 @@ se inventa.
 > elementos **el día que existan y tengan de dónde sacar sus datos**; no son una lista de
 > pendientes ni una invitación a maquetarlos antes.
 >
-> Regla, en palabras del usuario: *«no coloques información que aún no tenemos»*. Un dato
+> Regla, en palabras del usuario: _«no coloques información que aún no tenemos»_. Un dato
 > inventado en una pantalla se ve exactamente igual que uno real, y quien la mire creerá
 > que el sistema ya lo calcula.
 
@@ -25,10 +25,10 @@ Dos familias, servidas desde Google Fonts. Como los colores, **no se escriben en
 plantillas**: son tokens `--font-*` dentro del `@theme` de `src/styles.css`, y el nombre
 del token es el nombre de la clase.
 
-| Token | Valor | Utilidad | Para qué |
-|---|---|---|---|
-| `--font-sans` | `'Merriweather', ui-serif, Georgia, serif` | `font-sans` (y por defecto) | **Todo** el cuerpo |
-| `--font-titulo` | `'Lato', ui-sans-serif, system-ui, sans-serif` | `font-titulo` | Solo títulos, uno por uno |
+| Token           | Valor                                          | Utilidad                    | Para qué                  |
+| --------------- | ---------------------------------------------- | --------------------------- | ------------------------- |
+| `--font-sans`   | `'Merriweather', ui-serif, Georgia, serif`     | `font-sans` (y por defecto) | **Todo** el cuerpo        |
+| `--font-titulo` | `'Lato', ui-sans-serif, system-ui, sans-serif` | `font-titulo`               | Solo títulos, uno por uno |
 
 **La jerarquía va al revés de lo habitual**: se titula en **sans** sobre un cuerpo en
 **serif**. Es deliberado. El contraste entre las dos familias sigue existiendo —que es
@@ -100,12 +100,12 @@ El menú ocupa el alto completo y no se desplaza con el contenido. El contenido 
 
 ## Radios y espaciado
 
-| Elemento | Radio | Clase |
-|---|---|---|
-| Tarjeta, panel, caja del menú | 12 px | `rounded-xl` |
-| Botón, campo, opción de menú | 8 px | `rounded-lg` |
-| Chip de filtro, badge cuadrado | 6 px | `rounded-md` |
-| Badge de conteo | píldora | `rounded-full` |
+| Elemento                       | Radio   | Clase          |
+| ------------------------------ | ------- | -------------- |
+| Tarjeta, panel, caja del menú  | 12 px   | `rounded-xl`   |
+| Botón, campo, opción de menú   | 8 px    | `rounded-lg`   |
+| Chip de filtro, badge cuadrado | 6 px    | `rounded-md`   |
+| Badge de conteo                | píldora | `rounded-full` |
 
 Relleno: tarjetas `p-5`, barra superior `px-6 py-4`, contenido `p-6`, separación entre
 bloques `gap-5`.
@@ -123,17 +123,40 @@ Fondo `negro-lateral`. Ancho fijo `w-66` (264 px).
 Debajo, la línea descriptiva en `texto-inverso-tenue`, 9-10 px, mayúsculas y
 `tracking-wide`.
 
-**Encabezado de grupo.** «OPERACIÓN», «ADMINISTRACIÓN». 10-11 px, mayúsculas,
-`tracking-wide`, `text-texto-inverso-tenue`, `px-3 pb-2 pt-6`. Los grupos existen porque
-26 módulos en una lista plana no se recorren con la vista.
+**Grupo plegable (acordeón).** Un grupo con nombre es un **disparador** —icono de 18 px,
+nombre y galón a la derecha— que abre y cierra sus opciones. Mismo alto y mismas reglas de
+color que una opción. El galón **gira 180°** al abrir, en lugar de cambiar de glifo.
+
+Dentro, las opciones van **sin icono**, indentadas (`ms-5` + `ms-2`) y colgando de un filete
+`border-s border-negro-caja-borde` que las ata a su grupo. Repetir un glifo por cada hija
+llena la columna de ruido y le quita al icono del grupo su función de ancla visual.
+
+Los grupos existen porque 26 módulos en una lista plana no se recorren con la vista, y son
+**plegables** y no encabezados fijos porque con las 18 pantallas de la Fase 1 una lista
+completa —aunque lleve encabezados— obliga a recorrer todo lo que no interesa para llegar a
+lo que sí.
+
+**Un grupo sin nombre no se pliega**: sus opciones se pintan al ras, con su icono. Es lo que
+hace Inicio, que es la pantalla de entrada y esconderla tras un galón la pondría a un clic de
+distancia por nada.
+
+**Qué grupo aparece abierto.** Se guarda la DECISIÓN de la persona, no el estado final; si no
+ha tocado nada, se abre el que contiene la ruta activa. Esa segunda mitad importa al recargar:
+sin ella, quien recarga estando en `/tarifas` ve todo cerrado y ninguna pista de dónde está.
+La lógica es pura y vive en `disposicion/opciones-menu.ts` con 17 pruebas.
+
+**ARIA de divulgación, no de menú**: `aria-expanded` + `aria-controls` sobre un `<button>`, y
+el panel es un `<ul>` de enlaces. `role="menu"` obligaría a flechas, Home y End. Y **cerrado
+se quita del DOM**, no se esconde con una clase: una opción fuera de la vista pero presente
+sigue en el orden de tabulación.
 
 **Opción del menú.** Alto 40 px, `rounded-lg`, `px-3`, `gap-3`, icono de 18 px con trazo
 de 1.75, texto de 14 px.
 
-| Estado | Fondo | Texto | Icono |
-|---|---|---|---|
-| Reposo | — | `texto-inverso-suave` | hereda |
-| Hover | `negro-caja` | `texto-inverso` | hereda |
+| Estado     | Fondo          | Texto                        | Icono            |
+| ---------- | -------------- | ---------------------------- | ---------------- |
+| Reposo     | —              | `texto-inverso-suave`        | hereda           |
+| Hover      | `negro-caja`   | `texto-inverso`              | hereda           |
 | **Activo** | **`amarillo`** | **`sobre-amarillo`, medium** | `sobre-amarillo` |
 
 La opción activa es una **píldora amarilla sólida**, no un filete lateral. Lleva además
@@ -204,6 +227,76 @@ Grupo horizontal, `gap-2`. Activo: `bg-negro-tarjeta`, `text-texto-inverso`. Ina
 `px-3.5 py-1.5`, 13 px.
 
 Van en un `<div role="group">` con etiqueta, y el activo lleva `aria-pressed="true"`.
+
+## Barra de herramientas de la pantalla
+
+**Una fila encima de la tabla**: búsqueda a la izquierda, filtros en medio, acción principal
+pegada a la derecha. Es `disposicion/barra-herramientas.ts`, compartida por las ocho pantallas
+de módulo.
+
+**La búsqueda y el «Nuevo X» NO van en la barra superior.** Estuvieron ahí, publicados en el
+servicio `Barra`, y eso los separaba de lo que gobiernan: quien miraba la tabla y sus filtros
+tenía que subir la vista al otro extremo de la pantalla para buscar o para dar de alta. La
+barra superior se queda con el `<h1>`, el contexto y lo del armazón.
+
+**El filtro de estado es un `<select>`, no chips.** Con tres opciones los chips ya ocupaban una
+fila entera, y en cuanto una pantalla suma un segundo filtro —Tipos por categoría, Tarifas por
+aplicación, Cláusulas por obligatoriedad— se volvían dos y tres filas de botones sueltos encima
+de la tabla. Un desplegable ocupa lo mismo con tres opciones que con veinte.
+
+Los filtros propios de cada pantalla se **proyectan** en `[filtros]`, así que esta barra no
+tiene que conocer ni la categoría de un tipo ni la unidad de una tarifa.
+
+**UN `[filtros]` POR FILTRO, y sin envoltorio propio.** La barra ya coloca lo proyectado en un
+`flex flex-wrap items-center gap-2`, así que cada filtro es su propio `<div filtros>` suelto —
+Equipos y Trabajadores tienen tres cada una. Agrupar varios dentro de un solo `<div filtros>`
+los convierte en **un único elemento flex**, y entonces se envuelven entre ellos: se apilan en
+vertical en vez de alinearse con la búsqueda, y el «Nuevo X» baja con ellos.
+
+Pasó en Cotizaciones, con `<div filtros class="flex flex-wrap gap-2">` alrededor de sus dos
+`<select>`. **No rompe nada y no lo ve ningún compilador** — la barra se dibuja, los filtros
+funcionan—; solo se ve mirando la pantalla, y por eso queda escrito aquí.
+
+En un teléfono se apila: búsqueda a todo lo ancho arriba, filtros y acción debajo. Comprimir
+los tres en 375 px deja la búsqueda inservible, y esconderla no es opción.
+
+## Acciones de fila
+
+**Iconos, no botones con texto.** Con dos acciones por fila y veinte filas, «Editar» y
+«Retirar» repetidos cuarenta veces compiten por la atención con los datos. Es
+`@utility boton-icono`: 36 px de lado, glifo de 16.
+
+La tabla lleva su columna **«Acciones» con encabezado visible**; antes los botones colgaban de
+una celda sin nombre.
+
+**El texto no desaparece, se muda al `aria-label` — y gana.** Cada botón anuncia el verbo Y el
+nombre de la fila: «Editar Caterpillar» dice más que el botón de texto anterior, que decía
+«Editar» y obligaba a deducir de cuál. El `title` es para el ratón. Un icono sin nombre
+accesible sería un botón mudo, que es la forma típica de romper una tabla.
+
+## El rango y el paginador van DEBAJO
+
+«1-2 de 2» estaba arriba, ocupando el sitio de la acción principal y leyéndose antes de tener
+nada que contar. Ahora comparte fila con el paginador debajo de la tabla, que es donde se mira
+después de recorrerla.
+
+## Panel lateral derecho
+
+**El formulario de alta y edición de las pantallas de EMPRESA** entra desde la derecha, de alto
+completo, 32rem desde `sm` y a todo lo ancho en un teléfono. Es
+`disposicion/panel-lateral.ts` y su utilidad `panel-lateral`.
+
+**La hoja inferior se queda en el panel de superadministración.** Nació ahí, con formularios
+cortos y sin una tabla ancha debajo compitiendo por la atención. En una pantalla de empresa una
+hoja que sube tapa justo las filas que se estaban mirando; un panel lateral las deja a la
+vista. Son dos patrones para dos sitios, no uno que sustituye al otro.
+
+No es arrastrable, y eso es deliberado: el gesto existe en la hoja porque tiene varios
+anclajes entre los que moverse. Aquí hay un solo tamaño, así que un asa no llevaría a ninguna
+parte. Se cierra con Escape, con el botón de cerrar o pulsando el velo.
+
+Hereda las tres correcciones que la hoja ya pagó contra los valores por defecto del `<dialog>`
+—el `display: none` del cerrado, el `max-height` y el `max-width`—, anotadas en la utilidad.
 
 ## Tablas
 
@@ -276,7 +369,7 @@ que es el ancho por debajo del cual los campos empiezan a apretarse. Tiene dos b
    (`flex items-center justify-between`). Va pegada al borde superior y **no** centrada
    con el formulario, por eso la columna dejó de ser `justify-center`.
 2. **Centrado verticalmente, el bloque del formulario** (`mx-auto w-full max-w-sm flex-1
-   justify-center`): el `<h1>` de la pantalla en `font-titulo` 22 px semibold y centrado,
+justify-center`): el `<h1>` de la pantalla en `font-titulo` 22 px semibold y centrado,
    debajo la línea de apoyo centrada en `texto-apagado` 13 px, y a `mt-7` el formulario.
 
 **La marca va en dos colores**: la primera parte en `texto` y la segunda en `amarillo`,

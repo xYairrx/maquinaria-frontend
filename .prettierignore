@@ -1,0 +1,19 @@
+# `generado.ts` lo escribe `openapi-typescript` (npm run api:sync) con SU formato: comillas
+# dobles e indentacion de cuatro. Prettier lo reformatea a comillas simples e indentacion de
+# dos, y entonces la siguiente regeneracion lo revierte: un diff de NUEVE MIL lineas en el que
+# no cambio ni un tipo, y `npm run api:check` fallando aunque el contrato este al dia.
+#
+# El archivo no se lee a mano —para eso esta `contratos.ts`, que es la superficie curada—, asi
+# que su formato da igual. Lo que no da igual es poder revisar un diff.
+src/app/nucleo/api/generado.ts
+
+# LOS MARKDOWN NO SE FORMATEAN.
+#
+# Prettier formatea el codigo DENTRO de las cercas, y en documentacion eso es destructivo: un
+# ejemplo de `<option [ngValue]="unidad">   <!-- enum -->` se convirtio en
+# `<option [ngValue]="unidad"><!-- enum --></option>` — le agrego una etiqueta de cierre que
+# no estaba y borro la alineacion de los comentarios, que era lo que el ejemplo enseñaba.
+#
+# Estos documentos son la memoria del repo y sus ejemplos estan escritos a proposito, a veces
+# deliberadamente incompletos para señalar el error. Un formateador no puede saber eso.
+*.md

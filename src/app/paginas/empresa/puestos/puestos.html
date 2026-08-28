@@ -1,0 +1,293 @@
+<!--
+  Espejo estructural de `marcas.html`, que es la pantalla canónica de catálogo. Lo que
+  cambia son las columnas y los campos del formulario; el porqué de cada decisión —la
+  columna fija, el vacío que explica, el esqueleto solo en la primera carga— está allí.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().puestos.buscar"
+    [soloActivas]="soloActivas"
+    [etiquetas]="{
+      todas: t().puestos.todas,
+      activas: t().puestos.activas,
+      retiradas: t().puestos.retiradas,
+    }"
+    [accion]="t().puestos.crear"
+    (alPulsarAccion)="abrirAlta()"
+  >
+  </app-barra-herramientas>
+
+  @if (cargando()) {
+    <app-puestos-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (puestos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-180 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().puestos.colCodigo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().puestos.colPuesto }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().puestos.colDescripcion }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().puestos.colTrabajadores }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 md:px-5">
+                  {{ t().puestos.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (puesto of puestos(); track puesto.id) {
+                <tr class="border-b border-borde-fila align-top last:border-0">
+                  <!--
+                    El código va DENTRO de la celda fijada, bajo el nombre, y no en columna
+                    propia: fijar dos columnas deja demasiado poco ancho para lo demás en un
+                    teléfono. Mismo criterio que la píldora de estado en planes.
+                  -->
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    {{ puesto.codigo }}
+                  </td>
+                  <td class="px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+                      <p class="font-medium text-texto">{{ puesto.nombre }}</p>
+
+                      @if (!puesto.activo) {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                        >
+                          {{ t().puestos.retirada }}
+                        </span>
+                      }
+                    </div>
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    @if (puesto.descripcion; as descripcion) {
+                      <p class="max-w-96 text-xs leading-relaxed">{{ descripcion }}</p>
+                    }
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ puesto.trabajadores }}
+                  </td>
+
+                  <td class="px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap justify-center gap-2">
+                      <button
+                        type="button"
+                        (click)="abrirEdicion(puesto)"
+                        [attr.aria-label]="t().comun.editarA(puesto.nombre)"
+                        [title]="t().puestos.editar"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+                        </svg>
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="alternarActivo(puesto)"
+                        [attr.aria-label]="
+                          puesto.activo
+                            ? t().comun.retirarA(puesto.nombre)
+                            : t().comun.reactivarA(puesto.nombre)
+                        "
+                        [title]="puesto.activo ? t().puestos.retirar : t().puestos.reactivar"
+                        class="boton-icono"
+                      >
+                        @if (puesto.activo) {
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM2 4h20v4H2zM10 12h4"
+                            />
+                          </svg>
+                        } @else {
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" />
+                          </svg>
+                        }
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <!--
+      El rango y el paginador, DEBAJO de la tabla: es donde se miran despues de recorrerla,
+      y arriba el rango ocupaba el sitio de la accion principal.
+    -->
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().puestos.rango(desde(), hasta(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav
+            class="flex items-center justify-between gap-3"
+            [attr.aria-label]="t().puestos.paginacion"
+          >
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().puestos.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().puestos.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().puestos.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="editando() ? t().puestos.editarTitulo : t().puestos.crear"
+  [apoyo]="editando() ? t().puestos.editarApoyo : t().puestos.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-puesto">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="codigo" class="text-sm font-medium text-texto-secundario">
+            {{ t().puestos.codigo }}
+          </label>
+          <input
+            id="codigo"
+            formControlName="codigo"
+            maxlength="30"
+            autocapitalize="characters"
+            autocomplete="off"
+            spellcheck="false"
+            aria-describedby="ayuda-codigo"
+            class="campo-formulario"
+          />
+          <p id="ayuda-codigo" class="text-xs text-texto-apagado">
+            {{ t().puestos.ayudaCodigo }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="nombre" class="text-sm font-medium text-texto-secundario">
+            {{ t().puestos.nombre }}
+          </label>
+          <input
+            id="nombre"
+            formControlName="nombre"
+            maxlength="80"
+            autocomplete="off"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+            {{ t().puestos.descripcion }}
+            <span class="font-normal text-texto-apagado">{{ t().puestos.opcional }}</span>
+          </label>
+          <input id="descripcion" formControlName="descripcion" class="campo-formulario" />
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-center sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().puestos.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-puesto"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().puestos.guardando : t().puestos.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

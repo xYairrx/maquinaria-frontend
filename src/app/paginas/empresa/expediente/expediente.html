@@ -1,0 +1,633 @@
+<div class="mx-auto flex flex-col gap-5">
+  <a
+    routerLink="/equipos"
+    class="inline-flex w-fit items-center gap-2 text-sm text-texto-secundario hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+  >
+    <svg
+      class="size-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+    {{ t().expediente.volver }}
+  </a>
+
+  @if (error(); as mensaje) {
+    <!-- Aqui aterriza el 409 del `EXCLUDE` de precios, con el texto del servidor. -->
+    <p
+      class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+      role="alert"
+    >
+      {{ mensaje }}
+    </p>
+  }
+
+  @if (cargando() && equipo() === null) {
+    <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+    <div aria-hidden="true" class="flex flex-col gap-5">
+      <div class="esqueleto h-28 rounded-xl"></div>
+      <div class="esqueleto h-56 rounded-xl"></div>
+      <div class="esqueleto h-56 rounded-xl"></div>
+    </div>
+  } @else if (equipo(); as eq) {
+    <!-- Los datos del equipo, de solo lectura: se corrigen en la lista, no aqui. -->
+    <section class="rounded-xl border border-borde bg-superficie p-4 md:p-5">
+      <h2 class="mb-4 text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+        {{ t().expediente.seccionDatos }}
+      </h2>
+
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().expediente.marca }}</dt>
+          <dd class="text-texto">{{ eq.marca }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().expediente.modelo }}</dt>
+          <dd class="text-texto">{{ eq.modelo }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().expediente.tipo }}</dt>
+          <dd class="text-texto">{{ eq.tipoEquipo }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().expediente.estado }}</dt>
+          <dd class="text-texto">{{ t().equipos.estados[eq.estado] }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().expediente.serie }}</dt>
+          <dd class="text-texto">{{ eq.numeroSerie ?? t().expediente.sinDato }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().expediente.ubicacion }}</dt>
+          <dd class="text-texto">{{ eq.ubicacion ?? t().expediente.sinDato }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().expediente.proposito }}</dt>
+          <dd class="text-texto">{{ t().equipos.propositos[eq.proposito] }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-texto-apagado">{{ t().expediente.horometro }}</dt>
+          <dd class="text-texto tabular-nums">{{ eq.horometro ?? t().expediente.sinDato }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 border-b border-borde px-4 py-3 md:px-5"
+      >
+        <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().expediente.seccionDocumentos }}
+        </h2>
+
+        <button type="button" (click)="abrirSubida()" class="boton-principal">
+          <svg
+            class="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          {{ t().expediente.subir }}
+        </button>
+      </div>
+
+      @if (documentos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">
+          {{ t().expediente.sinDocumentos }}
+        </p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-200 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().expediente.colTipo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().expediente.colNombre }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().expediente.colTamano }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().equipos.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (documento of documentos(); track documento.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    {{ nombreTipoArchivo(documento.tipo) }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <p class="text-texto">{{ documento.nombreOriginal }}</p>
+                    @if (documento.descripcion) {
+                      <p class="text-xs text-texto-apagado">{{ documento.descripcion }}</p>
+                    }
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ tamano(documento.tamanoBytes) }}
+                  </td>
+
+                  <td class="px-4 py-2 md:px-5">
+                    <div class="flex justify-center gap-1">
+                      <button
+                        type="button"
+                        (click)="descargar(documento)"
+                        [attr.aria-label]="t().expediente.descargarA(documento.nombreOriginal)"
+                        [title]="t().expediente.descargar"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"
+                          />
+                        </svg>
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="eliminarDocumento(documento)"
+                        [attr.aria-label]="
+                          t().expediente.eliminarDocumentoA(documento.nombreOriginal)
+                        "
+                        [title]="t().expediente.eliminarDocumento"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6M10 11v6M14 11v6"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 border-b border-borde px-4 py-3 md:px-5"
+      >
+        <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().expediente.seccionPrecios }}
+        </h2>
+
+        <button type="button" (click)="abrirPrecio()" class="boton-principal">
+          <svg
+            class="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          {{ t().expediente.nuevoPrecio }}
+        </button>
+      </div>
+
+      @if (precios().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">
+          {{ t().expediente.sinPrecios }}
+        </p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-220 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().expediente.colConcepto }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().expediente.colCliente }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().expediente.colPrecio }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().expediente.colVigencia }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().equipos.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (precio of precios(); track precio.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    <p class="text-texto">{{ precio.tarifa }}</p>
+                    <p class="text-xs text-texto-apagado">{{ precio.unidad }}</p>
+                  </td>
+
+                  <!-- Vacio es el precio de LISTA; con cliente, el negociado con el. -->
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ precio.cliente ?? t().expediente.precioLista }}
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                    {{ precio.precio }} {{ precio.moneda }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    @if (precio.vigenciaHasta) {
+                      <span
+                        class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                      >
+                        {{ t().expediente.cerrado }}
+                      </span>
+                    } @else {
+                      <span class="text-texto-secundario">{{ t().expediente.vigente }}</span>
+                    }
+                  </td>
+
+                  <td class="px-4 py-2 md:px-5">
+                    @if (!precio.vigenciaHasta) {
+                      <button
+                        type="button"
+                        (click)="abrirCierre(precio)"
+                        [attr.aria-label]="t().expediente.cerrarA(precio.tarifa)"
+                        [title]="t().expediente.cerrar"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20M8 12h8" />
+                        </svg>
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  } @else {
+    <p
+      class="rounded-xl border border-borde bg-superficie px-4 py-6 text-sm text-texto-secundario md:px-5"
+    >
+      {{ t().expediente.noEncontrado }}
+    </p>
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelDocumento()"
+  [titulo]="t().expediente.subirTitulo"
+  [apoyo]="t().expediente.subirApoyo"
+  (cerrar)="cerrarSubida()"
+>
+  <form [formGroup]="formularioDocumento" (ngSubmit)="subir()" id="formulario-documento">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <!--
+        EL ARCHIVO NO VA EN EL `FormGroup`: un `<input type="file">` es de solo lectura y no se
+        puede escribir desde un control reactivo. Se guarda en una señal aparte.
+      -->
+      <div class="flex flex-col gap-1">
+        <label for="archivo" class="text-sm font-medium text-texto-secundario">
+          {{ t().expediente.archivo }}
+        </label>
+        <input
+          id="archivo"
+          type="file"
+          (change)="alElegirArchivo($event)"
+          aria-describedby="ayuda-archivo"
+          class="campo-formulario"
+        />
+        <p id="ayuda-archivo" class="text-xs text-texto-apagado">
+          {{ t().expediente.ayudaArchivo }}
+        </p>
+        <app-error-campo
+          id="error-archivo"
+          [visible]="faltaArchivo()"
+          [mensaje]="t().expediente.errorArchivo"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="tipo" class="text-sm font-medium text-texto-secundario">
+          {{ t().expediente.tipoArchivo }}
+        </label>
+        <select id="tipo" formControlName="tipo" class="campo-formulario">
+          @for (tipo of tiposArchivo; track tipo) {
+            <option [ngValue]="tipo">{{ nombreTipoArchivo(tipo) }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+          {{ t().expediente.descripcion }}
+        </label>
+        <input
+          id="descripcion"
+          formControlName="descripcion"
+          autocomplete="off"
+          aria-describedby="ayuda-descripcion"
+          class="campo-formulario"
+        />
+        <p id="ayuda-descripcion" class="text-xs text-texto-apagado">
+          {{ t().expediente.ayudaDescripcion }}
+        </p>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarSubida()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().expediente.cerrarPanel }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-documento"
+      [disabled]="enviando()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().expediente.subiendo : t().expediente.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<app-panel-lateral
+  [abierto]="panelPrecio()"
+  [titulo]="t().expediente.nuevoPrecioTitulo"
+  [apoyo]="t().expediente.nuevoPrecioApoyo"
+  (cerrar)="cerrarPanelPrecio()"
+>
+  <form [formGroup]="formularioPrecio" (ngSubmit)="guardarPrecio()" id="formulario-precio">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="tarifaId" class="text-sm font-medium text-texto-secundario">
+          {{ t().expediente.concepto }}
+        </label>
+        <select
+          id="tarifaId"
+          formControlName="tarifaId"
+          [attr.aria-invalid]="mal(formularioPrecio.controls.tarifaId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formularioPrecio.controls.tarifaId)
+              ? 'ayuda-concepto error-concepto'
+              : 'ayuda-concepto'
+          "
+          class="campo-formulario"
+        >
+          <option value=""></option>
+          @for (tarifa of tarifas(); track tarifa.id) {
+            <option [value]="tarifa.id">{{ tarifa.nombre }}</option>
+          }
+        </select>
+        <p id="ayuda-concepto" class="text-xs text-texto-apagado">
+          {{ tarifas().length === 0 ? t().expediente.sinTarifas : t().expediente.ayudaConcepto }}
+        </p>
+        <app-error-campo
+          id="error-concepto"
+          [visible]="mal(formularioPrecio.controls.tarifaId)"
+          [mensaje]="t().expediente.errorConcepto"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="clienteId" class="text-sm font-medium text-texto-secundario">
+          {{ t().expediente.cliente }}
+        </label>
+        <select
+          id="clienteId"
+          formControlName="clienteId"
+          aria-describedby="ayuda-cliente"
+          class="campo-formulario"
+        >
+          <option value="">{{ t().expediente.precioLista }}</option>
+          @for (cliente of clientes(); track cliente.id) {
+            <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
+          }
+        </select>
+        <p id="ayuda-cliente" class="text-xs text-texto-apagado">
+          {{ t().expediente.ayudaCliente }}
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="precio" class="text-sm font-medium text-texto-secundario">
+            {{ t().expediente.precio }}
+          </label>
+          <input
+            id="precio"
+            formControlName="precio"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-precio"
+            [visible]="
+              formularioPrecio.controls.precio.value === null &&
+              formularioPrecio.controls.precio.touched
+            "
+            [mensaje]="t().expediente.errorPrecio"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="moneda" class="text-sm font-medium text-texto-secundario">
+            {{ t().expediente.moneda }}
+          </label>
+          <input
+            id="moneda"
+            formControlName="moneda"
+            maxlength="3"
+            autocapitalize="characters"
+            autocomplete="off"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="vigenciaDesde" class="text-sm font-medium text-texto-secundario">
+            {{ t().expediente.vigenciaDesde }}
+          </label>
+          <input
+            id="vigenciaDesde"
+            formControlName="vigenciaDesde"
+            type="date"
+            aria-describedby="ayuda-vigencia"
+            class="campo-formulario"
+          />
+          <p id="ayuda-vigencia" class="text-xs text-texto-apagado">
+            {{ t().expediente.ayudaVigencia }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanelPrecio()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().expediente.cerrarPanel }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-precio"
+      [disabled]="!puedeGuardarPrecio()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().expediente.guardando : t().expediente.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<!--
+  Cerrar un precio. UN PRECIO NO SE EDITA: se le pone fecha de fin y se carga el nuevo, de forma
+  que el historico queda. Por eso este panel solo pide una fecha.
+-->
+<app-panel-lateral
+  [abierto]="cerrandoPrecio() !== null"
+  [titulo]="t().expediente.cerrarTitulo"
+  [apoyo]="t().expediente.cerrarApoyo"
+  (cerrar)="cancelarCierre()"
+>
+  <form [formGroup]="formularioCierre" (ngSubmit)="cerrarPrecio()" id="formulario-cierre">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      @if (cerrandoPrecio(); as precio) {
+        <p class="text-sm text-texto-secundario">
+          {{ precio.tarifa }} — {{ precio.precio }} {{ precio.moneda }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="vigenciaHasta" class="text-sm font-medium text-texto-secundario">
+          {{ t().expediente.vigenciaHasta }}
+        </label>
+        <input
+          id="vigenciaHasta"
+          formControlName="vigenciaHasta"
+          type="date"
+          class="campo-formulario"
+        />
+        <app-error-campo
+          id="error-hasta"
+          [visible]="
+            formularioCierre.controls.vigenciaHasta.value === '' &&
+            formularioCierre.controls.vigenciaHasta.touched
+          "
+          [mensaje]="t().expediente.errorVigenciaHasta"
+        />
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cancelarCierre()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().expediente.cerrarPanel }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-cierre"
+      [disabled]="!puedeCerrarPrecio()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().expediente.guardando : t().expediente.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

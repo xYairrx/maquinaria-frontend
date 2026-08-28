@@ -202,3 +202,32 @@ export const validadorCorreo: ValidatorFn = (control): ValidationErrors | null =
  */
 export const validadorRequerido: ValidatorFn = (control): ValidationErrors | null =>
   texto(control).trim() === '' ? { required: true } : null;
+
+/**
+ * SOLO PARA CAMPOS DE TEXTO. `validadorRequerido` pasa por `texto()`, que devuelve `''` para
+ * cualquier valor que no sea una cadena — y un `<input type="number">` mete un **number** en el
+ * control, o `null` al vaciarse. Así que puesto en un campo numérico da `{ required: true }`
+ * **siempre**, se escriba lo que se escriba, y el botón de enviar no se habilita nunca.
+ *
+ * No es teórico: pasó en el alta de línea de una cotización, con la cantidad y el precio. El
+ * síntoma es desconcertante porque el formulario se ve completo y no hay ni un mensaje de error
+ * —los avisos salen con `touched`, y el campo se rellenó sin tocarlo—; simplemente el botón
+ * está apagado. Los dos de abajo son para eso.
+ *
+ * Es el mismo hilo que la trampa ya escrita del `NumberValueAccessor`: lo que un accesor de
+ * valor mete en el control lo decide el ACCESOR, no la declaración del formulario.
+ */
+
+/**
+ * Un número obligatorio y mayor que cero. Es la cantidad de una línea, que el servidor rechaza
+ * con «La cantidad tiene que ser mayor que cero».
+ */
+export const validadorCantidad: ValidatorFn = (control): ValidationErrors | null =>
+  typeof control.value === 'number' && control.value > 0 ? null : { required: true };
+
+/**
+ * Un número obligatorio y no negativo. Es un importe: el cero es válido —una línea de
+ * cortesía—, el vacío y el negativo no.
+ */
+export const validadorImporte: ValidatorFn = (control): ValidationErrors | null =>
+  typeof control.value === 'number' && control.value >= 0 ? null : { required: true };

@@ -1,0 +1,594 @@
+<!--
+  Molde estandar. Lo propio: la columna fijada es el FOLIO, el periodo va en una sola columna
+  —inicio y fin son inseparables— y el estado lleva un distintivo de «vencida» o «por vencer»
+  AL LADO, no en su lugar: los dos son derivados de la fecha, no estados guardados.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().rentas.buscar"
+    [accion]="t().rentas.crear"
+    (alPulsarAccion)="abrirAlta()"
+  >
+    <div filtros>
+      <label for="filtro-estado" class="sr-only">{{ t().renta.estado }}</label>
+      <select
+        id="filtro-estado"
+        [value]="estadoFiltrado() ?? ''"
+        (change)="elegirEstado($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().rentas.cualquierEstado }}</option>
+        @for (estado of estados; track estado) {
+          <option [value]="estado">{{ nombreEstado(estado) }}</option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-cliente" class="sr-only">{{ t().rentas.cliente }}</label>
+      <select
+        id="filtro-cliente"
+        [value]="clienteFiltrado()"
+        (change)="clienteFiltrado.set($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().rentas.cualquierCliente }}</option>
+        @for (cliente of clientes(); track cliente.id) {
+          <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
+        }
+      </select>
+    </div>
+  </app-barra-herramientas>
+
+  @if (cargando()) {
+    <app-rentas-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (rentas().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-240 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().rentas.colFolio }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().rentas.colCliente }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().rentas.colLugar }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().rentas.colPeriodo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().rentas.colEstado }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().rentas.colTotal }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().rentas.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (renta of rentas(); track renta.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium tabular-nums md:px-5"
+                  >
+                    {{ renta.folio }}
+                  </td>
+
+                  <td class="px-4 py-3 text-texto">{{ renta.cliente }}</td>
+
+                  <td class="px-4 py-3 text-texto-secundario">{{ renta.lugar.descripcion }}</td>
+
+                  <!--
+                    Inicio y fin juntos: separarlos en dos columnas obliga a leer de un lado al
+                    otro para saber cuanto dura, que es la pregunta real.
+                  -->
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ renta.inicio | date: 'shortDate' : undefined : locale() }}
+                    –
+                    {{ renta.fin | date: 'shortDate' : undefined : locale() }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <div class="flex flex-wrap items-center justify-center gap-1">
+                      <span
+                        class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                      >
+                        {{ nombreEstado(renta.estado) }}
+                      </span>
+
+                      <!--
+                        Distintivo AL LADO del estado, nunca en su lugar: una renta vencida
+                        sigue estando Activa. Los dos los calcula el servidor a partir de la
+                        fecha; no son estados guardados.
+                      -->
+                      @if (renta.vencida) {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full border border-amarillo bg-alerta-fondo px-2 py-0.5 text-[11px] font-medium text-alerta-texto"
+                          [title]="t().rentas.avisoVencida"
+                        >
+                          {{ t().rentas.vencida }}
+                        </span>
+                      } @else if (renta.porVencer) {
+                        <span
+                          class="inline-block whitespace-nowrap rounded-full border border-borde-campo px-2 py-0.5 text-[11px] font-medium text-texto-secundario"
+                          [title]="t().rentas.avisoPorVencer"
+                        >
+                          {{ t().rentas.porVencer }}
+                        </span>
+                      }
+                    </div>
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                    {{ renta.total | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+
+                  <td class="px-4 py-2 md:px-5">
+                    <div class="flex justify-center gap-1">
+                      <!--
+                        Confirmar, extender, cerrar y cancelar NO estan aqui. Mueven el
+                        calendario y se deciden mirando los equipos de la renta, no una fila de
+                        tabla; viven en el detalle.
+                      -->
+                      <a
+                        [routerLink]="['/rentas', renta.id]"
+                        [attr.aria-label]="t().rentas.verDetalleDe(renta.folio)"
+                        [title]="t().rentas.verDetalle"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </a>
+
+                      @if (renta.estado === borrador) {
+                        <button
+                          type="button"
+                          (click)="abrirEdicion(renta)"
+                          [attr.aria-label]="t().comun.editarA(renta.folio)"
+                          [title]="t().rentas.editar"
+                          class="boton-icono"
+                        >
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+                          </svg>
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().rentas.rango(desde(), hasta(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav class="flex items-center gap-3" [attr.aria-label]="t().rentas.paginacion">
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().rentas.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().rentas.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().rentas.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="editando() ? t().rentas.editarTitulo : t().rentas.crear"
+  [apoyo]="editando() ? t().rentas.editarApoyo : t().rentas.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-renta">
+    <div class="flex flex-col gap-6 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <fieldset class="flex flex-col gap-4">
+        <legend class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().rentas.seccionLugar }}
+        </legend>
+
+        <div class="flex flex-col gap-1">
+          <label for="clienteId" class="text-sm font-medium text-texto-secundario">
+            {{ t().rentas.cliente }}
+          </label>
+          <select
+            id="clienteId"
+            formControlName="clienteId"
+            [attr.aria-invalid]="mal(formulario.controls.clienteId) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.clienteId) ? 'ayuda-cliente error-cliente' : 'ayuda-cliente'
+            "
+            class="campo-formulario"
+          >
+            <option value="">{{ t().rentas.sinDato }}</option>
+            @for (cliente of clientes(); track cliente.id) {
+              <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
+            }
+          </select>
+          <p id="ayuda-cliente" class="text-xs text-texto-apagado">
+            {{ t().rentas.ayudaCliente }}
+          </p>
+          @if (clientes().length === 0) {
+            <p class="aviso text-sm text-texto-secundario">{{ t().rentas.sinClientes }}</p>
+          }
+          <app-error-campo
+            id="error-cliente"
+            [visible]="mal(formulario.controls.clienteId)"
+            [mensaje]="t().rentas.errorCliente"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="trabajadorId" class="text-sm font-medium text-texto-secundario">
+            {{ t().rentas.responsable }}
+          </label>
+          <select
+            id="trabajadorId"
+            formControlName="trabajadorId"
+            [attr.aria-invalid]="mal(formulario.controls.trabajadorId) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.trabajadorId)
+                ? 'ayuda-responsable error-responsable'
+                : 'ayuda-responsable'
+            "
+            class="campo-formulario"
+          >
+            <option value="">{{ t().rentas.sinDato }}</option>
+            @for (trabajador of trabajadores(); track trabajador.id) {
+              <option [value]="trabajador.id">
+                {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }}
+                {{ trabajador.apellidos }}
+              </option>
+            }
+          </select>
+          <p id="ayuda-responsable" class="text-xs text-texto-apagado">
+            {{ t().rentas.ayudaResponsable }}
+          </p>
+          <app-error-campo
+            id="error-responsable"
+            [visible]="mal(formulario.controls.trabajadorId)"
+            [mensaje]="t().rentas.errorResponsable"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1">
+            <label for="inicio" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.inicio }}
+            </label>
+            <!--
+              `datetime-local` y no `date`: el calendario razona con horas. Una renta que
+              arranca a las 8:00 y otra que termina a las 7:00 del mismo dia NO se traslapan.
+            -->
+            <input
+              id="inicio"
+              formControlName="inicio"
+              type="datetime-local"
+              [attr.aria-invalid]="mal(formulario.controls.inicio) ? 'true' : null"
+              [attr.aria-describedby]="
+                mal(formulario.controls.inicio) ? 'ayuda-periodo error-inicio' : 'ayuda-periodo'
+              "
+              class="campo-formulario"
+            />
+            <app-error-campo
+              id="error-inicio"
+              [visible]="mal(formulario.controls.inicio)"
+              [mensaje]="t().rentas.errorInicio"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="fin" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.fin }}
+            </label>
+            <input
+              id="fin"
+              formControlName="fin"
+              type="datetime-local"
+              [attr.aria-invalid]="
+                mal(formulario.controls.fin) || periodoInvertido() ? 'true' : null
+              "
+              [attr.aria-describedby]="
+                mal(formulario.controls.fin) || periodoInvertido()
+                  ? 'ayuda-periodo error-fin'
+                  : 'ayuda-periodo'
+              "
+              class="campo-formulario"
+            />
+            <app-error-campo
+              id="error-fin"
+              [visible]="mal(formulario.controls.fin) || periodoInvertido()"
+              [mensaje]="periodoInvertido() ? t().rentas.errorPeriodo : t().rentas.errorFin"
+            />
+          </div>
+
+          <p id="ayuda-periodo" class="text-xs text-texto-apagado sm:col-span-2">
+            {{ t().rentas.ayudaPeriodo }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="lugarDescripcion" class="text-sm font-medium text-texto-secundario">
+            {{ t().rentas.lugar }}
+          </label>
+          <input
+            id="lugarDescripcion"
+            formControlName="lugarDescripcion"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formulario.controls.lugarDescripcion) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.lugarDescripcion) ? 'ayuda-lugar error-lugar' : 'ayuda-lugar'
+            "
+            class="campo-formulario"
+          />
+          <p id="ayuda-lugar" class="text-xs text-texto-apagado">{{ t().rentas.ayudaLugar }}</p>
+          <app-error-campo
+            id="error-lugar"
+            [visible]="mal(formulario.controls.lugarDescripcion)"
+            [mensaje]="t().rentas.errorLugar"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1 sm:col-span-2">
+            <label for="calle" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.calle }}
+            </label>
+            <input id="calle" formControlName="calle" autocomplete="off" class="campo-formulario" />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="colonia" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.colonia }}
+            </label>
+            <input
+              id="colonia"
+              formControlName="colonia"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="codigoPostal" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.codigoPostal }}
+            </label>
+            <input
+              id="codigoPostal"
+              formControlName="codigoPostal"
+              inputmode="numeric"
+              maxlength="10"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="municipio" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.municipio }}
+            </label>
+            <input
+              id="municipio"
+              formControlName="municipio"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="estadoProv" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.estadoProv }}
+            </label>
+            <input
+              id="estadoProv"
+              formControlName="estadoProv"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="contacto" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.contacto }}
+            </label>
+            <input
+              id="contacto"
+              formControlName="contacto"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="telefono" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.telefono }}
+            </label>
+            <input
+              id="telefono"
+              formControlName="telefono"
+              type="tel"
+              inputmode="tel"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="flex flex-col gap-4">
+        <legend class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().rentas.seccionImportes }}
+        </legend>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1">
+            <label for="deposito" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.deposito }}
+            </label>
+            <input
+              id="deposito"
+              formControlName="deposito"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              aria-describedby="ayuda-importes"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="anticipo" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.anticipo }}
+            </label>
+            <input
+              id="anticipo"
+              formControlName="anticipo"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              aria-describedby="ayuda-importes"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="descuento" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.descuento }}
+            </label>
+            <input
+              id="descuento"
+              formControlName="descuento"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              aria-describedby="ayuda-importes"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="impuestos" class="text-sm font-medium text-texto-secundario">
+              {{ t().rentas.impuestos }}
+            </label>
+            <input
+              id="impuestos"
+              formControlName="impuestos"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              aria-describedby="ayuda-importes"
+              class="campo-formulario"
+            />
+          </div>
+
+          <p id="ayuda-importes" class="text-xs text-texto-apagado sm:col-span-2">
+            {{ t().rentas.ayudaImportes }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="notas" class="text-sm font-medium text-texto-secundario">
+            {{ t().rentas.notas }}
+          </label>
+          <textarea id="notas" formControlName="notas" rows="3" class="campo-formulario"></textarea>
+        </div>
+      </fieldset>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().rentas.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-renta"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().rentas.guardando : t().rentas.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

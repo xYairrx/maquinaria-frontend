@@ -1,0 +1,84 @@
+<!--
+  Una sola fila desde `sm`: búsqueda a la izquierda, filtros en medio, acción principal
+  pegada a la derecha.
+
+  En un teléfono se apila —búsqueda a todo lo ancho arriba, filtros y acción debajo— porque
+  comprimir los tres en una línea de 375 px deja la búsqueda inservible, que es justo lo que
+  no se puede esconder.
+-->
+<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+  <!--
+    La etiqueta va en `sr-only` con el texto en el `placeholder`: el mismo patrón que las
+    pantallas de acceso. Un campo sin etiqueta accesible no lo anuncia ningún lector.
+  -->
+  <div class="relative sm:max-w-xs sm:flex-1">
+    <label for="barra-busqueda" class="sr-only">{{ marcadorBusqueda() }}</label>
+
+    <svg
+      class="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-texto-apagado"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M21 21l-4.35-4.35" />
+    </svg>
+
+    <input
+      id="barra-busqueda"
+      type="search"
+      [value]="busqueda()()"
+      (input)="alEscribir($any($event.target).value)"
+      [placeholder]="marcadorBusqueda()"
+      autocomplete="off"
+      class="campo-formulario w-full ps-9"
+    />
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    @if (etiquetas(); as etq) {
+      <!-- El filtro de estado, que antes eran tres chips sueltos en su propia fila. -->
+      <div>
+        <label for="barra-estado" class="sr-only">{{ etq.todas }}</label>
+        <select
+          id="barra-estado"
+          [value]="valorEstado()"
+          (change)="alCambiarEstado($any($event.target).value)"
+          class="campo-formulario filtro-barra"
+        >
+          <option value="todas">{{ etq.todas }}</option>
+          <option value="activas">{{ etq.activas }}</option>
+          <option value="retiradas">{{ etq.retiradas }}</option>
+        </select>
+      </div>
+    }
+
+    <!-- Los filtros propios de cada pantalla. Esta barra no tiene que conocerlos. -->
+    <ng-content select="[filtros]" />
+  </div>
+
+  @if (accion(); as etiqueta) {
+    <!--
+      `sm:ms-auto` es lo que la empuja al extremo derecho, en el hueco donde antes estaba el
+      «1-2 de 2» — que se bajó debajo de la tabla, que es donde se lee después de recorrerla.
+    -->
+    <button type="button" (click)="alPulsarAccion.emit()" class="boton-principal sm:ms-auto">
+      <svg
+        class="size-4"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      {{ etiqueta }}
+    </button>
+  }
+</div>

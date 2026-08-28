@@ -96,7 +96,42 @@ Missing 3 or 4 does not COMPILE, which is the safety net. And there is no `MENU_
 constant, whatever a stale docblock says: it is the function `menuEmpresa()`, a function on
 purpose so it re-evaluates when the language changes.
 
+
+**Verify with `ng build`, never with `tsc --noEmit`.** Bare `tsc` does not compile Angular
+TEMPLATES — a missing dictionary key, a method the component does not have, a wrong binding
+type all pass it clean. Only the Angular compiler checks them.
+
+That is not a theoretical gap. A missing `t().tipos.filtrarCategoria` passed `tsc` and then
+**wedged `ng serve`**: the dev server could no longer rebuild, kept serving the last good
+bundle, and every later edit looked like it had no effect — including the fix for a real bug,
+which was verified as "still broken" twice against stale code. If a change stops showing up
+in the browser, the dev server is failing to build; read its output before doubting the edit.
+
 See `docs/convenciones.md#el-andamiaje-de-una-pantalla-nueva`.
+
+## Look for the existing utility BEFORE writing markup
+
+**`src/styles.css` already defines the piece you are about to hand-roll.** `chip`,
+`chip-activo`, `campo-formulario`, `boton-principal`, `aviso`, `esqueleto`,
+`tarjeta-indicador`, `hoja-inferior`, `globo-ayuda`, `dialogo-confirmacion`. Grep for it and
+read `docs/sistema-de-diseno.md` before typing a class list.
+
+Writing it by hand does not just duplicate the definition — **it silently drops the states
+the utility carries.** A filter chip written as `class="chip aria-pressed:bg-negro-tarjeta"`
+looks right until you hover it and the text colour changes, because `chip-activo` also pins
+`:hover` and the hand-written version does not. That shipped in four screens before it was
+caught.
+
+The same check applies to colour. Two rules from `docs/sistema-de-diseno.md#lo-que-no-se-hace`
+that a "reasonable" instinct violates:
+
+- **No green, no red.** The palette is monochrome plus yellow. Destructive is BLACK — taking
+  the yellow away is what says "not the happy path".
+- **No `opacity` to dim content.** It drags text below the contrast minimum. Use the
+  `estado-neutro-fondo` / `estado-neutro-texto` pair, or nothing.
+
+Colours are never written as hex in a template. Every one is a `--color-*` token in
+`@theme`, named by ROLE — `superficie-sutil` survives a palette change, `gris-98` does not.
 
 ## Responsive
 
@@ -199,6 +234,32 @@ cards, and that jump reads as a bug.
 
 See `docs/convenciones.md#esqueletos-de-carga`.
 
+## An empty state must say WHY it is empty
+
+**One empty text is a lie the moment the screen has filters.** With the "Retired" chip on
+and nothing retired, "No brands yet. Create the first one with the button above" is FALSE —
+there may be ten active ones — and worse than false it is useless: it invites creating a
+record when what you have to do is clear the filter.
+
+Pick the message from the state that produced the emptiness, in this order:
+
+1. **A search is active** → name the term: `Ninguna marca coincide con «cat».` Without the
+   term, someone who mistyped cannot see what they actually searched for.
+2. **A filter is active** → say which one is empty AND how to get out:
+   `Ninguna marca está retirada. Quita el filtro para ver el catálogo completo.`
+3. **Nothing is active** → the real empty state, and the ONLY one that carries the call to
+   action: `Todavía no hay marcas. La primera se crea con el botón de arriba.`
+
+Two rules on top of that:
+
+- **Never infer about what you did not query.** "All of them are active" would need an
+  unfiltered count this screen does not request, and it is a lie on an empty catalog. Each
+  text asserts only what this request proves.
+- **The bar context counts the same thing the list shows.** "0 marcas" with the retired
+  filter on reads as "the catalog is empty". Name what is being counted: `0 retiradas`.
+
+The call to action belongs ONLY to case 3. With a filter on, "create the first one" is noise.
+
 ## Data fetching: check for an existing resource FIRST
 
 **Before writing any fetch in a new screen, look for one that already exists.** The empresas
@@ -266,6 +327,124 @@ Regression tests: `nucleo/sesion/interceptor-refresco.spec.ts` (11), the load-be
 "two concurrent 401s produce ONE refresh".
 See `docs/convenciones.md#sesión-el-refresco-del-token-va-serializado`.
 
+## A reactive primitive only tracks SIGNALS — anything else freezes it
+
+`computed`, `effect` and `httpResource` re-run when a **signal** they read changes. Reading
+anything else — a plain property, `form.getRawValue()`, a service field — registers **no
+dependency at all**. The primitive evaluates once and keeps that value forever.
+
+It does not throw, does not warn, and the compiler cannot see it. The types are correct; the
+value is just stale. **This has now shipped twice:**
+
+- **`httpResource` reading a non-signal property** (Marcas). The search box and the
+  active/retired filters did nothing: the resource's first run read zero signals, so it never
+  refetched. Fixed by creating the resource inside a factory that closes over the filter
+  signal. Locked by `api-catalogos.spec.ts`.
+- **`computed` reading `form.getRawValue()`** (Ubicaciones). The "half a coordinate locates
+  nothing" guard never fired: no warning, and the submit button stayed enabled. Locked by
+  `paginas/empresa/ubicaciones/ubicaciones.spec.ts`, which keeps the broken version next to
+  the fixed one to show the difference.
+
+**A `FormGroup` is not reactive.** The bridge is `valueChanges`:
+
+```ts
+private readonly valores = toSignal(this.formulario.valueChanges, {
+  initialValue: this.formulario.getRawValue(),
+});
+
+readonly incompleta = computed(() => {           // yes — reads a signal
+  const { latitud, longitud } = this.valores();
+  return (latitud == null) !== (longitud == null);
+});
+
+readonly rota = computed(() => {                 // no — reads nothing reactive
+  const { latitud, longitud } = this.formulario.getRawValue();
+  return (latitud === null) !== (longitud === null);
+});
+```
+
+Pass `initialValue`, or the signal is `undefined` until the first keystroke and the guard is
+wrong on a freshly opened form.
+
+**A method called FROM the template is a different case and is fine.** `puedeEnviar()` reads
+`formulario.valid`, which is not a signal, but the template re-evaluates it on every change
+detection pass and Angular's event listeners mark the component dirty on every keystroke. The
+trap is only inside `computed` / `effect` / `httpResource`, which decide for themselves when
+to re-run.
+
+**The check to run before writing one:** name the signals this primitive reads. If the list is
+empty, it will never re-run — that is the whole bug, in both cases it caused.
+
+## A `<select>` whose value is not a string needs `[ngValue]`
+
+**`[value]` on an `<option>` is ALWAYS a string** — that is the HTML spec, attributes are
+text. So `[value]="2"` stores `"2"`, and Angular's `SelectControlValueAccessor` reads
+`select.value` and writes that **string** into the form control.
+
+Use `[ngValue]` for enums, numbers and objects. Angular then keeps a lookup table — the DOM
+holds a made-up key (`"1: 2"`) and the control receives the real value.
+
+```html
+<option [ngValue]="unidad">   <!-- enum, number, object -->
+<option [value]="cliente.id"> <!-- a GUID IS a string; fine -->
+```
+
+This shipped and produced two symptoms that did not look related:
+
+- **A 400 from model binding.** The body went out as `{"unidad": "2"}` and `System.Text.Json`
+  will not read a string into a `short`-backed enum, so the request failed before reaching
+  any handler — with ASP.NET's generic "One or more validation errors occurred".
+- **The form silently changed its own default.** It declared `unidad: 2` and the screen
+  showed the FIRST option instead. On init Angular looks for the option matching `2`; the
+  options were `"1"`…`"6"`, `2 !== "2"`, nothing matched, so the browser fell back.
+
+**Typed forms cannot catch this.** They are typed at DECLARATION and never verified at
+runtime: `getRawValue().unidad` returns what the declaration promises, while the value
+accessor has written a string underneath. The type lies, the compiler is happy, and the
+service tests — which check that what you pass is what gets sent — pass too.
+
+It was only visible by using the screen. See `nucleo/api/mensaje-error.spec.ts`, whose whole
+reason for existing is that the 400 said nothing until `errors` was surfaced.
+
+## An `<input type="number">` control is a `number | null`, never a string
+
+Same lie as `[ngValue]`, from the other side. `NumberValueAccessor` — which Angular attaches
+to **every** `<input type="number">` with a `formControlName` — writes into the control:
+
+- a **number** when the field parses (`250`, and `250.5` too, whatever `step` says),
+- **`null`** when the field is empty. Not `''`. Never `''`.
+
+So a control declared `horasEntreServicios: ['']` holds a string only until someone types in
+it. That is what makes this one nasty: it does not fail on the happy path you test first.
+
+```ts
+horasEntreServicios: [null as number | null],          // yes
+horasEntreServicios: [''],                             // no — lies the moment it is used
+```
+
+The bug this caused: `v.horasEntreServicios.trim()` threw
+`TypeError: trim is not a function` in the SUBMIT handler. Because the throw happened after
+`enviando.set(true)` and outside any `subscribe`, nothing caught it — **the request never went
+out and the button stayed stuck on "Guardando…" forever**, with no error notice, since the
+error path that clears the flag lives in the `subscribe`. The screen looked frozen.
+
+`Validators.required` hides it by accident: `null` is empty, so the form is invalid and never
+submits. Three screens survived on that alone. An OPTIONAL numeric field has no such cover,
+and Modelos was the first one.
+
+Two more consequences worth writing down:
+
+- **Truncate before sending.** The accessor uses `parseFloat`, so `250.5` reaches you even
+  with `step="1"`. An `int` column rejects it with a model-binding 400 — the same generic
+  "One or more validation errors occurred" as the `[ngValue]` bug.
+- **Reset with the right type too.** `reset({ orden: '0' })` puts a string back into a number
+  control and the mismatch returns.
+
+**Anything a value accessor touches is typed by the ACCESSOR, not by your declaration.** The
+compiler checks the declaration and nothing checks the accessor, so these two rules — this
+one and `[ngValue]` — are the whole list of places where a typed reactive form will lie to
+you. Regression tests: `paginas/empresa/modelos/modelos.spec.ts`.
+
 ## Route inputs can be `undefined` despite their type
 
 `withComponentInputBinding` assigns `undefined` when a query param is absent from the URL,
@@ -286,6 +465,45 @@ The bug this caused: the URL was built with the string `"undefined"`, the server
 Related: when a read takes screen params and nothing shares it, the service exposes a
 FACTORY returning plain signals (`Api.consultaDeInvitacion`), not a resource field. The
 dedup argument does not apply, but keeping `httpResource` out of components still does.
+
+## Never `confirm()` or `alert()`
+
+**Asking before a destructive action goes through `Confirmacion.pedir()`**
+(`disposicion/confirmacion.ts`), which resolves to a boolean — a one-for-one replacement
+for `confirm()`:
+
+```ts
+const sigue = await this.confirmacion.pedir({
+  titulo: t().marcas.retirar,
+  mensaje: t().marcas.confirmarRetiro(marca.nombre),
+  confirmar: t().marcas.retirar,   // a VERB, never "OK"
+  peligro: true,
+});
+
+if (!sigue) return;
+```
+
+Why not the browser's: it **ignores the app's language** — its buttons come from the
+browser's, so someone reading Spanish gets "OK / Cancel" and the dictionary cannot reach
+them; it **cannot be styled**, breaking the design system at the exact moment someone is
+about to break something; it **blocks the thread**; and it cannot tell a destructive action
+from a neutral one.
+
+- The dialog is mounted ONCE per shell (`<app-dialogo-confirmacion />`). A screen never
+  draws it — same split as `Barra`: state in a service, markup in the shell.
+- **`mensaje` says what CHANGES**, not "are you sure?". A question with no consequence in it
+  forces a blind decision.
+- **Cancel comes first in the DOM and carries `autofocus`.** A `<dialog>` focuses its first
+  focusable child, and on a destructive question that has to be the safe option — otherwise
+  a reflex Enter executes what was being asked.
+- **Closing without choosing is NO.** Escape closes via the browser without passing through
+  the component, so `(close)` must resolve the promise `false`; without it the caller hangs
+  forever with its button stuck.
+- **Destructive is BLACK, not red.** The palette is monochrome plus yellow and the design
+  system forbids red; yellow is the wanted action, so taking it away already says this is
+  not the happy path. The label carries the verb, so colour is never the only cue.
+
+See `docs/convenciones.md#confirmar-antes-de-una-accion-destructiva`.
 
 ## Overlays: use the native element
 

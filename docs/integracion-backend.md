@@ -1,5 +1,20 @@
 # Integración con el backend
 
+## `api:check` y los finales de línea
+
+`openapi-typescript` escribe `generado.ts` **siempre en LF**, y `--check` compara **bytes**
+contra lo que regenera. Con `core.autocrlf=true` —el valor por omisión en Windows— git deja el
+archivo en CRLF al clonar, así que **`npm run api:check` falla en un clon recién hecho aunque el
+contrato esté perfectamente al día**, y el mensaje que da —«Generated types are not
+up-to-date!»— apunta justo al sitio equivocado.
+
+Cerrado con un `.gitattributes` que fija ese archivo a LF en el árbol de trabajo.
+
+**Y `generado.ts` está en `.prettierignore`.** Un `prettier --write` con comodines lo reformatea
+—comillas simples, indentación de dos— y la siguiente regeneración lo revierte: un diff de nueve
+mil líneas en el que no cambió ni un tipo. Ya había pasado. El archivo no se lee a mano; para eso
+está `contratos.ts`, que es la superficie curada.
+
 ## Estado real: el primer flujo ya corre
 
 **Actualizado el 2026-08-25.** La integración existe y el ciclo completo —invitación,
@@ -9,23 +24,23 @@ contraseña también está implementado en los dos lados.
 
 Lo que ya está en disco:
 
-| pieza | dónde |
-|---|---|
-| Configuración de ambiente | `src/app/nucleo/ambiente/configuracion.ts` — un archivo, no `src/environments/` |
-| Qué empresa es esta | `src/app/nucleo/ambiente/tenant.ts` — sale del subdominio, con `tenant.spec.ts` al lado |
-| Identidad del producto | `src/app/nucleo/ambiente/sitio.ts` — el nombre y la marca, escritos una sola vez |
-| Cliente HTTP | `src/app/nucleo/api/api.ts` y `api-plataforma.ts`, con los tipos en `api/contratos.ts` y `api/contratos-plataforma.ts` |
-| Traducción de errores | `src/app/nucleo/api/mensaje-error.ts` — saca el `detail` del `ProblemDetails` |
-| `provideHttpClient()` | `src/app/app.config.ts`, con `withInterceptors([interceptorRefresco, interceptorToken])` — **ese orden importa**, ver §Refresco |
-| Interceptor de token | `src/app/nucleo/sesion/interceptor-token.ts` |
-| Interceptor de refresco | `src/app/nucleo/sesion/interceptor-refresco.ts` (+ `.spec.ts`, 11 pruebas) y el canje serializado en `refresco-sesion.ts` |
-| Guards de sesión | `src/app/nucleo/sesion/guard-sesion.ts` y `guard-plataforma.ts` |
-| Estado de sesión | `src/app/nucleo/sesion/sesion.ts` — signals + `localStorage`, con `datosDeRefresco()` |
-| Qué puede ver quien entró | `src/app/nucleo/sesion/acceso.ts` — permisos del rol ∩ módulos del plan |
-| Pantallas de empresa | `src/app/paginas/empresa/{aceptar-invitacion,iniciar-sesion,inicio,solicitar-restablecimiento,restablecer-contrasena}`, con carga diferida |
-| Pantallas de plataforma | `src/app/paginas/plataforma/{iniciar-sesion,dashboard,empresas,planes,salud-esquemas}` |
-| Pantalla del portal | `src/app/paginas/portal/seleccionar-empresa` |
-| Sesión de plataforma | `src/app/nucleo/sesion/sesion-plataforma.ts` — **llave de almacenamiento separada** |
+| pieza                     | dónde                                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Configuración de ambiente | `src/app/nucleo/ambiente/configuracion.ts` — un archivo, no `src/environments/`                                                            |
+| Qué empresa es esta       | `src/app/nucleo/ambiente/tenant.ts` — sale del subdominio, con `tenant.spec.ts` al lado                                                    |
+| Identidad del producto    | `src/app/nucleo/ambiente/sitio.ts` — el nombre y la marca, escritos una sola vez                                                           |
+| Cliente HTTP              | `src/app/nucleo/api/api.ts` y `api-plataforma.ts`, con los tipos en `api/contratos.ts` y `api/contratos-plataforma.ts`                     |
+| Traducción de errores     | `src/app/nucleo/api/mensaje-error.ts` — saca el `detail` del `ProblemDetails`                                                              |
+| `provideHttpClient()`     | `src/app/app.config.ts`, con `withInterceptors([interceptorRefresco, interceptorToken])` — **ese orden importa**, ver §Refresco            |
+| Interceptor de token      | `src/app/nucleo/sesion/interceptor-token.ts`                                                                                               |
+| Interceptor de refresco   | `src/app/nucleo/sesion/interceptor-refresco.ts` (+ `.spec.ts`, 11 pruebas) y el canje serializado en `refresco-sesion.ts`                  |
+| Guards de sesión          | `src/app/nucleo/sesion/guard-sesion.ts` y `guard-plataforma.ts`                                                                            |
+| Estado de sesión          | `src/app/nucleo/sesion/sesion.ts` — signals + `localStorage`, con `datosDeRefresco()`                                                      |
+| Qué puede ver quien entró | `src/app/nucleo/sesion/acceso.ts` — permisos del rol ∩ módulos del plan                                                                    |
+| Pantallas de empresa      | `src/app/paginas/empresa/{aceptar-invitacion,iniciar-sesion,inicio,solicitar-restablecimiento,restablecer-contrasena}`, con carga diferida |
+| Pantallas de plataforma   | `src/app/paginas/plataforma/{iniciar-sesion,dashboard,empresas,planes,salud-esquemas}`                                                     |
+| Pantalla del portal       | `src/app/paginas/portal/seleccionar-empresa`                                                                                               |
+| Sesión de plataforma      | `src/app/nucleo/sesion/sesion-plataforma.ts` — **llave de almacenamiento separada**                                                        |
 
 `nucleo/` ya no es plano: va en `ambiente/`, `api/` y `sesion/`. El criterio de qué va en
 cada una está en [`convenciones.md`](convenciones.md) §Estructura de carpetas.
@@ -65,12 +80,12 @@ Lo que **sigue faltando**:
 
 ## Puertos y documento OpenAPI
 
-| Pieza | URL |
-|---|---|
+| Pieza                 | URL                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------- |
 | Dev server de Angular | `http://localhost:4200`, y `http://<slug>.localhost:4200` para entrar a una empresa |
-| API, perfil `http` | `http://localhost:5123` — **es a la que apunta `configuracion.urlApi`** |
-| API, perfil `https` | `https://localhost:7020` (además expone `:5123`) |
-| Documento OpenAPI | `/openapi/v1.json` — **solo en Development** |
+| API, perfil `http`    | `http://localhost:5123` — **es a la que apunta `configuracion.urlApi`**             |
+| API, perfil `https`   | `https://localhost:7020` (además expone `:5123`)                                    |
+| Documento OpenAPI     | `/openapi/v1.json` — **solo en Development**                                        |
 
 Los dos perfiles están en `maquinaria-backend/src/Maquinaria.Api/Properties/launchSettings.json`. `Program.cs` llama `AddOpenApi()` siempre y `MapOpenApi()` únicamente cuando el entorno es Development, así que en producción el documento no se sirve.
 
@@ -106,16 +121,16 @@ predicado (`Arranque/OrigenesPermitidos.cs`):
 }
 ```
 
-| Clave | Qué hace |
-|---|---|
-| `Origenes` | Lista exacta, para los orígenes que **no** son subdominios de cliente. Gana sin pasar por ninguna validación de forma: es configuración nuestra |
-| `DominioBase` | El dominio pelado y **cualquier subdominio bajo él** se aceptan. Vacío desactiva la regla por completo |
-| `ExigirHttps` | Se apaga solo en desarrollo, donde el dev server es `http` |
+| Clave         | Qué hace                                                                                                                                        |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Origenes`    | Lista exacta, para los orígenes que **no** son subdominios de cliente. Gana sin pasar por ninguna validación de forma: es configuración nuestra |
+| `DominioBase` | El dominio pelado y **cualquier subdominio bajo él** se aceptan. Vacío desactiva la regla por completo                                          |
+| `ExigirHttps` | Se apaga solo en desarrollo, donde el dev server es `http`                                                                                      |
 
 Dos detalles que conviene no perder:
 
 - **`DominioBase` de la API tiene que coincidir con `dominioBase` de
-  `nucleo/ambiente/configuracion.ts`.** Si no coinciden, el navegador bloquea *todas* las
+  `nucleo/ambiente/configuracion.ts`.** Si no coinciden, el navegador bloquea _todas_ las
   llamadas de los subdominios de empresa. En desarrollo los dos valen `localhost`, y
   `bajio.localhost:4200` funciona sin tocar el archivo `hosts` porque Chrome y Edge
   resuelven `*.localhost` a 127.0.0.1 de forma nativa.
@@ -165,7 +180,7 @@ npm run api:sync    →  genera src/app/nucleo/api/ desde /openapi/v1.json
 Los archivos generados **se versionan en este repo**. Dos razones, y ambas importan:
 
 1. El front compila sin necesitar el backend corriendo.
-2. Cualquier cambio de contrato aparece como un *diff* revisable en el historial del front. Es el sustituto práctico del commit atómico que dos repos independientes no permiten.
+2. Cualquier cambio de contrato aparece como un _diff_ revisable en el historial del front. Es el sustituto práctico del commit atómico que dos repos independientes no permiten.
 
 El script `api:sync` **aún no existe** y la herramienta generadora es una **decisión abierta**.
 
@@ -173,11 +188,11 @@ El script `api:sync` **aún no existe** y la herramienta generadora es una **dec
 
 Regla de `01-arquitectura.md` §10.6b. Con despliegues independientes, un cambio incompatible rompe producción durante la ventana entre un deploy y el otro. Nunca se cambia un contrato de golpe:
 
-| Paso | Repo | Acción |
-|---|---|---|
-| 1. Expandir | backend | Agrega el campo o endpoint nuevo. **Conserva el viejo** |
-| 2. Migrar | frontend | Regenera el cliente y adopta lo nuevo |
-| 3. Contraer | backend | Recién ahora elimina lo viejo |
+| Paso        | Repo     | Acción                                                  |
+| ----------- | -------- | ------------------------------------------------------- |
+| 1. Expandir | backend  | Agrega el campo o endpoint nuevo. **Conserva el viejo** |
+| 2. Migrar   | frontend | Regenera el cliente y adopta lo nuevo                   |
+| 3. Contraer | backend  | Recién ahora elimina lo viejo                           |
 
 La regla en una línea: **cada despliegue debe ser compatible con la versión actualmente desplegada del otro repo.** Renombrar un campo y actualizar el front "al mismo tiempo" no existe; uno de los dos despliegues llega primero.
 
@@ -185,11 +200,11 @@ Convención de trazabilidad (§10.6c): referenciar desde el commit del front el 
 
 ## Dominios en producción y la cookie del refresh token
 
-| Subdominio | Servicio |
-|---|---|
-| `*.tudominio.com` y el dominio pelado | Cloudflare Pages (este repo) |
-| `admin.tudominio.com` | Cloudflare Pages, mismo build: el árbol de rutas lo elige el anfitrión |
-| `api.tudominio.com` | Railway (la API, proxied) |
+| Subdominio                            | Servicio                                                               |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| `*.tudominio.com` y el dominio pelado | Cloudflare Pages (este repo)                                           |
+| `admin.tudominio.com`                 | Cloudflare Pages, mismo build: el árbol de rutas lo elige el anfitrión |
+| `api.tudominio.com`                   | Railway (la API, proxied)                                              |
 
 **Es un solo build servido en muchos anfitriones, no un despliegue por empresa.** Desde
 que la empresa sale del subdominio, el frontend necesita un **comodín** en Pages: cada
@@ -218,11 +233,11 @@ despliegues, no uno.
 
 **Se mantiene `localStorage` mientras dure el desarrollo.** La regla de `HttpOnly` sigue siendo la meta y no se relaja: es el estado objetivo, no una recomendación descartada.
 
-| | Hoy | Antes de producción |
-|---|---|---|
-| Refresh token | `localStorage`, llave `maquinaria.refresco` | Cookie `HttpOnly` + `SameSite=Lax` |
-| CSRF | No aplica | Hay que resolverlo (es el costo del cambio) |
-| Riesgo | Un XSS se lleva un token de 30 días | Un XSS no alcanza la cookie |
+|               | Hoy                                         | Antes de producción                         |
+| ------------- | ------------------------------------------- | ------------------------------------------- |
+| Refresh token | `localStorage`, llave `maquinaria.refresco` | Cookie `HttpOnly` + `SameSite=Lax`          |
+| CSRF          | No aplica                                   | Hay que resolverlo (es el costo del cambio) |
+| Riesgo        | Un XSS se lleva un token de 30 días         | Un XSS no alcanza la cookie                 |
 
 **Condición de cierre, no fecha:** esto se resuelve **antes del primer despliegue con datos de un cliente real**.
 
@@ -253,11 +268,11 @@ La arquitectura no cambió —cada empresa tiene **su propia base de datos**, as
 
 ### Tres aplicaciones, tres árboles de rutas
 
-| Anfitrión | Aplicación | Rutas |
-|---|---|---|
-| `admin.<dominio>` | Superadministración | `rutas-plataforma.ts` |
-| `<slug>.<dominio>` | La aplicación de esa empresa | `rutas-empresa.ts` |
-| `<dominio>` y `login.<dominio>` | Portal: preguntar a qué empresa se entra | `rutas-portal.ts` |
+| Anfitrión                       | Aplicación                               | Rutas                 |
+| ------------------------------- | ---------------------------------------- | --------------------- |
+| `admin.<dominio>`               | Superadministración                      | `rutas-plataforma.ts` |
+| `<slug>.<dominio>`              | La aplicación de esa empresa             | `rutas-empresa.ts`    |
+| `<dominio>` y `login.<dominio>` | Portal: preguntar a qué empresa se entra | `rutas-portal.ts`     |
 
 `app.routes.ts` elige **uno** al arrancar y registra solo ese, y esa es la parte que importa: en `bajio.<dominio>` las rutas de plataforma no devuelven 403 ni las tapa un guard, sencillamente **no existen**. Es la misma idea que el aislamiento por base de datos del backend: lo que no existe no se puede alcanzar por descuido. Se resuelve una sola vez porque el anfitrión no cambia sin recargar; cambiar de empresa es cambiar de origen.
 
@@ -273,11 +288,11 @@ La arquitectura no cambió —cada empresa tiene **su propia base de datos**, as
 
 **Implementado en los dos lados.** Tres endpoints, todos anónimos y bajo `/api/empresas/{slug}`:
 
-| Método y ruta | Respuesta | Qué hace |
-|---|---|---|
-| `POST /restablecimientos` | **202 siempre**, con el mismo cuerpo exista o no la cuenta | Pide la liga |
-| `GET /restablecimientos/{token}` | **204** o **404**, sin datos de la cuenta | Dice si la liga todavía sirve |
-| `POST /restablecimientos/{token}` | 200 o 400 | Define la contraseña nueva y cierra las demás sesiones |
+| Método y ruta                     | Respuesta                                                  | Qué hace                                               |
+| --------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------ |
+| `POST /restablecimientos`         | **202 siempre**, con el mismo cuerpo exista o no la cuenta | Pide la liga                                           |
+| `GET /restablecimientos/{token}`  | **204** o **404**, sin datos de la cuenta                  | Dice si la liga todavía sirve                          |
+| `POST /restablecimientos/{token}` | 200 o 400                                                  | Define la contraseña nueva y cierra las demás sesiones |
 
 En el front son `solicitarRestablecimiento`, `consultarRestablecimiento` y `restablecerContrasena` de `nucleo/api/api.ts`, y las pantallas `empresa/solicitar-restablecimiento` (`/recuperar`) y `empresa/restablecer-contrasena` (`/restablecer`).
 
@@ -300,19 +315,19 @@ Tras restablecer **no se inicia sesión automáticamente**: el backend acaba de 
 **Implementado en los dos lados el 2026-08-25.** Con esto el token de acceso de 15 minutos
 deja de obligar a volver a entrar, y se cierra la Fase 0 del frontend.
 
-| Método y ruta | Auth | Cuerpo | Respuesta |
-|---|---|---|---|
+| Método y ruta                               | Auth        | Cuerpo              | Respuesta                                      |
+| ------------------------------------------- | ----------- | ------------------- | ---------------------------------------------- |
 | `POST /api/empresas/{slug}/sesion/refresco` | **anónimo** | `{ tokenRefresco }` | **200** con `SesionEmpresa`, **401** o **429** |
 
 Las vigencias están en `Maquinaria.Infraestructura/Seguridad/OpcionesJwt.cs`, y verlas
 juntas zanja la nota de coherencia que este documento arrastraba —`sesion.ts` hablaba de 30
 días y el documento de 15 minutos—: **no se contradecían, son piezas distintas**.
 
-| Pieza | Vigencia |
-|---|---|
-| Token de acceso de empresa | **15 minutos** (`MinutosEmpresa`) — corto a propósito: los permisos viajan dentro |
-| Token de acceso de plataforma | **60 minutos** (`MinutosPlataforma`) |
-| Token de refresco | **30 días** (`DiasRefresco`) |
+| Pieza                         | Vigencia                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------- |
+| Token de acceso de empresa    | **15 minutos** (`MinutosEmpresa`) — corto a propósito: los permisos viajan dentro |
+| Token de acceso de plataforma | **60 minutos** (`MinutosPlataforma`)                                              |
+| Token de refresco             | **30 días** (`DiasRefresco`)                                                      |
 
 ### Es el contrato del login, reusado a propósito
 
@@ -438,10 +453,10 @@ real del contrato escrito a mano y está anotada como pendiente 18 en
 lado. Lo único que decide el front es cuál de los tres estados aplica, en la función pura
 `estadoDeEsquema()`, que leen **el dashboard y la pantalla de esquemas**:
 
-| Estado | Cuándo |
-|---|---|
-| al día | `versionReconocida` y no `desfasada` |
-| desfasada | `versionReconocida` y `desfasada` — se arregla migrando |
+| Estado           | Cuándo                                                     |
+| ---------------- | ---------------------------------------------------------- |
+| al día           | `versionReconocida` y no `desfasada`                       |
+| desfasada        | `versionReconocida` y `desfasada` — se arregla migrando    |
 | **sin comparar** | `versionReconocida: false`, y **gana sobre todo lo demás** |
 
 `versionReconocida: false` significa que **no se pudo comparar**: la versión aplicada es
@@ -508,12 +523,12 @@ El front debe autorizar contra **la cadena de permiso, nunca contra el nombre de
 
 §9 preveía cuatro: JWT, refresh automático, manejo de errores y `tenant`. Hoy el mapa es otro:
 
-| Interceptor | Estado |
-|---|---|
-| **JWT** | Existe: `nucleo/sesion/interceptor-token.ts` |
-| **`tenant`** | **Ya no hace falta.** El slug va en la URL de cada endpoint (`/api/empresas/{slug}/…`), no en una cabecera, y sale del subdominio. No hay nada que interceptar |
-| **Refresh automático** | **Existe (2026-08-25)**: `interceptor-refresco.ts` + `refresco-sesion.ts`, **solo para la sesión de empresa**. Ver §Refresco de la sesión de empresa |
-| **Manejo de errores** | Pendiente. Hoy cada pantalla llama a `mensajeDeError` a mano |
+| Interceptor            | Estado                                                                                                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **JWT**                | Existe: `nucleo/sesion/interceptor-token.ts`                                                                                                                   |
+| **`tenant`**           | **Ya no hace falta.** El slug va en la URL de cada endpoint (`/api/empresas/{slug}/…`), no en una cabecera, y sale del subdominio. No hay nada que interceptar |
+| **Refresh automático** | **Existe (2026-08-25)**: `interceptor-refresco.ts` + `refresco-sesion.ts`, **solo para la sesión de empresa**. Ver §Refresco de la sesión de empresa           |
+| **Manejo de errores**  | Pendiente. Hoy cada pantalla llama a `mensajeDeError` a mano                                                                                                   |
 
 Y son **dos** interceptores y no un `if` más dentro del de token, por dos razones: poner el
 `Authorization` correcto es cosa de las dos sesiones y ahí está bien compartido, mientras

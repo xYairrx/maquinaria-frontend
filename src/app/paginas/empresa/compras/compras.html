@@ -1,0 +1,313 @@
+<!--
+  Molde estandar. Como en Contratos, NO hay lapiz: una orden se crea y se le mueven las lineas
+  en Borrador, y finalizar vive en el detalle porque cada linea necesita su codigo interno.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().compras.buscar"
+    [accion]="t().compras.crear"
+    (alPulsarAccion)="abrirAlta()"
+  >
+    <div filtros>
+      <label for="filtro-estado" class="sr-only">{{ t().ordenes.colEstado }}</label>
+      <select
+        id="filtro-estado"
+        [value]="estadoFiltrado() ?? ''"
+        (change)="elegirEstado($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().ordenes.cualquierEstado }}</option>
+        @for (estado of estados; track estado) {
+          <option [value]="estado">{{ nombreEstado(estado) }}</option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-proveedor" class="sr-only">{{ t().compras.proveedor }}</label>
+      <select
+        id="filtro-proveedor"
+        [value]="contraparteFiltrada()"
+        (change)="contraparteFiltrada.set($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().compras.cualquierProveedor }}</option>
+        @for (proveedor of proveedores(); track proveedor.id) {
+          <option [value]="proveedor.id">{{ proveedor.razonSocial }}</option>
+        }
+      </select>
+    </div>
+  </app-barra-herramientas>
+
+  @if (cargando()) {
+    <app-compras-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (ordenes().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-200 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().ordenes.colFolio }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().compras.colProveedor }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().ordenes.colFecha }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().ordenes.colEstado }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().ordenes.colLineas }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().ordenes.colTotal }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().ordenes.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (orden of ordenes(); track orden.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium tabular-nums md:px-5"
+                  >
+                    {{ orden.folio }}
+                  </td>
+                  <td class="px-4 py-3 text-texto">{{ orden.proveedor }}</td>
+                  <!-- En UTC: `fecha` es un `DateOnly` y la zona local la correria un dia. -->
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ orden.fecha | date: 'shortDate' : 'UTC' : locale() }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <span
+                      class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                    >
+                      {{ nombreEstado(orden.estado) }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ orden.detalles.length }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                    {{ orden.total | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+                  <td class="px-4 py-2 md:px-5">
+                    <div class="flex justify-center gap-1">
+                      <a
+                        [routerLink]="['/ordenes-compra', orden.id]"
+                        [attr.aria-label]="t().compras.verDetalleDe(orden.folio)"
+                        [title]="t().ordenes.verDetalle"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().ordenes.rango(desde(), hasta(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav class="flex items-center gap-3" [attr.aria-label]="t().ordenes.paginacion">
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().ordenes.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().ordenes.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().ordenes.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="t().compras.crear"
+  [apoyo]="t().compras.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-orden-compra">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="proveedorId" class="text-sm font-medium text-texto-secundario">
+          {{ t().compras.proveedor }}
+        </label>
+        <select
+          id="proveedorId"
+          formControlName="proveedorId"
+          [attr.aria-invalid]="mal(formulario.controls.proveedorId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.proveedorId) ? 'ayuda-prov error-prov' : 'ayuda-prov'
+          "
+          class="campo-formulario"
+        >
+          <option value="">{{ t().ordenes.sinDato }}</option>
+          @for (proveedor of proveedores(); track proveedor.id) {
+            <option [value]="proveedor.id">{{ proveedor.razonSocial }}</option>
+          }
+        </select>
+        <p id="ayuda-prov" class="text-xs text-texto-apagado">{{ t().compras.ayudaProveedor }}</p>
+        @if (proveedores().length === 0) {
+          <p class="aviso text-sm text-texto-secundario">{{ t().compras.sinProveedores }}</p>
+        }
+        <app-error-campo
+          id="error-prov"
+          [visible]="mal(formulario.controls.proveedorId)"
+          [mensaje]="t().compras.errorProveedor"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="trabajadorId" class="text-sm font-medium text-texto-secundario">
+          {{ t().ordenes.responsable }}
+        </label>
+        <select
+          id="trabajadorId"
+          formControlName="trabajadorId"
+          [attr.aria-invalid]="mal(formulario.controls.trabajadorId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.trabajadorId) ? 'ayuda-resp error-resp' : 'ayuda-resp'
+          "
+          class="campo-formulario"
+        >
+          <option value="">{{ t().ordenes.sinDato }}</option>
+          @for (trabajador of trabajadores(); track trabajador.id) {
+            <option [value]="trabajador.id">
+              {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }} {{ trabajador.apellidos }}
+            </option>
+          }
+        </select>
+        <p id="ayuda-resp" class="text-xs text-texto-apagado">{{ t().ordenes.ayudaResponsable }}</p>
+        <app-error-campo
+          id="error-resp"
+          [visible]="mal(formulario.controls.trabajadorId)"
+          [mensaje]="t().ordenes.errorResponsable"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="fecha" class="text-sm font-medium text-texto-secundario">
+            {{ t().ordenes.fecha }}
+          </label>
+          <input
+            id="fecha"
+            formControlName="fecha"
+            type="date"
+            aria-describedby="ayuda-fecha"
+            class="campo-formulario"
+          />
+          <p id="ayuda-fecha" class="text-xs text-texto-apagado">{{ t().ordenes.ayudaFecha }}</p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="impuestos" class="text-sm font-medium text-texto-secundario">
+            {{ t().ordenes.impuestos }}
+          </label>
+          <input
+            id="impuestos"
+            formControlName="impuestos"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            aria-describedby="ayuda-importes"
+            class="campo-formulario"
+          />
+          <p id="ayuda-importes" class="text-xs text-texto-apagado">
+            {{ t().ordenes.ayudaImportes }}
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="notas" class="text-sm font-medium text-texto-secundario">
+          {{ t().ordenes.notas }}
+        </label>
+        <textarea id="notas" formControlName="notas" rows="3" class="campo-formulario"></textarea>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().ordenes.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-orden-compra"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().ordenes.guardando : t().ordenes.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

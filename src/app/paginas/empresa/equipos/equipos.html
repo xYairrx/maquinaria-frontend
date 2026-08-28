@@ -1,0 +1,654 @@
+<!--
+  El parque. Tres filtros propios —estado, ubicacion y proposito— y TRES acciones por fila:
+  editar, cambiar estado y eliminar. Es la primera pantalla con borrado de verdad.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().equipos.buscar"
+    [accion]="t().equipos.crear"
+    (alPulsarAccion)="abrirAlta()"
+  >
+    <div filtros>
+      <label for="filtro-estado" class="sr-only">{{ t().equipos.estado }}</label>
+      <select
+        id="filtro-estado"
+        [value]="estadoFiltrado() ?? ''"
+        (change)="elegirEstado($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().equipos.cualquierEstado }}</option>
+        @for (estado of estados; track estado) {
+          <option [value]="estado">{{ nombreEstado(estado) }}</option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-ubicacion" class="sr-only">{{ t().equipos.ubicacion }}</label>
+      <select
+        id="filtro-ubicacion"
+        [value]="ubicacionFiltrada()"
+        (change)="filtrarPorUbicacion($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().equipos.cualquierUbicacion }}</option>
+        @for (ubicacion of ubicaciones(); track ubicacion.id) {
+          <option [value]="ubicacion.id">{{ ubicacion.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-proposito" class="sr-only">{{ t().equipos.proposito }}</label>
+      <select
+        id="filtro-proposito"
+        [value]="propositoFiltrado() ?? ''"
+        (change)="elegirProposito($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().equipos.cualquierProposito }}</option>
+        @for (proposito of propositos; track proposito) {
+          <option [value]="proposito">{{ nombreProposito(proposito) }}</option>
+        }
+      </select>
+    </div>
+  </app-barra-herramientas>
+
+  @if (cargando()) {
+    <app-equipos-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <!--
+        Aqui aterriza el 409 del calendario ocupado, con el TEXTO DEL SERVIDOR. Es la garantia
+        de no-traslape hablando, asi que no se traduce ni se convierte en un mensaje generico.
+      -->
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (equipos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-260 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().equipos.colCodigo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().equipos.colEquipo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().equipos.colTipo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().equipos.colSerie }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().equipos.colUbicacion }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().equipos.colEstado }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().equipos.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (equipo of equipos(); track equipo.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    <!--
+                      El codigo lleva al EXPEDIENTE. Es un `<a>` y no un boton porque navega:
+                      asi se puede abrir en otra pestaña, y un lector de pantalla lo anuncia
+                      como enlace, que es lo que es.
+                    -->
+                    <a
+                      [routerLink]="['/equipos', equipo.id]"
+                      class="font-medium text-texto underline decoration-borde-campo underline-offset-4 hover:decoration-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                    >
+                      {{ equipo.codigoInterno }}
+                    </a>
+                  </td>
+
+                  <!-- Marca y modelo llegan RESUELTOS del servidor, no como ids. -->
+                  <td class="px-4 py-3">
+                    <p class="font-medium text-texto">{{ equipo.marca }} {{ equipo.modelo }}</p>
+                    @if (equipo.anio) {
+                      <p class="text-xs text-texto-apagado">{{ equipo.anio }}</p>
+                    }
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">{{ equipo.tipoEquipo }}</td>
+
+                  <td class="whitespace-nowrap px-4 py-3 text-texto-secundario">
+                    {{ equipo.numeroSerie ?? t().equipos.sinDato }}
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ equipo.ubicacion ?? t().equipos.sinDato }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <span
+                      class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                    >
+                      {{ nombreEstado(equipo.estado) }}
+                    </span>
+                  </td>
+
+                  <td class="px-4 py-2 md:px-5">
+                    <div class="flex justify-center gap-1">
+                      <button
+                        type="button"
+                        (click)="abrirEdicion(equipo)"
+                        [attr.aria-label]="t().comun.editarA(equipo.codigoInterno)"
+                        [title]="t().equipos.editar"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+                        </svg>
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="abrirEstado(equipo)"
+                        [attr.aria-label]="t().equipos.cambiarEstadoDe(equipo.codigoInterno)"
+                        [title]="t().equipos.cambiarEstado"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" />
+                        </svg>
+                      </button>
+
+                      <!-- El unico DELETE de la fase, y es logico: el equipo no desaparece. -->
+                      <button
+                        type="button"
+                        (click)="eliminar(equipo)"
+                        [attr.aria-label]="t().equipos.eliminarA(equipo.codigoInterno)"
+                        [title]="t().equipos.eliminar"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6M10 11v6M14 11v6"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().equipos.rango(desde(), hasta(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav class="flex items-center gap-3" [attr.aria-label]="t().equipos.paginacion">
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().equipos.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().equipos.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().equipos.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="editando() ? t().equipos.editarTitulo : t().equipos.crear"
+  [apoyo]="editando() ? t().equipos.editarApoyo : t().equipos.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-equipo">
+    <div class="flex flex-col gap-6 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <fieldset class="flex flex-col gap-4">
+        <legend class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().equipos.seccionIdentidad }}
+        </legend>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1">
+            <label for="codigoInterno" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.codigoInterno }}
+            </label>
+            <input
+              id="codigoInterno"
+              formControlName="codigoInterno"
+              maxlength="30"
+              autocapitalize="characters"
+              autocomplete="off"
+              spellcheck="false"
+              [attr.aria-invalid]="mal(formulario.controls.codigoInterno) ? 'true' : null"
+              [attr.aria-describedby]="
+                mal(formulario.controls.codigoInterno)
+                  ? 'ayuda-codigo error-codigo'
+                  : 'ayuda-codigo'
+              "
+              class="campo-formulario"
+            />
+            <p id="ayuda-codigo" class="text-xs text-texto-apagado">
+              {{ t().equipos.ayudaCodigo }}
+            </p>
+            <app-error-campo
+              id="error-codigo"
+              [visible]="mal(formulario.controls.codigoInterno)"
+              [mensaje]="t().equipos.errorCodigo"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="numeroSerie" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.numeroSerie }}
+            </label>
+            <input
+              id="numeroSerie"
+              formControlName="numeroSerie"
+              autocapitalize="characters"
+              autocomplete="off"
+              spellcheck="false"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="modeloEquipoId" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.modelo }}
+            </label>
+            <select
+              id="modeloEquipoId"
+              formControlName="modeloEquipoId"
+              [attr.aria-invalid]="mal(formulario.controls.modeloEquipoId) ? 'true' : null"
+              [attr.aria-describedby]="
+                mal(formulario.controls.modeloEquipoId)
+                  ? 'ayuda-modelo error-modelo'
+                  : 'ayuda-modelo'
+              "
+              class="campo-formulario"
+            >
+              <option value=""></option>
+              @for (modelo of modelos(); track modelo.id) {
+                <option [value]="modelo.id">{{ modelo.nombre }}</option>
+              }
+            </select>
+            <p id="ayuda-modelo" class="text-xs text-texto-apagado">
+              {{ modelos().length === 0 ? t().equipos.sinModelos : t().equipos.ayudaModelo }}
+            </p>
+            <app-error-campo
+              id="error-modelo"
+              [visible]="mal(formulario.controls.modeloEquipoId)"
+              [mensaje]="t().equipos.errorModelo"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="tipoEquipoId" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.tipo }}
+            </label>
+            <select
+              id="tipoEquipoId"
+              formControlName="tipoEquipoId"
+              [attr.aria-invalid]="mal(formulario.controls.tipoEquipoId) ? 'true' : null"
+              [attr.aria-describedby]="
+                mal(formulario.controls.tipoEquipoId) ? 'ayuda-tipo error-tipo' : 'ayuda-tipo'
+              "
+              class="campo-formulario"
+            >
+              <option value=""></option>
+              @for (tipo of tipos(); track tipo.id) {
+                <option [value]="tipo.id">{{ tipo.nombre }}</option>
+              }
+            </select>
+            <p id="ayuda-tipo" class="text-xs text-texto-apagado">{{ t().equipos.ayudaTipo }}</p>
+            <app-error-campo
+              id="error-tipo"
+              [visible]="mal(formulario.controls.tipoEquipoId)"
+              [mensaje]="t().equipos.errorTipo"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="flex flex-col gap-4">
+        <legend class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().equipos.seccionUbicacion }}
+        </legend>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1 sm:col-span-2">
+            <label for="ubicacionId" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.ubicacion }}
+            </label>
+            <select
+              id="ubicacionId"
+              formControlName="ubicacionId"
+              aria-describedby="ayuda-ubicacion"
+              class="campo-formulario"
+            >
+              <option value="">{{ t().equipos.sinUbicacion }}</option>
+              @for (ubicacion of ubicaciones(); track ubicacion.id) {
+                <option [value]="ubicacion.id">{{ ubicacion.nombre }}</option>
+              }
+            </select>
+            <p id="ayuda-ubicacion" class="text-xs text-texto-apagado">
+              {{ t().equipos.ayudaUbicacion }}
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="proposito" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.proposito }}
+            </label>
+            <select
+              id="proposito"
+              formControlName="proposito"
+              aria-describedby="ayuda-proposito"
+              class="campo-formulario"
+            >
+              @for (proposito of propositos; track proposito) {
+                <!-- `ngValue`: enum numerico. -->
+                <option [ngValue]="proposito">{{ nombreProposito(proposito) }}</option>
+              }
+            </select>
+            <p id="ayuda-proposito" class="text-xs text-texto-apagado">
+              {{ t().equipos.ayudaProposito }}
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="origen" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.origen }}
+            </label>
+            <select id="origen" formControlName="origen" class="campo-formulario">
+              @for (origen of origenes; track origen) {
+                <option [ngValue]="origen">{{ nombreOrigen(origen) }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="anio" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.anio }}
+            </label>
+            <input
+              id="anio"
+              formControlName="anio"
+              type="number"
+              step="1"
+              inputmode="numeric"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="fechaAdquisicion" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.fechaAdquisicion }}
+            </label>
+            <input
+              id="fechaAdquisicion"
+              formControlName="fechaAdquisicion"
+              type="date"
+              class="campo-formulario"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="flex flex-col gap-4">
+        <legend class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().equipos.seccionValores }}
+        </legend>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1">
+            <label for="costoAdquisicion" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.costoAdquisicion }}
+            </label>
+            <input
+              id="costoAdquisicion"
+              formControlName="costoAdquisicion"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="valorActual" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.valorActual }}
+            </label>
+            <input
+              id="valorActual"
+              formControlName="valorActual"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="horometro" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.horometro }}
+            </label>
+            <input
+              id="horometro"
+              formControlName="horometro"
+              type="number"
+              min="0"
+              step="0.1"
+              inputmode="decimal"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="kilometraje" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.kilometraje }}
+            </label>
+            <input
+              id="kilometraje"
+              formControlName="kilometraje"
+              type="number"
+              min="0"
+              step="0.1"
+              inputmode="decimal"
+              autocomplete="off"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1 sm:col-span-2">
+            <label for="notas" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.notas }}
+            </label>
+            <textarea
+              id="notas"
+              formControlName="notas"
+              rows="2"
+              class="campo-formulario"
+            ></textarea>
+          </div>
+        </div>
+      </fieldset>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().equipos.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-equipo"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().equipos.guardando : t().equipos.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<!--
+  Panel del estado. Ofrece SOLO los cuatro que se capturan y explica por que faltan los otros
+  cuatro: el servidor los rechaza con un 400, y descubrirlo al pulsar Guardar seria peor.
+-->
+<app-panel-lateral
+  [abierto]="panelEstadoAbierto()"
+  [titulo]="t().equipos.cambiarEstadoTitulo"
+  [apoyo]="
+    cambiandoEstadoA() ? t().equipos.cambiarEstadoApoyo(cambiandoEstadoA()!.codigoInterno) : ''
+  "
+  (cerrar)="cerrarPanelEstado()"
+>
+  <form [formGroup]="formularioEstado" (ngSubmit)="enviarEstado()" id="formulario-estado-equipo">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="estado" class="text-sm font-medium text-texto-secundario">
+          {{ t().equipos.estado }}
+        </label>
+        <select
+          id="estado"
+          formControlName="estado"
+          aria-describedby="aviso-estados"
+          class="campo-formulario"
+        >
+          @for (estado of estadosManuales; track estado) {
+            <option [ngValue]="estado">{{ nombreEstado(estado) }}</option>
+          }
+        </select>
+      </div>
+
+      <p id="aviso-estados" class="aviso text-sm text-texto-secundario">
+        {{ t().equipos.avisoEstadosDeOperacion }}
+      </p>
+
+      <div class="flex flex-col gap-1">
+        <label for="nota" class="text-sm font-medium text-texto-secundario">
+          {{ t().equipos.nota }}
+        </label>
+        <textarea
+          id="nota"
+          formControlName="nota"
+          rows="2"
+          aria-describedby="ayuda-nota"
+          class="campo-formulario"
+        ></textarea>
+        <p id="ayuda-nota" class="text-xs text-texto-apagado">{{ t().equipos.ayudaNota }}</p>
+      </div>
+
+      <p class="text-xs text-texto-apagado">{{ t().equipos.avisoCalendario }}</p>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanelEstado()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().equipos.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-estado-equipo"
+      [disabled]="enviando()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().equipos.guardando : t().equipos.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

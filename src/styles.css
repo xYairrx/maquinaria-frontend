@@ -582,6 +582,88 @@ input:-webkit-autofill:focus {
 }
 
 /*
+ * ACCION DE FILA, como icono.
+ *
+ * Sustituye a los botones con texto («Editar», «Retirar») que llevaban las tablas. Con dos
+ * acciones por fila y veinte filas, el texto repetido cuarenta veces compite por la atencion
+ * con los datos, que es lo que la gente vino a leer.
+ *
+ * EL TEXTO NO DESAPARECE, SE MUEVE. Cada boton lleva su `aria-label` con el verbo y el nombre
+ * de la fila —«Editar Caterpillar»—, asi que un lector de pantalla anuncia MAS que antes: el
+ * boton de texto decia solo «Editar» y habia que deducir de cual. Un icono sin nombre
+ * accesible seria un boton mudo, que es la forma tipica de romper una tabla.
+ *
+ * 36 px de lado: el minimo comodo para un dedo sin que la fila crezca. El area tactil la da el
+ * boton entero, no el glifo de 16 px de dentro.
+ */
+/*
+ * DIVISORES ENTRE TODAS LAS COLUMNAS.
+ *
+ * Antes solo habia filete a la derecha de la primera columna —la fijada—, asi que el resto de
+ * los datos flotaban sin separacion y una fila de cinco celdas se leia como un parrafo suelto.
+ * Con el filete, la vista sigue la columna hacia abajo sin perderse de fila.
+ *
+ * `:not(:last-child)` deja la ultima celda sin filete: un borde en el extremo derecho duplica
+ * al borde de la tarjeta que contiene la tabla.
+ *
+ * `:not(.sticky)` protege a la celda fijada, que lleva SU PROPIO filete y mas oscuro a
+ * proposito: por debajo de ella pasa el contenido al desplazar de lado, asi que esa costura
+ * tiene que leerse mas fuerte que una division normal.
+ */
+/*
+ * UN FILTRO DE LA BARRA DE HERRAMIENTAS.
+ *
+ * Existe porque los desplegables de filtro se escribieron a mano y se desviaron: unos con
+ * `py-2` y otros con `py-1.5`, que en la misma fila se ve como dos controles de distinto
+ * tamaño. Con una utilidad no hay dos definiciones que emparejar — es la misma regla que ya
+ * hizo falta para `chip` y `campo-formulario`.
+ *
+ * Se apoya en `campo-formulario` para el borde, el fondo y el foco; aquí solo va lo que
+ * distingue a un filtro de un campo de captura: mas compacto y con texto un punto menor.
+ */
+@utility filtro-barra {
+  padding-block: calc(var(--spacing) * 2);
+  font-size: 13px;
+}
+
+@utility tabla-columnas {
+  & th:not(.sticky):not(:last-child),
+  & td:not(.sticky):not(:last-child) {
+    border-inline-end: 1px solid var(--color-borde-fila);
+  }
+}
+
+@utility boton-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--spacing) * 9);
+  height: calc(var(--spacing) * 9);
+  flex-shrink: 0;
+  border-radius: var(--radius-lg);
+  color: var(--color-texto-secundario);
+
+  &:hover {
+    background-color: var(--color-superficie-hover);
+    color: var(--color-texto);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-negro-acento);
+    outline-offset: 2px;
+  }
+
+  /*
+   * Deshabilitado con el par neutro, NUNCA con `opacity`: la opacidad arrastra el glifo por
+   * debajo del contraste minimo y deja un control que se ve pero no se lee.
+   */
+  &:disabled {
+    color: var(--color-estado-neutro-texto);
+    cursor: not-allowed;
+  }
+}
+
+/*
  * HOJA INFERIOR, al estilo de las de movil: sube desde abajo, ocupa el ancho y deja ver el
  * fondo detras.
  *
@@ -667,6 +749,86 @@ input:-webkit-autofill:focus {
 }
 
 /*
+ * PANEL LATERAL DERECHO — el formulario de alta y edicion de las pantallas de EMPRESA.
+ *
+ * Por que aqui y no la hoja inferior: la hoja nacio para el panel de superadministracion, con
+ * formularios cortos y en pantallas donde el gesto de arrastre tiene sentido. En las pantallas
+ * de empresa el formulario convive con una tabla ancha, y un panel que entra desde la derecha
+ * deja la tabla a la vista mientras se captura. La hoja sigue viva en `plataforma/`.
+ *
+ * Hereda las tres correcciones que la hoja ya pago contra los valores por defecto del
+ * navegador. No son cosmetica: cada una fue un sintoma real.
+ */
+@utility panel-lateral {
+  /*
+   * PEGADO A LA DERECHA Y DE ALTO COMPLETO, con solo las esquinas de la izquierda redondeadas.
+   *
+   * `inset: 0 0 0 auto` y no `margin: auto 0 auto auto`: un `<dialog>` modal llega con
+   * `inset: 0` del navegador, y con las cuatro anclas puestas el margen automatico reparte el
+   * hueco en vez de pegar la caja a la derecha.
+   */
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  height: 100%;
+
+  /*
+   * En un telefono ocupa todo el ancho; desde `sm` se para en 32rem. El `max-width` del
+   * NAVEGADOR —`calc(100% - 6px - 2em)`— hay que anularlo o deja un hueco a la derecha, que es
+   * exactamente el fallo que se corrigio en la hoja.
+   */
+  width: 100%;
+  max-width: 100%;
+
+  @variant sm {
+    width: 32rem;
+  }
+
+  /*
+   * Un `<dialog>` cerrado se oculta con el `display: none` que le pone el NAVEGADOR, y el
+   * `display: flex` de abajo lo pisa —misma especificidad, gana el nuestro por orden—. Sin
+   * esta regla el panel se ve en la pagina estando cerrado, con su formulario y todo.
+   */
+  &:not([open]) {
+    display: none;
+  }
+
+  /*
+   * Columna: cabecera y pie fijos, cuerpo desplazable. Sin `flex` aqui, el `flex-1` del cuerpo
+   * no tiene contra que crecer.
+   *
+   * `max-height: 100%` anula el `calc(100% - 38px)` del navegador, que dejaria el panel corto
+   * y despegado de abajo.
+   */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 100%;
+
+  border: none;
+  border-radius: var(--radius-2xl) 0 0 var(--radius-2xl);
+  background-color: var(--color-superficie);
+  padding: 0;
+
+  /* Hacia la izquierda, que es por donde se separa del contenido. */
+  box-shadow: -8px 0 30px -8px rgb(0 0 0 / 0.25);
+
+  /* Solo entrada: la salida necesita `allow-discrete`, que aun no esta en todos los motores. */
+  animation: panel-entra 260ms cubic-bezier(0.32, 0.72, 0, 1);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes panel-entra {
+  from {
+    /* Desde FUERA de la pantalla: es lo que lo hace leerse como un panel que entra. */
+    transform: translateX(100%);
+  }
+}
+
+/*
  * Mientras el dedo esta encima, la hoja va PEGADA a el: cero transicion. Con la transicion
  * puesta el arrastre se siente elastico y perezoso, que es el sintoma clasico de una hoja
  * que no se programo con el gesto en mente.
@@ -746,5 +908,74 @@ dialog.hoja-inferior::backdrop {
     &:popover-open {
       animation: none;
     }
+  }
+}
+
+/*
+ * El dialogo de confirmacion, que sustituye a `confirm()`.
+ *
+ * Centrado, al contrario que la hoja inferior: una hoja se descarta con el mismo gesto que
+ * la abre y eso esta bien para un formulario, pero una pregunta destructiva tiene que
+ * interrumpir. Centrada obliga a mirarla.
+ */
+@utility dialogo-confirmacion {
+  /*
+   * `margin: auto` con las cuatro anclas del navegador puestas es lo que centra un
+   * `<dialog>` modal. No se tocan los `inset`, al reves que en la hoja: ahi habia que
+   * anularlos justo para NO centrarla.
+   */
+  margin: auto;
+  width: calc(100% - var(--spacing) * 8);
+  max-width: 26rem;
+
+  /*
+   * Anular el `max-width` del NAVEGADOR: a un `<dialog>` modal le pone
+   * `calc(100% - 6px - 2em)` junto con el borde y el relleno que tambien le da por
+   * defecto. Sin esto, el ancho pedido queda 38 px corto. Mismo origen que en la hoja.
+   */
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-superficie);
+  padding: 0;
+  box-shadow: 0 20px 45px -15px rgb(0 0 0 / 0.35);
+
+  /*
+   * ESTO NO ES OPCIONAL: un `<dialog>` cerrado se oculta con el `display: none` que le pone
+   * el NAVEGADOR, y cualquier `display` propio lo pisa por orden a igual especificidad.
+   * Sin esta regla el dialogo se ve en la pagina estando cerrado. Es el mismo fallo que ya
+   * se pago una vez en `hoja-inferior`.
+   */
+  &:not([open]) {
+    display: none;
+  }
+
+  &[open] {
+    animation: confirmacion-aparece 160ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[open] {
+      animation: none;
+    }
+  }
+}
+
+/*
+ * El velo. Regla suelta y no utilidad porque `::backdrop` es un pseudoelemento y no se
+ * alcanza con una clase.
+ */
+dialog.dialogo-confirmacion::backdrop {
+  background-color: rgb(0 0 0 / 0.55);
+  animation: velo-aparece 160ms ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes confirmacion-aparece {
+  from {
+    opacity: 0;
+    scale: 0.97;
   }
 }

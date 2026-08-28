@@ -1,0 +1,371 @@
+<!--
+  Molde estandar, con dos ausencias que son la regla del modulo: NO hay lapiz de edicion —un
+  contrato no se edita, el endpoint no existe— y la columna fijada es el FOLIO.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().contratos.buscar"
+    [accion]="t().contratos.crear"
+    (alPulsarAccion)="abrirAlta()"
+  >
+    <div filtros>
+      <label for="filtro-estado" class="sr-only">{{ t().contrato.estado }}</label>
+      <select
+        id="filtro-estado"
+        [value]="estadoFiltrado() ?? ''"
+        (change)="elegirEstado($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().contratos.cualquierEstado }}</option>
+        @for (estado of estados; track estado) {
+          <option [value]="estado">{{ nombreEstado(estado) }}</option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-cliente" class="sr-only">{{ t().contratos.cliente }}</label>
+      <select
+        id="filtro-cliente"
+        [value]="clienteFiltrado()"
+        (change)="clienteFiltrado.set($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="">{{ t().contratos.cualquierCliente }}</option>
+        @for (cliente of clientes(); track cliente.id) {
+          <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
+        }
+      </select>
+    </div>
+  </app-barra-herramientas>
+
+  @if (cargando()) {
+    <app-contratos-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (contratos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-240 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().contratos.colFolio }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().contratos.colRenta }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().contratos.colCliente }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().contratos.colVigencia }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().contratos.colEstado }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().contratos.colDeposito }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().contratos.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (contrato of contratos(); track contrato.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium tabular-nums md:px-5"
+                  >
+                    {{ contrato.folio }}
+                  </td>
+
+                  <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ contrato.rentaFolio }}
+                  </td>
+
+                  <td class="px-4 py-3 text-texto">{{ contrato.cliente }}</td>
+
+                  <!--
+                    En UTC: las dos son `DateOnly` —fechas sin hora—, y dejarlas en la zona local
+                    las corre un dia hacia atras al oeste de Greenwich.
+                  -->
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ contrato.fechaInicio | date: 'shortDate' : 'UTC' : locale() }}
+                    @if (contrato.fechaFin) {
+                      – {{ contrato.fechaFin | date: 'shortDate' : 'UTC' : locale() }}
+                    }
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <span
+                      class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                    >
+                      {{ nombreEstado(contrato.estado) }}
+                    </span>
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                    {{ contrato.deposito | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
+
+                  <td class="px-4 py-2 md:px-5">
+                    <div class="flex justify-center gap-1">
+                      <!--
+                        SOLO el ojo. No hay lapiz porque no hay `PUT`: un contrato se crea y
+                        despues es inmutable, y lo impone un trigger de la base.
+                      -->
+                      <a
+                        [routerLink]="['/contratos', contrato.id]"
+                        [attr.aria-label]="t().contratos.verDetalleDe(contrato.folio)"
+                        [title]="t().contratos.verDetalle"
+                        class="boton-icono"
+                      >
+                        <svg
+                          class="size-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().contratos.rango(desde(), hasta(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav class="flex items-center gap-3" [attr.aria-label]="t().contratos.paginacion">
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().contratos.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().contratos.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().contratos.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="t().contratos.crear"
+  [apoyo]="t().contratos.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-contrato">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="rentaId" class="text-sm font-medium text-texto-secundario">
+          {{ t().contratos.renta }}
+        </label>
+        <select
+          id="rentaId"
+          formControlName="rentaId"
+          [attr.aria-invalid]="mal(formulario.controls.rentaId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.rentaId) ? 'ayuda-renta error-renta' : 'ayuda-renta'
+          "
+          class="campo-formulario"
+        >
+          <option value="">{{ t().contratos.sinDato }}</option>
+          @for (renta of rentas(); track renta.id) {
+            <option [value]="renta.id">
+              {{ renta.folio }} — {{ renta.cliente }} — {{ renta.lugar.descripcion }}
+            </option>
+          }
+        </select>
+        <p id="ayuda-renta" class="text-xs text-texto-apagado">{{ t().contratos.ayudaRenta }}</p>
+        @if (rentas().length === 0) {
+          <p class="aviso text-sm text-texto-secundario">{{ t().contratos.sinRentas }}</p>
+        }
+        <app-error-campo
+          id="error-renta"
+          [visible]="mal(formulario.controls.rentaId)"
+          [mensaje]="t().contratos.errorRenta"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="fechaInicio" class="text-sm font-medium text-texto-secundario">
+            {{ t().contratos.fechaInicio }}
+          </label>
+          <input
+            id="fechaInicio"
+            formControlName="fechaInicio"
+            type="date"
+            aria-describedby="ayuda-fechas"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="fechaFin" class="text-sm font-medium text-texto-secundario">
+            {{ t().contratos.fechaFin }}
+          </label>
+          <input
+            id="fechaFin"
+            formControlName="fechaFin"
+            type="date"
+            aria-describedby="ayuda-fechas"
+            class="campo-formulario"
+          />
+        </div>
+
+        <p id="ayuda-fechas" class="text-xs text-texto-apagado sm:col-span-2">
+          {{ t().contratos.ayudaFechas }}
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="deposito" class="text-sm font-medium text-texto-secundario">
+          {{ t().contratos.deposito }}
+        </label>
+        <input
+          id="deposito"
+          formControlName="deposito"
+          type="number"
+          min="0"
+          step="0.01"
+          inputmode="decimal"
+          autocomplete="off"
+          aria-describedby="ayuda-deposito"
+          class="campo-formulario"
+        />
+        <p id="ayuda-deposito" class="text-xs text-texto-apagado">
+          {{ t().contratos.ayudaDeposito }}
+        </p>
+      </div>
+
+      <!--
+        Casillas y no un `<select multiple>`: hay que poder LEER cada clausula antes de decidir,
+        y un desplegable multiple esconde el texto y se maneja fatal con teclado.
+
+        Ninguna marcada NO significa «ninguna»: significa «todas las obligatorias activas», que
+        es lo que hace el servidor por omision. Por eso la ayuda lo dice en vez de dejarlo al
+        descubrimiento.
+      -->
+      <fieldset class="flex flex-col gap-2">
+        <legend class="mb-1 text-sm font-medium text-texto-secundario">
+          {{ t().contratos.clausulas }}
+        </legend>
+
+        <p id="ayuda-clausulas" class="text-xs text-texto-apagado">
+          {{ t().contratos.ayudaClausulas }}
+        </p>
+
+        @if (clausulas().length === 0) {
+          <p class="aviso text-sm text-texto-secundario">
+            {{ t().contratos.sinClausulasCatalogo }}
+          </p>
+        } @else {
+          <div class="flex max-h-64 flex-col gap-2 overflow-y-auto" tabindex="0">
+            @for (clausula of clausulas(); track clausula.id) {
+              <label class="flex items-start gap-2 text-sm text-texto-secundario">
+                <input
+                  type="checkbox"
+                  [checked]="clausulaElegida(clausula.id)"
+                  (change)="alternarClausula(clausula.id, $any($event.target).checked)"
+                  aria-describedby="ayuda-clausulas"
+                  class="mt-0.5 size-4 shrink-0"
+                />
+                <span class="min-w-0">
+                  <span class="font-medium text-texto">{{ clausula.titulo }}</span>
+                  @if (clausula.obligatoria) {
+                    <span
+                      class="ms-2 inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                    >
+                      {{ t().clausulas.obligatoria }}
+                    </span>
+                  }
+                </span>
+              </label>
+            }
+          </div>
+        }
+      </fieldset>
+
+      <div class="flex flex-col gap-1">
+        <label for="notas" class="text-sm font-medium text-texto-secundario">
+          {{ t().contratos.notas }}
+        </label>
+        <textarea id="notas" formControlName="notas" rows="3" class="campo-formulario"></textarea>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().contratos.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-contrato"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().contratos.guardando : t().contratos.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

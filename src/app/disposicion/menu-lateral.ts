@@ -1,8 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { filter, map } from 'rxjs';
 
 import { t } from '../nucleo/i18n/i18n';
-import type { GrupoMenu } from './opciones-menu';
+import { alPulsarGrupo, grupoEstaAbierto, idDePanel } from './opciones-menu';
+import type { EleccionDeMenu, GrupoMenu } from './opciones-menu';
 
 /**
  * El menú lateral. Presentacional puro: recibe los grupos ya filtrados y no sabe nada
@@ -20,6 +23,8 @@ import type { GrupoMenu } from './opciones-menu';
   templateUrl: './menu-lateral.html',
 })
 export class MenuLateral {
+  private readonly router = inject(Router);
+
   /** Grupos YA filtrados por quien lo usa. */
   readonly grupos = input.required<readonly GrupoMenu[]>();
 
@@ -61,4 +66,56 @@ export class MenuLateral {
   protected readonly etiquetaFinal = computed(
     () => this.etiquetaNavegacion() || t().menu.navegacionPrincipal,
   );
+
+  /**
+   * Lo que la persona ha elegido abrir. **Un título, no un conjunto.**
+   *
+   * Que sea uno solo es lo que hace el acordeón EXCLUSIVO por construcción: no hay código
+   * que cierre a los demás, porque no caben dos. Con un mapa de abiertos habría que
+   * acordarse de cerrar el resto en cada sitio que abra uno.
+   *
+   * `undefined` es «no ha tocado nada» y entonces manda la ruta; `null` es «cerró el que
+   * había». Ver `EleccionDeMenu`.
+   */
+  private readonly eleccion = signal<EleccionDeMenu>(undefined);
+
+  /**
+   * La URL activa, COMO SEÑAL.
+   *
+   * `router.url` es una propiedad normal, así que un `computed` que la leyera no registraría
+   * dependencia y se quedaría con el valor del primer render — la trampa que este repo ya
+   * pagó dos veces. El puente es el flujo de eventos del router.
+   */
+  private readonly urlActiva = toSignal(
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      map(() => this.router.url),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  /**
+   * Si un grupo está abierto: lo que decidió el usuario, y si no ha decidido, si la ruta
+   * activa vive dentro.
+   *
+   * Abrirlo por la ruta importa al ENTRAR y al recargar: sin esto, quien recarga estando en
+   * `/tarifas` ve todos los grupos cerrados y ninguna pista de dónde está.
+   */
+  protected grupoAbierto(grupo: GrupoMenu): boolean {
+    return grupoEstaAbierto(grupo, this.urlActiva(), this.eleccion());
+  }
+
+  protected alternarGrupo(grupo: GrupoMenu): void {
+    this.eleccion.set(alPulsarGrupo(grupo, this.urlActiva(), this.eleccion()));
+  }
+
+  /**
+   * El `id` del panel de un grupo, para el `aria-controls` de su disparador.
+   *
+   * Sale del título, que es texto traducido, así que se normaliza a algo que sirva como `id`:
+   * un `id` con espacios o acentos rompe la referencia.
+   */
+  protected panelDe(grupo: GrupoMenu): string {
+    return idDePanel(grupo.titulo);
+  }
 }

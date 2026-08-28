@@ -1,0 +1,72 @@
+<!--
+  Diálogo de confirmación, sobre un `<dialog>` nativo.
+
+  `(close)` no es opcional: Escape lo cierra el navegador sin pasar por el componente, y sin
+  escucharlo la promesa se queda colgada y la pantalla que esperaba nunca continúa.
+
+  `(click)` cierra al pulsar el velo, y eso el navegador NO lo da.
+
+  Se renderiza el contenido solo cuando hay petición: un `<dialog>` cerrado sigue en el
+  árbol, y dejar dentro el título de la última pregunta lo deja accesible a un lector de
+  pantalla que recorra el documento.
+-->
+<dialog
+  #dialogo
+  (close)="alCerrarse()"
+  (click)="alPulsar($event)"
+  class="dialogo-confirmacion"
+  aria-labelledby="titulo-confirmacion"
+  aria-describedby="mensaje-confirmacion"
+>
+  @if (peticion(); as p) {
+    <div class="flex flex-col gap-3 p-5">
+      <h2 id="titulo-confirmacion" class="font-titulo text-base font-semibold text-texto">
+        {{ p.titulo }}
+      </h2>
+
+      <p id="mensaje-confirmacion" class="text-sm leading-relaxed text-texto-secundario">
+        {{ p.mensaje }}
+      </p>
+
+      <!--
+        Cancelar va PRIMERO en el orden del DOM y lleva `autofocus`. Las dos cosas son
+        deliberadas: un `<dialog>` enfoca su primer elemento enfocable al abrirse, y en una
+        pregunta destructiva la opción segura tiene que ser la que reciba el foco. Con el
+        orden invertido, un Enter reflejo ejecuta lo que se estaba preguntando.
+      -->
+      <div class="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          autofocus
+          (click)="responder(false)"
+          class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+        >
+          {{ t().comun.cancelar }}
+        </button>
+
+        <!--
+          NEGRO PARA LO DESTRUCTIVO, amarillo para lo demás. Y no es un rojo apagado: el
+          sistema de diseño prohíbe el rojo y el verde —«la paleta es monocroma más
+          amarillo»—, así que la distinción se hace dentro de la paleta. El amarillo es el
+          color de la acción principal, la que se quiere; sacar de ahí lo que retira o borra
+          ya dice que no es el camino feliz.
+
+          El color NO es el único indicio: la etiqueta es el verbo de la acción, así que
+          quien no distinga los tonos lee «Retirar» igual.
+        -->
+        <button
+          type="button"
+          (click)="responder(true)"
+          class="rounded-lg px-4 py-2.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+          [class]="
+            p.peligro
+              ? 'bg-negro-tarjeta text-texto-inverso hover:bg-negro-caja'
+              : 'bg-amarillo text-sobre-amarillo hover:bg-amarillo-hover'
+          "
+        >
+          {{ p.confirmar }}
+        </button>
+      </div>
+    </div>
+  }
+</dialog>
