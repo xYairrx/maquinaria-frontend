@@ -68,9 +68,16 @@ You are an expert in TypeScript, Angular, and scalable web application developme
   template. Angular cannot call an imported function from markup.
 - Text with a value inside goes in the dictionary as a FUNCTION —
   `permisos: (n: number) => ...` — never as a template with placeholders.
-- Do NOT translate text that comes from the API. The `detail` of a `ProblemDetails` is
-  worded on the server to be uniform (it must not reveal whether an account exists);
-  rewriting it here would undo that.
+- Do NOT rewrite text that comes from the API. The `detail` of a `ProblemDetails` is worded
+  on the server to be uniform (it must not reveal whether an account exists); paraphrasing it
+  here would undo that. **Translate by CODE instead**: the server sends a stable `codigo` in
+  `extensions` (see `Maquinaria.Api/Errores/CodigosProblema.cs`) and `mensaje-error.ts` maps
+  it to the dictionary. A code cannot distinguish more than the server decided to — the five
+  reasons a company login is rejected all share `credenciales_incorrectas`. **An unknown code
+  MUST fall back to `detail`**, or a mismatched deploy between the two repos leaves screens
+  mute; there is a regression test for that. Messages the server composes with data
+  (a service's rejection `Motivo`) still arrive in Spanish: giving those a code means giving
+  every validation rule its own code and parameters, which is a separate job.
 - A text `input()` default cannot BE the text: it would freeze in whatever language was
   active at construction. Use `input('')` plus a `computed` that resolves the fallback.
 - A menu or data list goes in a function, not a module constant: a constant is evaluated

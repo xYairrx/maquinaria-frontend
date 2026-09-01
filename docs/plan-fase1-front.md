@@ -1166,6 +1166,38 @@ también dispara `NG0100`, y eso es artefacto del arnés, no algo que la aplicac
 
 **237 pruebas en 21 archivos, 0 fallos.**
 
+#### Los errores del servidor ya se traducen, por CODIGO — 2026-09-01
+
+Con la interfaz en ingles, los mensajes de error seguian llegando en espanol. La regla del
+repo era «no reescribas el texto que manda la API», y tenia razon detras: los mensajes del
+login son uniformes a proposito y reescribirlos a ojo puede deshacer esa uniformidad. La
+costura estaba anotada como «trabajo de backend».
+
+La salida no fue traducir el texto, sino un **codigo estable** que el servidor manda en
+`extensions`. `mensaje-error.ts` lo mapea al diccionario; no es una excepcion a la regla,
+porque lo que se traduce no es prosa del servidor sino un identificador que el emite para
+esto — y un codigo no puede distinguir mas de lo que el servidor decidio distinguir.
+
+Cubre los **29 mensajes de texto fijo** de la API. Los dieciocho «no existe» comparten un
+codigo con `entidad` aparte, asi que el diccionario tiene un mapa de nombres de entidad en
+lugar de dieciocho claves.
+
+**Dos salvaguardas, las dos con prueba:**
+
+- **Un codigo desconocido cae al `detail` del servidor.** Es lo que hace que esto no rompa
+  nada: un despliegue desparejo entre los dos repos muestra el texto espanol en vez de dejar
+  la pantalla muda.
+- **Una entidad desconocida cae en un generico**, nunca su clave cruda a media frase.
+
+Lo que sigue llegando en espanol son los 15 mensajes que el servidor compone con datos —los
+`Motivo` de los servicios—; se ven al capturar mal un formulario. Traducirlos exige darle a
+cada regla de validacion su codigo y sus parametros, en el backend.
+
+`AGENTS.md` quedo corregido: la regla ya no dice «no traduzcas», dice «no reescribas;
+traduce por codigo».
+
+**243 pruebas en 21 archivos, 0 fallos.**
+
 ### Lo que sigue, en orden
 
 **El alcance de la Fase 1 tiene pantalla completa.** Los 136 endpoints tienen cliente y ninguna

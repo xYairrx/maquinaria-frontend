@@ -574,6 +574,49 @@ const ES_MX = {
     sinServidor: 'No se pudo contactar al servidor. Revisa que la API esté levantada.',
     conCodigo: (codigo: number) => `Error ${codigo}.`,
     inesperado: 'Ocurrió un error inesperado.',
+
+    // Los que el servidor manda con código estable. Ver `mensaje-error.ts`: se traducen
+    // por CÓDIGO, no reescribiendo su texto.
+    credencialesIncorrectas: 'Empresa, correo o contraseña incorrectos.',
+    servicioSuspendido:
+      'El servicio de esta empresa está suspendido. Ponte en contacto con quien administra la cuenta.',
+    servicioCancelado:
+      'El servicio de esta empresa está cancelado. Ponte en contacto con quien administra la cuenta.',
+    demasiadosIntentos: 'Se hicieron demasiados intentos seguidos. Espera un momento.',
+    demasiadosIntentosEn: (segundos: number) =>
+      `Se hicieron demasiados intentos seguidos. Vuelve a intentarlo en ${segundos} ${segundos === 1 ? 'segundo' : 'segundos'}.`,
+
+    noExiste: (entidad: string) => `${entidad} no existe.`,
+    entidadGenerica: 'Lo que buscabas',
+    // Las claves son las que manda el backend en `extensions.entidad`.
+    entidades: {
+      categoria: 'La categoría',
+      clausula: 'La cláusula',
+      marca: 'La marca',
+      modelo: 'El modelo',
+      puesto: 'El puesto',
+      tarifa: 'La tarifa',
+      tipo_equipo: 'El tipo de equipo',
+      orden_compra: 'La orden de compra',
+      orden_venta: 'La orden de venta',
+      contrato: 'El contrato',
+      contrato_de_renta: 'El contrato de esa renta',
+      cotizacion: 'La cotización',
+      equipo: 'El equipo',
+      trabajador: 'El trabajador',
+      ubicacion: 'La ubicación',
+      renta: 'La renta',
+      cliente: 'El cliente',
+      proveedor: 'El proveedor',
+    } as Readonly<Record<string, string>>,
+    periodoObligatorio: 'El periodo es obligatorio: manda desde y hasta.',
+    periodoInvertido: 'La fecha final tiene que ser posterior a la inicial.',
+    ligaNoValida: 'La liga no existe, ya se usó o caducó.',
+    credencialesObligatorias: 'Correo y contraseña son obligatorios.',
+    archivoVacio: 'El archivo viene vacío.',
+    altaEmpresaIncompleta:
+      'Identificador, razón social, y correo y nombre del administrador son obligatorios.',
+    estadoNoValido: 'El estado debe ser prueba, activo, suspendido o cancelado.',
   },
 
   /** Títulos de pestaña. `TituloPagina` les añade el nombre del producto detrás. */
@@ -2727,6 +2770,46 @@ const EN_US: Textos = {
     sinServidor: 'Could not reach the server. Check that the API is running.',
     conCodigo: (codigo: number) => `Error ${codigo}.`,
     inesperado: 'Something unexpected went wrong.',
+
+    credencialesIncorrectas: 'Wrong company, email or password.',
+    servicioSuspendido:
+      'This company service is suspended. Get in touch with whoever manages the account.',
+    servicioCancelado:
+      'This company service is cancelled. Get in touch with whoever manages the account.',
+    demasiadosIntentos: 'Too many attempts in a row. Wait a moment.',
+    demasiadosIntentosEn: (segundos: number) =>
+      `Too many attempts in a row. Try again in ${segundos} ${segundos === 1 ? 'second' : 'seconds'}.`,
+
+    noExiste: (entidad: string) => `${entidad} does not exist.`,
+    entidadGenerica: 'What you were looking for',
+    entidades: {
+      categoria: 'The category',
+      clausula: 'The clause',
+      marca: 'The brand',
+      modelo: 'The model',
+      puesto: 'The job title',
+      tarifa: 'The rate',
+      tipo_equipo: 'The equipment type',
+      orden_compra: 'The purchase order',
+      orden_venta: 'The sales order',
+      contrato: 'The contract',
+      contrato_de_renta: "That rental's contract",
+      cotizacion: 'The quote',
+      equipo: 'The machine',
+      trabajador: 'The worker',
+      ubicacion: 'The location',
+      renta: 'The rental',
+      cliente: 'The client',
+      proveedor: 'The supplier',
+    } as Readonly<Record<string, string>>,
+    periodoObligatorio: 'The period is required: send both from and to.',
+    periodoInvertido: 'The end date must be later than the start date.',
+    ligaNoValida: 'The link does not exist, was already used, or expired.',
+    credencialesObligatorias: 'Email and password are required.',
+    archivoVacio: 'The file is empty.',
+    altaEmpresaIncompleta:
+      "Identifier, legal name, and the administrator's email and name are required.",
+    estadoNoValido: 'The status must be trial, active, suspended or cancelled.',
   },
 
   titulos: {

@@ -741,4 +741,20 @@ export interface DetalleProblema {
   readonly title?: string;
   readonly detail?: string;
   readonly status?: number;
+
+  /**
+   * Código ESTABLE del problema, cuando el servidor lo emite. Viaja en `extensions` y no es
+   * texto para leer: existe para que este lado pueda traducir el mensaje a SU idioma.
+   *
+   * El `detail` sigue llegando y sigue siendo lo que se muestra cuando el código no se
+   * reconoce, así que un mensaje nuevo del servidor no se queda mudo mientras nadie lo
+   * traduzca. Los códigos están en `Maquinaria.Api/Errores/CodigosProblema.cs`.
+   */
+  readonly codigo?: string;
+
+  /** Segundos que faltan para reintentar. Solo en `demasiados_intentos`. */
+  readonly segundos?: number;
+
+  /** Qué fila no se encontró: `marca`, `renta`, `cliente`… Solo en `no_encontrado`. */
+  readonly entidad?: string;
 }

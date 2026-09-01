@@ -37,10 +37,83 @@ export function mensajeDeError(error: unknown): string {
     // Va ANTES que `detail` porque cuando hay `errors` el `detail` no viene.
     const porCampo = detalleDeValidacion(problema);
 
-    return porCampo ?? problema?.detail ?? problema?.title ?? t().errores.conCodigo(error.status);
+    return (
+      porCampo ??
+      traducido(problema) ??
+      problema?.detail ??
+      problema?.title ??
+      t().errores.conCodigo(error.status)
+    );
   }
 
   return t().errores.inesperado;
+}
+
+/**
+ * El mensaje en el idioma de la interfaz, cuando el servidor manda un código que conocemos.
+ *
+ * ES LA EXCEPCIÓN A «no traduzcas lo que viene de la API», y no la contradice: lo que se
+ * traduce no es el texto del servidor sino un CÓDIGO estable que él emite justamente para
+ * esto. La regla existía porque reescribir a ojo los mensajes de login podía deshacer su
+ * uniformidad; un código no puede, porque no distingue más de lo que el servidor decidió
+ * distinguir — los cinco motivos del rechazo del login comparten uno solo.
+ *
+ * DEVUELVE `null` PARA LO DESCONOCIDO, y de eso depende que esto no rompa nada: un código
+ * nuevo sin traducir cae al `detail` de siempre en lugar de dejar la pantalla muda.
+ */
+function traducido(problema: DetalleProblema | null): string | null {
+  const e = t().errores;
+
+  switch (problema?.codigo) {
+    case 'credenciales_incorrectas':
+      return e.credencialesIncorrectas;
+    case 'servicio_suspendido':
+      return e.servicioSuspendido;
+    case 'servicio_cancelado':
+      return e.servicioCancelado;
+    case 'demasiados_intentos':
+      // Los segundos vienen aparte del texto, así que la frase se arma aquí. Si faltaran
+      // —un servidor viejo— se dice sin número en lugar de enseñar «undefined».
+      return problema.segundos === undefined
+        ? e.demasiadosIntentos
+        : e.demasiadosIntentosEn(problema.segundos);
+
+    // UN SOLO CÓDIGO para las dieciséis entidades, con `entidad` aparte. Un código por
+    // cada una habría sido dieciséis constantes en los dos lados para decir lo mismo.
+    case 'no_encontrado':
+      return e.noExiste(nombreDeEntidad(problema.entidad));
+
+    case 'periodo_obligatorio':
+      return e.periodoObligatorio;
+    case 'periodo_invertido':
+      return e.periodoInvertido;
+    case 'liga_no_valida':
+      return e.ligaNoValida;
+    case 'credenciales_obligatorias':
+      return e.credencialesObligatorias;
+    case 'archivo_vacio':
+      return e.archivoVacio;
+    case 'alta_empresa_incompleta':
+      return e.altaEmpresaIncompleta;
+    case 'estado_no_valido':
+      return e.estadoNoValido;
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * El nombre de la entidad que no se encontró, en el idioma de la interfaz.
+ *
+ * Devuelve un genérico cuando la clave no está en el diccionario: una entidad nueva del
+ * servidor tiene que dar «no se encontró lo que buscabas» y no una cadena cruda como
+ * `orden_compra` metida a media frase.
+ */
+function nombreDeEntidad(clave: string | undefined): string {
+  const nombres: Readonly<Record<string, string>> = t().errores.entidades;
+
+  return (clave === undefined ? undefined : nombres[clave]) ?? t().errores.entidadGenerica;
 }
 
 /**
