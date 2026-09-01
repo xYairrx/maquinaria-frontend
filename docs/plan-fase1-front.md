@@ -996,6 +996,81 @@ primero.
 
 `ng build` limpio, **240 pruebas** en verde.
 
+### Límites por empresa, y las hojas pasaron a paneles — 2026-09-01
+
+Dos cosas del panel de plataforma, no de la aplicación de empresa.
+
+#### Los cupos de una empresa se administran desde su fila
+
+`tenant_limite` existía desde la Fase 0 y **no tenía API ni pantalla**. Ahora sí: botón
+«Límites» en cada fila de `/empresas`, y un panel con los cuatro tipos.
+
+| Verbo    | Ruta                                              |
+| -------- | ------------------------------------------------- |
+| `GET`    | `/api/plataforma/empresas/{slug}/limites`          |
+| `PUT`    | `/api/plataforma/empresas/{slug}/limites/{clave}`  |
+| `DELETE` | `/api/plataforma/empresas/{slug}/limites/{clave}`  |
+
+Los tres devuelven **la lista completa ya actualizada**, así que el panel se repinta de la
+respuesta y no puede quedarse enseñando el estado anterior. Es el mismo criterio que
+`CambiarActivoAsync` con el plan.
+
+Cuatro decisiones que no son obvias:
+
+- **Salen siempre los cuatro tipos**, tenga o no fila la empresa. `tenant_limite` es dispersa
+  —solo guarda excepciones— y enseñar únicamente las filas existentes pintaría una empresa
+  recién dada de alta como si no tuviera límites, cuando lo que pasa es que los hereda todos.
+- **Cada fila dice de dónde sale su número**: «Negociado» si hay excepción, «Por defecto (…)»
+  si no. Sin eso, `300` y `300` se leen igual viniendo de un acuerdo con el cliente o del
+  catálogo, y el botón de quitar aparecería sin explicación.
+- **Quitar borra la fila; no escribe el valor por defecto en ella.** Con la fila puesta, el día
+  que cambie el catálogo esa empresa se queda anclada al número viejo sin que nadie lo pidiera.
+- **La pantalla avisa de que todavía no se aplican.** Nada en el sistema lee estos valores para
+  bloquear una operación —está en `maquinaria-backend/docs/guias/estado-y-pendientes.md`—, y un
+  panel que deja fijar un cupo promete que el cupo se respeta. Callarlo sería dejar que alguien
+  confíe en un tope que no existe.
+
+El backend guarda con seguimiento y `SaveChanges`, no con `ExecuteUpdateAsync`, **a propósito**:
+mover el cupo de un cliente es de las decisiones más privilegiadas del sistema y el interceptor
+de auditoría solo ve lo que pasa por `SaveChanges`.
+
+#### La hoja inferior se borró: un solo patrón de formulario
+
+Las tres capas de plataforma —alta de empresa, alta de plan y los límites— pasaron de
+`disposicion/hoja.ts` a `disposicion/panel-lateral.ts`. Con eso la hoja se quedó **sin ningún
+llamador**, y se borró: el componente, su plantilla, sus 6 pruebas del gesto y su CSS
+(`hoja-inferior`, `hoja-en-gesto`, su `::backdrop`). Son **111 líneas menos de `styles.css`**.
+
+El reparto anterior era «hoja en plataforma, panel en empresa», con el argumento de que en
+plataforma los formularios son cortos y no hay una tabla debajo compitiendo por la atención.
+**Las dos mitades eran falsas**: el alta de una empresa tiene siete campos, y la lista de
+empresas es justo lo que la hoja tapaba al subir.
+
+Lo que se perdió, dicho en voz alta: el gesto de arrastre y los anclajes. Un panel tiene un solo
+tamaño. En un teléfono se ve como se veía la hoja abierta del todo, sin el arrastre — y eso lo
+resuelve la utilidad `panel-lateral`, que ya era responsiva, no cada pantalla.
+
+Un defecto que destapó la migración: **el panel de límites no llevaba `[pie]`**, y ese hueco es
+un contenedor con `border-t`, así que vacío pinta un filete suelto al fondo. Se le puso su botón
+de cerrar. De los 38 paneles de las pantallas de empresa, los 38 tienen pie: era el único fuera
+de norma.
+
+#### Comprobado, y lo que no
+
+`ng build` limpio y **234 pruebas en 20 archivos**, todas pasan (eran 240 en 21; las 6 que
+faltan se fueron con la hoja). El paquete inicial bajó de 501.42 a **500.22 kB**.
+
+**No se ha visto en el navegador.** La pantalla vive detrás del login de superadministrador.
+Falta comprobar a 375, 768 y 1280: que el panel no tape la tabla en el ancho grande, que a 375
+ocupe todo el ancho sin hueco a la derecha, los tres caminos de cierre, y que «Sin límite»
+deshabilite el número y `[Quitar]` solo salga donde dice «Negociado».
+
+#### Y una deuda que esto destapó
+
+El paquete inicial está **rozando el budget de aviso de 500 kB** —ya estaba en 499.67 antes de
+tocar nada—, así que casi cualquier pantalla nueva lo cruza. La sospecha es que `textos.ts`, con
+los dos idiomas, viaja en el arranque. El README dice 373.59 kB y está desactualizado en ~126 kB.
+
 ### Lo que sigue, en orden
 
 **El alcance de la Fase 1 tiene pantalla completa.** Los 136 endpoints tienen cliente y ninguna

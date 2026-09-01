@@ -184,3 +184,34 @@ export interface SaludEsquemas {
   readonly desfasadas: number;
   readonly empresas: readonly EmpresaEnSalud[];
 }
+
+/**
+ * El valor que significa «sin límite». Es el único negativo que la API acepta, y el mismo
+ * `TipoLimite.Ilimitado` del backend.
+ *
+ * Constante y no un `-1` suelto en la plantilla: en una columna de números, un `-1` a pelo
+ * se lee como un cupo negativo.
+ */
+export const SIN_LIMITE = -1;
+
+/**
+ * Un cupo de una empresa, ya resuelto por el servidor.
+ *
+ * `GET/PUT/DELETE /api/plataforma/empresas/{slug}/limites`, que devuelven SIEMPRE la lista
+ * completa: los cuatro tipos, tenga o no excepción la empresa.
+ *
+ * `valor` es el EFECTIVO —la excepción si la hay, y si no el valor por defecto del
+ * catálogo— y `esExcepcion` es lo que distingue «300 negociados con este cliente» de «300
+ * porque es lo que trae el catálogo». Sin ese booleano no se puede saber si hay algo que
+ * quitar, porque los dos casos enseñan el mismo número.
+ */
+export interface LimiteDeEmpresa {
+  readonly clave: string;
+  readonly nombre: string;
+  readonly descripcion: string;
+  readonly unidad: string;
+  readonly valor: number;
+  readonly valorDefecto: number;
+  readonly esExcepcion: boolean;
+  readonly orden: number;
+}

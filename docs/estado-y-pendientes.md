@@ -32,7 +32,10 @@ archivo de prueba, que es lo que dice de verdad dónde hay red y dónde no:
 | `nucleo/api/api.spec.ts`                            | 9                         |
 | `paginas/plataforma/salud-esquemas/esquema.spec.ts` | 9                         |
 | `nucleo/sesion/acceso.spec.ts`                      | 8                         |
-| `disposicion/hoja.spec.ts`                          | 6                         |
+
+> Esta tabla es del 2026-08-25 y **se quedó corta**: al 2026-09-01 la suite son **234 pruebas
+> en 20 archivos**. `disposicion/hoja.spec.ts` (6) salió de la lista al borrarse la hoja
+> inferior — ver `plan-fase1-front.md`.
 
 Los chunks diferidos que importan por tamaño son los de las pantallas del panel:
 `dashboard` 20.01 / 5.37 kB, `planes` 15.61 / 4.31 kB, `empresas` 13.23 / 3.65 kB y
@@ -64,7 +67,7 @@ empresa es cambiar de origen.
 | `nucleo/api/`         | `api.ts` (+ `api.spec.ts`), `api-plataforma.ts` (+ `api-plataforma.spec.ts`), `contratos.ts`, `contratos-plataforma.ts`, `mensaje-error.ts`                                                                                 |
 | `nucleo/i18n/`        | `i18n.ts` (+ `i18n.spec.ts`) y `textos.ts` con los dos idiomas                                                                                                                                                              |
 | `nucleo/sesion/`      | `sesion.ts`, `sesion-plataforma.ts`, `acceso.ts` (+ `acceso.spec.ts`), `guard-sesion.ts`, `guard-plataforma.ts`, `interceptor-token.ts`, `refresco-sesion.ts`, `interceptor-refresco.ts` (+ `interceptor-refresco.spec.ts`) |
-| `disposicion/`        | `disposicion-empresa`, `disposicion-plataforma`, `menu-lateral`, `menu-usuario`, `opciones-menu.ts`, `barra.ts`, `hoja` (+ `hoja.spec.ts`)                                                                                  |
+| `disposicion/`        | `disposicion-empresa`, `disposicion-plataforma`, `menu-lateral`, `menu-usuario`, `opciones-menu.ts`, `barra.ts`, `panel-lateral`, `barra-herramientas`, `confirmacion`                                                                                  |
 | `paginas/acceso/`     | Piezas compartidas del acceso: `marco-acceso`, `campo-contrasena`, `selector-idioma`, `bandera`                                                                                                                             |
 | `paginas/empresa/`    | `iniciar-sesion`, `aceptar-invitacion`, `solicitar-restablecimiento`, `restablecer-contrasena`, `inicio` (con `esqueleto`)                                                                                                  |
 | `paginas/plataforma/` | `iniciar-sesion`, `dashboard` (+ `resumen.ts`, `esqueleto`), `empresas` (+ `esqueleto`), `planes` (+ `esqueleto`), `salud-esquemas` (+ `esquema.ts`, `esqueleto`)                                                           |
@@ -224,6 +227,12 @@ los 26 componentes.
   el precio reescribiría lo que pagaron los suscriptores anteriores, y quitar un módulo se lo
   quita a todos retroactivamente. Se retira el plan y se crea su sucesor.
 
+> **Lo que sigue habla de la HOJA INFERIOR, que se borró el 2026-09-01.** Se deja como estaba
+> porque es la bitácora de ese día, pero hoy el alta de empresa, la de plan y los límites viven
+> en el panel lateral (`disposicion/panel-lateral.ts`). El porqué está en
+> [el plan de la Fase 1](plan-fase1-front.md) y en
+> [convenciones](convenciones.md#capas-panel-lateral-y-globo-de-ayuda).
+
 - **El alta de empresa vive en la hoja inferior**, con la misma fórmula que planes. La barra
   de `/empresas` por fin tiene acción principal —«Nueva empresa», con `alPulsar` y no `ruta`,
   así que el armazón pinta un `<button>`— y el formulario de siete campos está en
@@ -240,7 +249,7 @@ los 26 componentes.
   nativo con `showModal()`: se agarra del asa, tiene anclajes configurables y se cierra
   tirándola hacia abajo o con un gesto rápido. La usan el alta de plan y el alta de empresa.
   Las dos capas —la hoja y el globo de ayuda `popover`— y sus trampas están en
-  [convenciones](convenciones.md#capas-hoja-inferior-y-globo-de-ayuda).
+  [convenciones](convenciones.md#capas-panel-lateral-y-globo-de-ayuda).
 
   **Tenía un fallo visible y se arregló el 2026-08-25.** El `<dialog>` está clavado al fondo
   con `inset: auto 0 0` y el arrastre se aplicaba entero como `translate`; hacia arriba eso

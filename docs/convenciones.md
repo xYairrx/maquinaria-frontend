@@ -558,162 +558,86 @@ alrededor: que se guarde el token rotado, que la navegación al acceso ocurra un
 vez, que plataforma no dispare nada, y que dos 401 separados en el tiempo sí canjeen dos veces
 con el token rotado.
 
-## Capas: hoja inferior y globo de ayuda
+## Capas: panel lateral y globo de ayuda
 
 Las dos usan **elementos nativos**, y esa es la razon de que ocupen tan poco codigo.
 
-### La hoja inferior es un `<dialog>` ARRASTRABLE
+### El panel lateral es un `<dialog>` pegado a la derecha
 
-Vive en `disposicion/hoja.ts` y se usa proyectando contenido:
+Vive en `disposicion/panel-lateral.ts` y se usa proyectando contenido:
 
 ```html
-<app-hoja
-  [abierta]="hojaAbierta()"
-  [anclajes]="[50, 70, 95]"
+<app-panel-lateral
+  [abierto]="panelAbierto()"
   [titulo]="..."
   [apoyo]="..."
-  (cerrar)="cerrarHoja()"
+  (cerrar)="cerrarPanel()"
 >
   <form ...>…</form>
   <div pie>…</div>
-</app-hoja>
+</app-panel-lateral>
 ```
 
-**Los anclajes son configurables**, en porcentaje del alto de la pantalla y tantos como haga
-falta. Se abre en el más bajo, sube de uno en uno al arrastrar hacia arriba, baja al arrastrar
-hacia abajo, y desde el más bajo un arrastre hacia abajo la cierra; un lanzamiento fuerte
-cierra desde cualquiera. Se normalizan al leerlos —ordenados, sin repetidos, acotados entre 20
-y 98— y una lista vacía cae a los de por defecto: una hoja de cero píxeles no se ve como un
-error, se ve como una hoja que «no abre».
+**Es el UNICO patron para un formulario de alta o edicion**, en las pantallas de empresa y en
+las de plataforma. El pie va siempre: el hueco `[pie]` es un contenedor con `border-t`, asi que
+dejarlo vacio pinta un filete suelto al fondo del panel.
 
-**Lo que la hace una hoja y no un modal es que se mueve.** Se agarra del asa, sube al anclaje
-completo, baja al medio, y si se tira hacia abajo lo suficiente —o se lanza con un gesto
-rápido— se cierra. Un panel que solo aparece y desaparece es un modal con las esquinas
-redondeadas, y ese fue el primer intento: **una hoja no se centra nunca**, se queda abajo en
-todos los anchos.
+**Responsivo sin que lo pida cada pantalla**: la utilidad `panel-lateral` de `src/styles.css` lo
+deja a todo el ancho en telefono y lo para en 32rem desde `sm`. Una pantalla que quiera otro
+ancho esta pidiendo otro componente, no un `input()` mas.
 
-El elemento es un `<dialog>` con `showModal()`, y de ahí salen gratis el atrapado de foco, el
-`aria-modal`, el resto de la página inerte y la capa superior. Lo que el componente agrega es
-el gesto y los anclajes.
+El elemento es un `<dialog>` con `showModal()`, y de ahi salen gratis el atrapado de foco, el
+`aria-modal`, el resto de la pagina inerte, la capa superior y el cierre con Escape.
 
-#### Cinco decisiones del gesto, y por qué
+#### Hubo una hoja inferior arrastrable, y se borro — 2026-09-01
 
-1. **El arrastre solo vive en el asa y la cabecera.** Arrastrar desde el cuerpo obliga a
-   distinguir «quiero mover la hoja» de «quiero desplazar el contenido», que se resuelve
-   mirando si el contenedor está en su tope y encadenando los dos gestos. Con el asa como
-   única zona, el cuerpo se desplaza como cualquier lista y no hay conflicto.
-2. **`touch-action: none` en la zona de arrastre.** Sin él el navegador se queda el gesto
-   vertical para desplazar la página y los `pointermove` nunca llegan.
-3. **`setPointerCapture` va primero y entre `try`.** Sin captura, sacar el dedo del asa corta
-   el gesto a medias. Pero **lanza** si el puntero ya no existe —un toque muy rápido—, y si
-   eso pasara después de marcar `arrastrando`, la hoja se quedaría en modo gesto para siempre:
-   sin transición y esperando un `pointerup` que nunca llega.
-4. **La velocidad necesita un piso de muestreo (8 ms).** Sin él, dos `pointermove` en el mismo
-   milisegundo —normal con un puntero de alta frecuencia o con eventos coalescidos— dan una
-   división por casi cero y una velocidad enorme. El síntoma es **una hoja que se cierra sola
-   en un arrastre lento de 45 px**, que es lo contrario de lo que el gesto quiere decir. Es un
-   fallo que ya ocurrió.
-5. **La transición se apaga mientras el dedo está encima** (`hoja-en-gesto`). Con la
-   transición puesta la hoja persigue al dedo con retraso, que es el síntoma clásico de una
-   hoja que no se programó con el gesto en mente.
+`disposicion/hoja.ts` fue el patron del panel de superadministracion durante un tiempo: una
+hoja que subia desde abajo, con asa, anclajes configurables y gesto de arrastre. El reparto era
+«hoja en plataforma, panel en empresa», y se justificaba diciendo que en plataforma los
+formularios son cortos y no hay una tabla debajo compitiendo por la atencion.
 
-#### Tres cosas que el NAVEGADOR le hace a un `<dialog>` y hay que deshacer
+**Las dos mitades del argumento eran falsas.** El alta de una empresa tiene siete campos, y la
+lista de empresas es justo lo que la hoja tapaba al subir. Un solo patron para el mismo gesto
+—abrir un formulario sobre una lista— es ademas una cosa menos que aprender al cambiar de
+aplicacion.
 
-Las tres dieron fallos reales, y ninguna avisa: no hay error, solo algo que se ve mal.
+Lo que se perdio: el gesto y los anclajes. Un panel tiene un solo tamano. En un telefono se ve
+como se veia la hoja abierta del todo, sin el arrastre de por medio.
 
-| Lo que pone el navegador             | Síntoma                                                                                                                                                         | Qué se escribe                              |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| `display: none` al cerrado           | **La hoja se ve en la página estando cerrada** — con su formulario y todo. Lo pisaba nuestro `display: flex`, que tiene la misma especificidad y gana por orden | `&:not([open]) { display: none }`           |
-| `max-height: calc(100% - 6px - 2em)` | Alto constante que ignora el anclaje                                                                                                                            | El tope va **en línea** desde el componente |
-| `max-width: calc(100% - 6px - 2em)`  | 38 px de hueco a la derecha                                                                                                                                     | `max-width: 100%`                           |
+El componente, su CSS —`hoja-inferior`, `hoja-en-gesto`, su `::backdrop`— y sus seis pruebas
+del gesto se borraron el mismo dia; **estan en el historial de git** si algun dia vuelve a
+hacer falta una hoja. Lo que sigue vivo de esa epoca es lo que no era del gesto, y esta abajo:
+son lecciones del `<dialog>`, no de la hoja.
 
-La regla general: al usar `<dialog>` para algo que no es un cuadro centrado, **hay que anular
-sus valores por defecto uno por uno**, y comprobar el estado CERRADO además del abierto.
+#### Las tres correcciones a los valores por defecto del `<dialog>`
 
-#### El gesto es ASIMÉTRICO: subir es CRECER, bajar es DESPLAZARSE
+Ninguna da error. Solo se ve algo mal, y por eso hay que **comprobar tambien el estado
+CERRADO**, no solo el abierto:
 
-**Esta guía lo documentaba al revés, y lo que documentaba era el fallo.** El arrastre se
-aplicaba entero al `translate`, y la hoja está clavada al fondo con `inset: auto 0 0`: un
-`translate` **negativo** la **despega del borde inferior** y deja ver el velo debajo, con el
-pie y su acción principal subiendo con ella; al soltar volvía de golpe. Medido en navegador
-real sobre una ventana de **720 px** de alto: **200 px de arrastre daban 200 px de hueco.**
+- `display: none` en el dialogo cerrado, que **nuestro** `display: flex` pisa por orden a igual
+  especificidad → el panel se ve en la pagina estando cerrado, con su formulario y todo. Se
+  escribe `&:not([open]) { display: none }`.
+- `max-height: calc(100% - 6px - 2em)` deja el panel corto y despegado de abajo → `100%`.
+- `max-width: calc(100% - 6px - 2em)` deja un hueco de 38 px a la derecha → `100%`.
 
-Una hoja inferior no se mueve hacia arriba, **crece** hacia arriba. El reparto que hay escrito:
+#### El clic en el velo NO es gratis, y se comprueba por `target`
 
-| Dirección  | Dónde va                                                       | Por qué                                                                                                                       |
-| ---------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **Arriba** | el tope de alto: `min(98dvh, calc(<anclaje>dvh + <subida>px))` | Su borde de abajo no se separa nunca del de la pantalla                                                                       |
-| **Abajo**  | el `translate`, y solo positivo                                | Ahí sí es un desplazamiento de verdad: la hoja se va **por debajo** del borde, que es lo que tiene que parecer al descartarla |
+Un `<dialog>` modal cierra con Escape pero **ignora los clics en su velo**: hay que escribirlo.
+Y la comprobacion va por `target`, **nunca por coordenadas**.
 
-Medido después del arreglo, misma ventana de 720: **360 px en reposo, 560 px con 200 px de
-arrastre y 0 de hueco**, y 706 px con un arrastre enorme — que es el freno de `98dvh`
-haciendo su trabajo.
-
-**El `min()` va en CSS y no en JavaScript**, y no por gusto: mezcla unidades —`dvh` del
-anclaje con `px` del dedo— y solo el navegador sabe cuánto mide un `dvh` en este instante.
-Calcularlo en JS obligaría a leer `innerHeight` en cada `pointermove`.
-
-**Se quitó la goma elástica** del anclaje más alto. Amortiguaba el tirón a un cuarto para dar
-el efecto de las hojas de móvil, pero lo conseguía **levantando la hoja del fondo**: el mismo
-fallo en pequeño. Ahora subir es crecer, y por encima del anclaje más alto no hay nada que
-crecer, así que el tirón se ignora en lugar de fingir movimiento.
-
-Lo fija `disposicion/hoja.spec.ts`, **6 pruebas**, y la regla que fijan es una sola: **el
-`translate` nunca es negativo, en ningún recorrido.** Si alguien vuelve a mandar el arrastre
-completo al `translate`, esas pruebas fallan.
-
-#### El anclaje es un TOPE de alto, no un alto fijo
-
-Aparte de lo del `max-height` de arriba, un alto fijo deja hueco vacío cuando el contenido es
-más corto que el anclaje. Con el tope, la hoja mide lo que mide su contenido hasta donde el
-anclaje la deje.
-
-**La consecuencia honesta, que hay que escribir:** si el contenido **ya cabe entero**,
-arrastrar hacia arriba no mueve nada, porque no hay nada más que descubrir. Es tope, no alto.
-
-#### Accesibilidad: el arrastre nunca es el único camino
-
-El asa es un `<button>`, así que con teclado alterna entre los dos anclajes y su `aria-label`
-dice a cuál lleva. Escape cierra —lo da el `<dialog>`— y hay un botón de cerrar explícito. Un
-gesto de puntero como única forma de expandir dejaría fuera a quien navega con teclado
-(WCAG 2.1.1).
-
-#### Lo demás de la forma
-
-Pegada al fondo y a lo ancho, **sin huecos**, con solo las esquinas de arriba redondeadas y
-la sombra hacia arriba, que es por donde se separa del contenido. El velo es **negro puro al
-55 %** —no el negro de la marca: el velo no es parte de la paleta, es ausencia de pantalla— y
-entra a la vez que la hoja, o aparece de golpe y la hoja llega después. La entrada es `translateY(100%)` —desde fuera de la pantalla, no unos píxeles— y
-solo hay animación de entrada: la de salida necesita `transition-behavior: allow-discrete`,
-que aún no está en todos los motores.
-
-La transición cubre **las dos mitades del gesto** —`translate` y `max-height`— justamente
-porque subir y bajar se expresan en propiedades distintas; declarar solo `translate` dejaría
-el crecimiento a saltos.
-
-#### El clic en el velo NO lo da el navegador
-
-Aquí había un error en esta guía: un `<dialog>` modal cierra con **Escape**, pero **ignora los
-clics en su velo**. Hay que escribirlo.
-
-Y se detecta por `target`, **no por coordenadas**, que fue un fallo de accesibilidad real: un
-`click` nacido del TECLADO —Enter o Espacio sobre un botón— llega con `clientX` y `clientY` en
-**cero**. Con la comprobación geométrica ese cero quedaba «por encima» de la hoja y se leía
-como un clic en el velo, así que **pulsar con teclado cualquier botón de dentro cerraba la hoja
-entera**. Con `target` no hay ambigüedad: el velo es área del propio `<dialog>`, y todo lo de
-dentro está cubierto por sus hijos.
+Es una trampa ya pagada: un `click` nacido del TECLADO —Enter o Espacio sobre un boton— llega
+con `clientX` y `clientY` en **cero**. Con la comprobacion geometrica ese cero queda «fuera» del
+panel y se lee como un clic en el velo, asi que **pulsar con teclado cualquier boton de dentro
+cierra el panel entero**. Con `target` no hay ambiguedad: el velo es area del propio
+`<dialog>`, y todo lo de dentro esta cubierto por sus hijos.
 
 ```ts
-if (dialogo === undefined || evento.target !== dialogo) return;
+if (evento.target === this.dialogo()?.nativeElement) this.cerrar.emit();
 ```
 
-Falta un detalle más: al soltar un arrastre que acabó fuera de la hoja, el navegador emite
-también un `click`. Sin una bandera que recuerde que hubo gesto, ese clic se lee como «pulsé el
-velo» y cierra la hoja justo después de haberla arrastrado.
-
-**Y el `(close)` del `<dialog>` no es opcional.** Escape lo cierra el NAVEGADOR sin pasar por
-tu método; sin escucharlo la señal se queda diciendo que está abierta, y como el `effect` no se
-reejecuta si nada cambió, **el botón deja de abrir la hoja para siempre**.
+**Y el `(close)` del `<dialog>` no es opcional.** Escape lo cierra el NAVEGADOR sin pasar por tu
+metodo; sin escucharlo la senal se queda diciendo que esta abierto, y como el `effect` no se
+reejecuta si nada cambio, **el boton deja de abrir el panel para siempre**.
 
 ### El globo de ayuda es un `popover`
 

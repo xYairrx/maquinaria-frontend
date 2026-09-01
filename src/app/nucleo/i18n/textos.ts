@@ -410,6 +410,7 @@ const ES_MX = {
     colEstado: 'Estado',
     colBase: 'Base',
     colPlan: 'Plan',
+    colAcciones: 'Acciones',
     sinSuscripcion: '— sin suscripción',
     conModulos: (n: number) => `(${n} módulos)`,
     crear: 'Nueva empresa',
@@ -427,6 +428,37 @@ const ES_MX = {
     plan: 'Plan que contrata',
     ayudaPlan: 'Determina a qué módulos tendrá acceso. Solo se ofrecen los planes activos.',
     sinPlanesActivos: 'No hay ningún plan activo: crea uno antes de dar de alta una empresa.',
+
+    /**
+     * Los cupos de una empresa. Cuelgan del TENANT y no del plan: un cliente que negocia
+     * 300 equipos con un plan de 200 no obliga a inventarle un plan a medida.
+     */
+    limites: {
+      abrir: 'Límites',
+      titulo: (slug: string) => `Límites de ${slug}`,
+      apoyo:
+        'El plan decide a qué módulos entra; esto decide cuántos. Un cupo sin fijar hereda el valor por defecto del catálogo.',
+      // Se dice en voz alta porque un panel de administración que no acota nada es una
+      // trampa: quien fije un cupo esperaría que se cumpla.
+      todaviaNoAplica:
+        'Todavía no se aplican: se guardan y quedan auditados, pero ninguna operación los verifica aún.',
+      colLimite: 'Límite',
+      colValor: 'Valor',
+      colOrigen: 'Origen',
+      sinLimite: 'Sin límite',
+      negociado: 'Negociado',
+      porDefecto: 'Por defecto',
+      porDefectoCon: (valor: string) => `Por defecto (${valor})`,
+      guardar: 'Guardar',
+      guardando: 'Guardando…',
+      quitar: 'Quitar',
+      quitando: 'Quitando…',
+      quitarApoyo: 'Vuelve al valor por defecto del catálogo.',
+      cargando: 'Cargando los límites…',
+      // El 0 es válido y es lo que más confunde: no es «sin límite», es «ninguno».
+      ayudaValor: 'Un entero mayor o igual a cero. Cero significa que no puede crear ninguno.',
+      errorValor: 'Escribe un entero mayor o igual a cero, o marca «Sin límite».',
+    },
 
     // --- Los mensajes de error de los campos propios de este alta ---
     //
@@ -2495,6 +2527,7 @@ const EN_US: Textos = {
     colEstado: 'Status',
     colBase: 'Database',
     colPlan: 'Plan',
+    colAcciones: 'Actions',
     sinSuscripcion: '— no subscription',
     conModulos: (n: number) => `(${n} modules)`,
     crear: 'New company',
@@ -2513,6 +2546,30 @@ const EN_US: Textos = {
     plan: 'Plan',
     ayudaPlan: 'Decides which modules they will have access to. Only active plans are offered.',
     sinPlanesActivos: 'There is no active plan: create one before adding a company.',
+
+    limites: {
+      abrir: 'Limits',
+      titulo: (slug: string) => `${slug} limits`,
+      apoyo:
+        'The plan decides which modules they get into; this decides how many. A limit left unset inherits the catalogue default.',
+      todaviaNoAplica:
+        'Not enforced yet: they are saved and audited, but no operation checks them so far.',
+      colLimite: 'Limit',
+      colValor: 'Value',
+      colOrigen: 'Source',
+      sinLimite: 'Unlimited',
+      negociado: 'Negotiated',
+      porDefecto: 'Default',
+      porDefectoCon: (valor: string) => `Default (${valor})`,
+      guardar: 'Save',
+      guardando: 'Saving…',
+      quitar: 'Remove',
+      quitando: 'Removing…',
+      quitarApoyo: 'Goes back to the catalogue default.',
+      cargando: 'Loading the limits…',
+      ayudaValor: 'An integer greater than or equal to zero. Zero means they cannot create any.',
+      errorValor: 'Write an integer greater than or equal to zero, or tick "Unlimited".',
+    },
 
     errorIdentificador:
       'The identifier takes lowercase letters, digits and hyphens, 3 to 50 characters, and cannot start or end with a hyphen.',

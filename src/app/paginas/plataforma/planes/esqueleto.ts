@@ -26,7 +26,7 @@ export class PlanesEsqueleto {
    * Las pildoras de modulos de cada fila. Seis y no veintiseis: es lo que da altura a la
    * fila, y la silueta tiene que sugerir la forma, no reproducir el censo.
    *
-   * El formulario NO tiene esqueleto, y no es un olvido: vive dentro de la hoja inferior,
+   * El formulario NO tiene esqueleto, y no es un olvido: vive dentro del panel lateral,
    * que solo existe cuando alguien la abre — y entonces los datos ya estan.
    */
   protected readonly pildoras = [1, 2, 3, 4, 5, 6];

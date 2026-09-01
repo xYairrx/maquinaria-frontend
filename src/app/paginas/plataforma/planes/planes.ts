@@ -11,7 +11,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 
 import { Barra } from '../../../disposicion/barra';
 import { Confirmacion } from '../../../disposicion/confirmacion';
-import { Hoja } from '../../../disposicion/hoja';
+import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
 import type { ResumenPlan } from '../../../nucleo/api/contratos-plataforma';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
@@ -40,7 +40,7 @@ const LARGO_CODIGO = 40;
  */
 @Component({
   selector: 'app-planes',
-  imports: [CurrencyPipe, Hoja, PlanesEsqueleto, ReactiveFormsModule],
+  imports: [CurrencyPipe, PanelLateral, PlanesEsqueleto, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './planes.html',
 })
@@ -65,10 +65,10 @@ export class Planes {
   protected readonly enviando = signal(false);
 
   /**
-   * Si la hoja del formulario esta abierta. El `<dialog>`, el gesto y los anclajes los
-   * maneja `app-hoja`; aqui solo se dice cuando se ve.
+   * Si el panel del formulario esta abierto. El `<dialog>`, el velo y el cierre los maneja
+   * `app-panel-lateral`; aqui solo se dice cuando se ve.
    */
-  protected readonly hojaAbierta = signal(false);
+  protected readonly panelAbierto = signal(false);
 
   /** El error de CREAR. El de la lista lo trae el recurso. */
   private readonly errorCrear = signal<string | null>(null);
@@ -107,20 +107,20 @@ export class Planes {
       this.barra.configurar({
         titulo: t().planes.titulo,
         contexto: t().planes.contexto(this.planes().length),
-        // La accion de la barra ya no navega: abre la hoja. De ahi que `AccionBarra` admita
+        // La accion de la barra ya no navega: abre el panel. De ahi que `AccionBarra` admita
         // `alPulsar` y el armazon pinte un `<button>` en lugar de un `<a>`.
-        accion: { etiqueta: t().planes.crear, alPulsar: () => this.abrirHoja() },
+        accion: { etiqueta: t().planes.crear, alPulsar: () => this.abrirPanel() },
       }),
     );
   }
 
-  protected abrirHoja(): void {
+  protected abrirPanel(): void {
     this.errorCrear.set(null);
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
-  protected cerrarHoja(): void {
-    this.hojaAbierta.set(false);
+  protected cerrarPanel(): void {
+    this.panelAbierto.set(false);
   }
 
   protected estaElegido(clave: string): boolean {
@@ -191,7 +191,7 @@ export class Planes {
           this.formulario.reset({ precioMensual: 0, moneda: 'MXN', orden: 0 });
           this.elegirNinguno();
           this.enviando.set(false);
-          this.cerrarHoja();
+          this.cerrarPanel();
         },
         error: (e: unknown) => {
           this.errorCrear.set(mensajeDeError(e));

@@ -11,19 +11,25 @@ import {
 import { t } from '../nucleo/i18n/i18n';
 
 /**
- * Un panel que entra DESDE LA DERECHA, de alto completo. El formulario de alta y edición de
- * las pantallas de empresa.
+ * Un panel que entra DESDE LA DERECHA, de alto completo. Todo formulario de alta y edición de
+ * la aplicación: las pantallas de empresa y, desde el 2026-09-01, también las de plataforma.
  *
- * POR QUE NO LA HOJA INFERIOR. `disposicion/hoja.ts` nació para el panel de
- * superadministración —formularios cortos, sin una tabla debajo compitiendo por la atención— y
- * ahí se queda. En una pantalla de empresa el formulario convive con una tabla ancha: una hoja
- * que sube tapa justo las filas que se estaban mirando, mientras que un panel lateral las deja
- * a la vista. Son dos patrones para dos sitios, no uno que sustituye al otro.
+ * ES EL ÚNICO PATRÓN, y antes eran dos. `disposicion/hoja.ts` —la hoja inferior arrastrable—
+ * se quedaba con el panel de superadministración con el argumento de que ahí los formularios
+ * son cortos y no hay una tabla debajo compitiendo por la atención. Las dos mitades del
+ * argumento resultaron falsas: el alta de una empresa tiene siete campos y la lista de
+ * empresas es justo lo que la hoja tapaba al subir. Un solo patrón para el mismo gesto —abrir
+ * un formulario sobre una lista— es además una cosa menos que aprender al cambiar de
+ * aplicación.
  *
- * Y NO ES ARRASTRABLE, a diferencia de la hoja. El gesto de arrastre existe en la hoja porque
- * tiene varios anclajes entre los que moverse; aquí el panel tiene un solo tamaño, así que un
- * asa no llevaría a ninguna parte. Se cierra con Escape, con el botón de cerrar o pulsando el
- * velo — tres caminos, ninguno exclusivo de un puntero (WCAG 2.1.1).
+ * NO ES ARRASTRABLE, y ahí está lo que se perdió a cambio: el gesto de la hoja movía entre
+ * varios anclajes, y aquí el panel tiene un solo tamaño, así que un asa no llevaría a ninguna
+ * parte. Se cierra con Escape, con el botón de cerrar o pulsando el velo — tres caminos,
+ * ninguno exclusivo de un puntero (WCAG 2.1.1).
+ *
+ * RESPONSIVO SIN QUE LO PIDA CADA PANTALLA: la utilidad `panel-lateral` de `src/styles.css` lo
+ * deja a todo el ancho en teléfono y lo para en 32rem desde `sm`. Una pantalla que quiera otro
+ * ancho está pidiendo otro componente, no un input más.
  *
  * Sobre el elemento: es un `<dialog>` con `showModal()`. De ahí salen gratis el atrapado de
  * foco, el `aria-modal`, el resto de la página inerte, la capa superior y el cierre con

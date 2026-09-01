@@ -282,20 +282,26 @@ después de recorrerla.
 
 ## Panel lateral derecho
 
-**El formulario de alta y edición de las pantallas de EMPRESA** entra desde la derecha, de alto
-completo, 32rem desde `sm` y a todo lo ancho en un teléfono. Es
-`disposicion/panel-lateral.ts` y su utilidad `panel-lateral`.
+**Todo formulario de alta y edición** entra desde la derecha, de alto completo, 32rem desde
+`sm` y a todo lo ancho en un teléfono. Es `disposicion/panel-lateral.ts` y su utilidad
+`panel-lateral`. Vale para las pantallas de empresa y para las de plataforma: **es el único
+patrón**, y el ancho de teléfono lo resuelve la utilidad, no cada pantalla.
 
-**La hoja inferior se queda en el panel de superadministración.** Nació ahí, con formularios
-cortos y sin una tabla ancha debajo compitiendo por la atención. En una pantalla de empresa una
-hoja que sube tapa justo las filas que se estaban mirando; un panel lateral las deja a la
-vista. Son dos patrones para dos sitios, no uno que sustituye al otro.
+Lleva siempre su pie. El hueco `[pie]` es un contenedor con `border-t`, así que dejarlo vacío
+pinta un filete suelto al fondo; aunque no haya nada que enviar, ahí va el botón de cerrar.
 
-No es arrastrable, y eso es deliberado: el gesto existe en la hoja porque tiene varios
-anclajes entre los que moverse. Aquí hay un solo tamaño, así que un asa no llevaría a ninguna
-parte. Se cierra con Escape, con el botón de cerrar o pulsando el velo.
+**Hubo una hoja inferior arrastrable y se borró el 2026-09-01.** Se quedaba con
+superadministración porque ahí los formularios eran cortos y no había una tabla debajo
+compitiendo por la atención — las dos mitades resultaron falsas: el alta de una empresa tiene
+siete campos y la lista de empresas es justo lo que la hoja tapaba al subir. Lo que se perdió
+es el gesto y los anclajes; en un teléfono el panel se ve como se veía la hoja abierta del
+todo. Está en el historial de git.
 
-Hereda las tres correcciones que la hoja ya pagó contra los valores por defecto del `<dialog>`
+El panel no es arrastrable, y eso ahora no es una diferencia con nada: tiene un solo tamaño,
+así que un asa no llevaría a ninguna parte. Se cierra con Escape, con el botón de cerrar o
+pulsando el velo — tres caminos, ninguno exclusivo de un puntero.
+
+Hereda las tres correcciones que la hoja pagó contra los valores por defecto del `<dialog>`
 —el `display: none` del cerrado, el `max-height` y el `max-width`—, anotadas en la utilidad.
 
 ## Tablas

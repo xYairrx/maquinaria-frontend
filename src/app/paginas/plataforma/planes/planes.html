@@ -1,7 +1,7 @@
 <!--
   Sin <header> ni <main> propios: los aporta DisposicionPlataforma. El <h1> lo pinta la
   barra del armazon, y el boton amarillo de «Crear un plan» tambien: la pantalla solo
-  declara la accion y abre la hoja.
+  declara la accion y abre el panel.
 
   Responsivo desde el primer commit. Ver `docs/convenciones.md#responsivo`.
 -->
@@ -199,16 +199,15 @@
 </div>
 
 <!--
-  El formulario, dentro de la hoja inferior ARRASTRABLE de `disposicion/hoja.ts`. La hoja
+  El formulario, dentro del panel lateral derecho de `disposicion/panel-lateral.ts`. El panel
   aporta el gesto, los anclajes, la cabecera con su asa y el `<dialog>` nativo; aqui solo va
   el contenido.
 -->
-<app-hoja
-  [abierta]="hojaAbierta()"
-  [anclajes]="[50, 70, 95]"
+<app-panel-lateral
+  [abierto]="panelAbierto()"
   [titulo]="t().planes.crear"
   [apoyo]="t().planes.crearApoyo"
-  (cerrar)="cerrarHoja()"
+  (cerrar)="cerrarPanel()"
 >
   <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-plan">
     <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
@@ -221,7 +220,7 @@
         </p>
       }
 
-      <!-- Una columna en teléfono, dos desde `sm`. Tres apretaría dentro de la hoja. -->
+      <!-- Una columna en teléfono, dos desde `sm`. Tres apretaría dentro del panel. -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div class="flex flex-col gap-1">
           <label for="codigo" class="text-sm font-medium text-texto-secundario">
@@ -354,14 +353,14 @@
   </form>
 
   <!--
-    El pie va al hueco `[pie]` de la hoja, que lo deja fijo abajo. El submit apunta al
-    formulario por `form=`: esta fuera de el en el arbol, porque la hoja lo proyecta en otra
+    El pie va al hueco `[pie]` del panel, que lo deja fijo abajo. El submit apunta al
+    formulario por `form=`: esta fuera de el en el arbol, porque el panel lo proyecta en otra
     ranura.
   -->
   <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
     <button
       type="button"
-      (click)="cerrarHoja()"
+      (click)="cerrarPanel()"
       class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
     >
       {{ t().planes.cerrar }}
@@ -376,4 +375,4 @@
       {{ enviando() ? t().planes.guardando : t().planes.guardar }}
     </button>
   </div>
-</app-hoja>
+</app-panel-lateral>

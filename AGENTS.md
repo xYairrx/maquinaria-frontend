@@ -113,7 +113,7 @@ See `docs/convenciones.md#el-andamiaje-de-una-pantalla-nueva`.
 
 **`src/styles.css` already defines the piece you are about to hand-roll.** `chip`,
 `chip-activo`, `campo-formulario`, `boton-principal`, `aviso`, `esqueleto`,
-`tarjeta-indicador`, `hoja-inferior`, `globo-ayuda`, `dialogo-confirmacion`. Grep for it and
+`tarjeta-indicador`, `panel-lateral`, `globo-ayuda`, `dialogo-confirmacion`. Grep for it and
 read `docs/sistema-de-diseno.md` before typing a class list.
 
 Writing it by hand does not just duplicate the definition — **it silently drops the states
@@ -179,11 +179,12 @@ and primary action belong to the screen.
   an `<a>` (openable in a new tab); `alPulsar` makes it a `<button>`. Not cosmetic: announcing
   "link" for something that opens a sheet on the same screen lies to a screen reader. Declare
   no action if there is neither.
-- **A primary action may open a SHEET** (`alPulsar` + `disposicion/hoja.ts`) — that is the
-  pattern for any "new X" form, not something specific to Planes. What does NOT go inside the
-  sheet is the confirmation: it carries the invitation link, which has to be readable and
-  copyable, and a sheet is dismissed by the same gesture that opened it. Close the sheet and
-  leave the notice on the SCREEN.
+- **A primary action may open a SIDE PANEL** (`alPulsar` + `disposicion/panel-lateral.ts`) —
+  that is the pattern for any "new X" form, everywhere. It used to be the bottom sheet in
+  plataforma and the side panel in empresa; since 2026-09-01 there is ONE pattern and it is the
+  panel. What does NOT go inside it is the confirmation: it carries the invitation link, which
+  has to be readable and copyable, and the panel is dismissed by the same gesture that opened
+  it. Close the panel and leave the notice on the SCREEN.
 - Why a service and not `<ng-content>`: projected content does not cross a
   `<router-outlet>`. Same reasoning as `opciones-menu.ts`, where the menu is data too.
 
@@ -507,67 +508,43 @@ See `docs/convenciones.md#confirmar-antes-de-una-accion-destructiva`.
 
 ## Overlays: use the native element
 
-**A bottom sheet is `disposicion/hoja.ts`** — reuse it, do not write another. It is a
-`<dialog>` + `showModal()` (focus trap, `aria-modal`, page inert, top layer for free) plus the
-drag gesture and CONFIGURABLE snap points (`[anclajes]="[50, 70, 95]"`, percentages of the
-viewport height, as many as you need).
+**Every alta/edición form is `disposicion/panel-lateral.ts`** — reuse it, do not write another.
+It is a `<dialog>` + `showModal()` (focus trap, `aria-modal`, page inert, top layer, Escape —
+all free) plus a `[pie]` slot for a footer that stays put while the body scrolls.
 
-**What makes it a sheet and not a modal is that it MOVES.** Grab the handle, snap up, snap
-down, drag down far enough (or flick) to dismiss. A panel that only appears and disappears is
-a modal with rounded corners. And **a sheet is never centred** — it is pinned to the bottom and
-to both sides with no gaps (`inset: auto 0 0`), with only the TOP corners rounded and the shadow
-cast upwards.
+- **The `[pie]` is not optional.** Its container carries a `border-t`, so an empty slot paints a
+  stray rule at the bottom of the panel. Every panel in the app has one, even if all it holds is
+  a Close button.
+- **Responsive lives in the utility, not in the screen.** `panel-lateral` in `src/styles.css` is
+  full-width on a phone and 32rem from `sm`. A screen that wants a different width is asking for
+  a different component, not one more `input()`.
 
-**The gesture is ASYMMETRIC: dragging up GROWS, dragging down TRANSLATES.** Because the sheet is
-pinned to the bottom, a NEGATIVE `translate` **detaches it from the bottom edge** and shows the
-backdrop underneath, with the footer and its primary action riding up — a real bug, 200 px of
-drag for 200 px of gap. Up goes into the max-height, `min(98dvh, calc(<snap>dvh + <drag>px))`;
-down stays in the `translate`, which is exactly what dismissal should look like. Keep the `min()`
-in CSS, never in JS: it mixes `dvh` with `px` and only the browser knows what a `dvh` measures
-right now. No rubber band past the top snap either — damping it meant lifting the sheet off the
-bottom again, and there is nothing left to grow into. And since it is a max-height, if the
-content already fits, dragging up moves nothing. `disposicion/hoja.spec.ts` (6) locks the rule:
-**the `translate` is never negative, on any path.**
+**There WAS a draggable bottom sheet (`disposicion/hoja.ts`) and it was deleted on 2026-09-01.**
+It was the plataforma pattern while the panel was the empresa one, on the argument that
+plataforma's forms are short and have no table underneath competing for attention. Both halves
+were false — the alta of a company has seven fields, and the companies list is exactly what the
+sheet covered as it rose. The component, its CSS (`hoja-inferior`, `hoja-en-gesto`, its
+`::backdrop`) and its six gesture tests went with it; they are in git history if a sheet is ever
+needed again. Do not resurrect it for a form: use the panel.
 
-Five more gesture decisions, each one a bug that already happened or was avoided:
-
-- **Drag only from the handle and header.** Dragging from the body forces you to disambiguate
-  "move the sheet" from "scroll the content". Restricting the zone removes the conflict.
-- **`touch-action: none` on the drag zone**, or the browser keeps the vertical gesture for
-  scrolling and `pointermove` never fires.
-- **`setPointerCapture` first, inside `try`.** It THROWS when the pointer is already gone (a
-  very fast tap); after setting the dragging flag, that would leave the sheet stuck in gesture
-  mode forever, waiting for a `pointerup` that never comes.
-- **Velocity needs a minimum sampling interval (8 ms).** Two `pointermove` events in the same
-  millisecond divide by almost zero and give a huge velocity — the sheet then closes itself on
-  a SLOW 45 px drag.
-- **Kill the transition while dragging.** With it on, the sheet lags behind the finger.
-
-**Undo the browser's `<dialog>` defaults one by one.** Three of them bit, and none of them
-errors — you only see something wrong:
+**Undo the browser's `<dialog>` defaults one by one.** Three of them bit, none of them errors —
+you only see something wrong, so always check the CLOSED state too:
 
 - `display: none` on the closed dialog, which OUR `display: flex` overrides (same specificity,
-  ours wins by order) → **the sheet renders in the page while closed**. Write
+  ours wins by order) → **the panel renders in the page while closed**. Write
   `&:not([open]) { display: none }`.
-- `max-height: calc(100% - 6px - 2em)` caps the height you asked for → the snap point must be
-  set INLINE from the component, and as a max-height, not a fixed height.
+- `max-height: calc(100% - 6px - 2em)` → the panel is short and detached from the bottom.
 - `max-width: calc(100% - 6px - 2em)` leaves a 38px gap on the right → `max-width: 100%`.
-
-Always check the CLOSED state, not just the open one.
-
-**Dragging is never the only path**: the handle is a `<button>` that toggles snaps by keyboard,
-Escape closes, and there is an explicit close button (WCAG 2.1.1).
 
 **The backdrop click is NOT free.** A modal `<dialog>` closes on Escape but IGNORES clicks on
 its backdrop — you have to write it. Detect it by `target`, **never by coordinates**: a click
 born from the KEYBOARD (Enter/Space on a button) arrives with `clientX`/`clientY` at **zero**,
-so a geometric check reads it as "above the sheet" and **pressing any inner button by keyboard
-closes the whole sheet**. Use `evento.target !== dialogo → return`. Also guard with a flag for
-the `click` the browser emits after a drag that ended outside the sheet.
+so a geometric check reads it as "outside the panel" and **pressing any inner button by keyboard
+closes the whole panel**. Compare `evento.target` against the dialog element.
 
 **Never omit `(close)` on the dialog.** Escape is closed by the BROWSER without going through
 your method; without listening the signal stays "open", the effect does not re-run, and the
-button stops opening the sheet forever.
+button stops opening the panel forever.
 
 **A help/info popup is the native `popover` attribute** with `popovertarget`: light dismiss,
 Escape and the top layer come free. Position it with explicit `top`/`right` — in the top layer
@@ -582,4 +559,4 @@ Call `el.getAnimations().forEach(a => a.finish())` before measuring, dispatch
 across separate calls so real time passes (otherwise the velocity guard is what you are
 testing).
 
-See `docs/convenciones.md#capas-hoja-inferior-y-globo-de-ayuda`.
+See `docs/convenciones.md#capas-panel-lateral-y-globo-de-ayuda`.

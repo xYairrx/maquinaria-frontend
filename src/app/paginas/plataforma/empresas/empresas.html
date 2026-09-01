@@ -4,7 +4,7 @@
   la cabecera duplicaría el botón de salir.
 
   El <h1> lo pinta la barra del armazón, y el botón amarillo de «Nueva empresa» también:
-  la pantalla solo declara la acción y abre la hoja. Mismo trato que en planes.
+  la pantalla solo declara la acción y abre el panel. Mismo trato que en planes.
 
   Responsivo desde el primer commit. Ver `docs/convenciones.md#responsivo`.
 -->
@@ -65,8 +65,8 @@
       positivo se marca como el de 'entrar': filete negro a la izquierda sobre superficie
       blanca, en vez de un bloque de color.
 
-      Vive en la PANTALLA y no dentro de la hoja, a propósito: lleva la liga de invitación,
-      que es justo lo que hay que poder leer con calma y copiar. Dentro de una hoja que se
+      Vive en la PANTALLA y no dentro del panel, a propósito: lleva la liga de invitación,
+      que es justo lo que hay que poder leer con calma y copiar. Dentro de un panel que se
       descarta con un gesto, desaparecería con el mismo movimiento que la abrió.
     -->
     <section
@@ -163,12 +163,15 @@
                 {{ t().empresas.colPlan }}
               </th>
               <!--
-                COLUMNA DE ACCIÓN, con la cabecera en `sr-only` — el mismo trato que la de
-                retirar un plan. Una cabecera visible («Invitación») prometería un dato en
-                cada fila, y aquí la celda está vacía en todas las que sí la recibieron.
+                COLUMNA DE ACCIONES, con la cabecera en `sr-only` — el mismo trato que la de
+                retirar un plan. Una cabecera visible prometería un dato en cada fila, y esto
+                son botones.
+
+                Dice «Acciones» y ya no «Reenviar la invitación»: desde que la celda lleva
+                también los límites, el nombre del reenvío describía una de las dos.
               -->
               <th scope="col" class="px-4 py-2.5 md:px-5">
-                <span class="sr-only">{{ t().empresas.reenviar }}</span>
+                <span class="sr-only">{{ t().empresas.colAcciones }}</span>
               </th>
             </tr>
           </thead>
@@ -206,6 +209,19 @@
                 </td>
                 <td class="px-4 py-2.5 text-right md:px-5">
                   <!--
+                    LOS LÍMITES SALEN EN TODAS LAS FILAS, a diferencia del reenvío: toda
+                    empresa tiene cupos, aunque no tenga ni una excepción guardada. El botón
+                    va primero porque es el que siempre está.
+                  -->
+                  <div class="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      (click)="abrirLimites(e.slug)"
+                      class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                    >
+                      {{ t().empresas.limites.abrir }}
+                    </button>
+                    <!--
                     EL BOTÓN SALE SOLO SI LA INVITACIÓN NO SALIÓ, y ahora sobrevive a una
                     recarga: `invitacionEnviada` viene en la lista. En las demás filas la
                     celda va vacía — no un texto de relleno que hubiera que traducir para
@@ -216,20 +232,21 @@
                     de todas. Al terminar bien, el servicio recarga la lista y este botón
                     desaparece solo, porque su empresa ya tiene la invitación enviada.
                   -->
-                  @if (!e.invitacionEnviada) {
-                    <button
-                      type="button"
-                      (click)="reenviarInvitacion(e.slug)"
-                      [disabled]="reenviandoSlug() === e.slug"
-                      class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
-                    >
-                      {{
-                        reenviandoSlug() === e.slug
-                          ? t().empresas.reenviando
-                          : t().empresas.reenviar
-                      }}
-                    </button>
-                  }
+                    @if (!e.invitacionEnviada) {
+                      <button
+                        type="button"
+                        (click)="reenviarInvitacion(e.slug)"
+                        [disabled]="reenviandoSlug() === e.slug"
+                        class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+                      >
+                        {{
+                          reenviandoSlug() === e.slug
+                            ? t().empresas.reenviando
+                            : t().empresas.reenviar
+                        }}
+                      </button>
+                    }
+                  </div>
                 </td>
               </tr>
             }
@@ -241,24 +258,25 @@
 </div>
 
 <!--
-  El alta, dentro de la hoja inferior ARRASTRABLE de `disposicion/hoja.ts`. La hoja aporta
-  el gesto, los anclajes, la cabecera con su asa y el `<dialog>` nativo; aquí solo va el
-  contenido.
+  El alta, dentro del panel lateral derecho de `disposicion/panel-lateral.ts`. El panel
+  aporta el velo, la cabecera, el pie fijo y el `<dialog>` nativo; aquí solo va el contenido.
 
-  Los mismos anclajes que planes: este formulario tiene siete campos, así que arrancar a la
-  mitad de la pantalla y poder subir hasta el 95 % es el mismo reparto.
+  ERA UNA HOJA INFERIOR y dejó de serlo el 2026-09-01. La hoja arrancaba a media pantalla y
+  había que arrastrarla para ver el formulario completo; el panel entra de lado, sale de alto
+  completo y no tapa la tabla. En teléfono ocupa todo el ancho —eso lo resuelve la utilidad
+  `panel-lateral` de `styles.css`, no cada pantalla—, así que ahí se ve como se veía la hoja
+  abierta del todo, sin el gesto de por medio.
 -->
-<app-hoja
-  [abierta]="hojaAbierta()"
-  [anclajes]="[50, 70, 95]"
+<app-panel-lateral
+  [abierto]="panelAbierto()"
   [titulo]="t().empresas.darDeAlta"
   [apoyo]="t().empresas.darDeAltaApoyo"
-  (cerrar)="cerrarHoja()"
+  (cerrar)="cerrarPanel()"
 >
   <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-empresa">
     <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
       <!--
-        Una columna en teléfono, dos desde `sm`. Tres apretaría dentro de la hoja.
+        Una columna en teléfono, dos desde `sm`. Tres apretaría dentro del panel.
 
         CADA CAMPO ES SIEMPRE EL MISMO PATRÓN, y de eso depende que se pueda copiar a las 26
         pantallas que vienen sin dejarse una pieza:
@@ -327,7 +345,7 @@
           de la rejilla exterior son ~160 px a 375, y el mensaje del RFC —que tiene que decir
           las dos longitudes y la forma— se partía en diez renglones dentro de esa columna.
           Ahora son dos celdas normales: apiladas a lo ancho completo en un teléfono y a media
-          hoja desde `sm`, que es donde el mensaje ocupa dos o tres renglones.
+          panel desde `sm`, que es donde el mensaje ocupa dos o tres renglones.
         -->
         <div class="flex flex-col gap-1">
           <label for="rfc" class="text-sm font-medium text-texto-secundario">
@@ -478,8 +496,8 @@
   </form>
 
   <!--
-    El pie va al hueco `[pie]` de la hoja, que lo deja fijo abajo. El submit apunta al
-    formulario por `form=`: está fuera de él en el árbol, porque la hoja lo proyecta en otra
+    El pie va al hueco `[pie]` del panel, que lo deja fijo abajo. El submit apunta al
+    formulario por `form=`: está fuera de él en el árbol, porque el panel lo proyecta en otra
     ranura.
 
     El aviso de que tarda va AQUÍ y no en el cuerpo: es lo que hay que leer justo antes de
@@ -494,7 +512,7 @@
     <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
       <button
         type="button"
-        (click)="cerrarHoja()"
+        (click)="cerrarPanel()"
         class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
       >
         {{ t().empresas.cerrar }}
@@ -510,4 +528,155 @@
       </button>
     </div>
   </div>
-</app-hoja>
+</app-panel-lateral>
+
+<!--
+  LOS LÍMITES, en su propio panel. Segundo panel de la pantalla, y no el mismo que el alta:
+  son dos operaciones distintas —crear una empresa y ajustarle un cupo— y compartir el
+  contenedor obligaría a un modo dentro del panel.
+
+  `@if` sobre el slug y no solo `[abierto]`: sin él, el contenido seguiría en el DOM con el
+  panel cerrado y `limitesSlug()` nulo dentro de los manejadores.
+-->
+@if (limitesSlug(); as slug) {
+  <app-panel-lateral
+    [abierto]="true"
+    [titulo]="t().empresas.limites.titulo(slug)"
+    [apoyo]="t().empresas.limites.apoyo"
+    (cerrar)="cerrarLimites()"
+  >
+    <div class="flex flex-col gap-4 px-4 py-4 sm:px-5">
+      <!--
+        Se dice en la pantalla y no solo en la documentación: un panel que deja fijar un
+        cupo promete que el cupo se respeta, y hoy no lo hace nadie. Callarlo sería dejar
+        que alguien confíe en un tope que no existe.
+      -->
+      <p
+        class="rounded-lg border border-borde bg-superficie-sutil px-3 py-2 text-xs text-texto-apagado"
+      >
+        {{ t().empresas.limites.todaviaNoAplica }}
+      </p>
+
+      @if (errorLimites(); as e) {
+        <p role="alert" class="text-sm text-alerta-texto">{{ e }}</p>
+      }
+
+      @if (limitesCargando()) {
+        <p class="text-sm text-texto-apagado">{{ t().empresas.limites.cargando }}</p>
+      } @else {
+        <ul class="flex flex-col gap-4">
+          @for (l of limites(); track l.clave) {
+            <li class="flex flex-col gap-2 border-b border-borde-fila pb-4 last:border-0">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <span class="font-medium text-texto">{{ l.nombre }}</span>
+
+                <!--
+                  De dónde sale el número que aplica HOY. Sin esto, «300» y «300» se leen
+                  igual viniendo de una negociación o del catálogo, y el botón de quitar
+                  aparecería sin explicación.
+                -->
+                <span class="text-xs text-texto-apagado">
+                  {{
+                    l.esExcepcion
+                      ? t().empresas.limites.negociado
+                      : t().empresas.limites.porDefectoCon(valorMostrado(l))
+                  }}
+                </span>
+              </div>
+
+              <p class="text-xs text-texto-apagado">{{ l.descripcion }}</p>
+
+              <div class="flex flex-wrap items-center gap-3">
+                <label class="flex items-center gap-2 text-sm text-texto-secundario">
+                  <input
+                    type="checkbox"
+                    [checked]="filaDe(l.clave).sinLimite"
+                    (change)="alternarSinLimite(l.clave, $any($event.target).checked)"
+                    class="size-4 rounded border-borde-campo"
+                  />
+                  {{ t().empresas.limites.sinLimite }}
+                </label>
+
+                <!--
+                  Deshabilitado y no escondido cuando es «sin límite»: quitar el campo movería
+                  la fila entera al marcar la casilla.
+
+                  `[attr.aria-label]` porque no hay `<label for>` a la vista: el nombre del
+                  cupo está arriba, en el encabezado de la fila, y repetirlo en una etiqueta
+                  visible por cada uno llenaría el panel de texto duplicado.
+                -->
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  [value]="filaDe(l.clave).texto"
+                  [disabled]="filaDe(l.clave).sinLimite"
+                  (input)="escribirValor(l.clave, $any($event.target).value)"
+                  [attr.aria-label]="l.nombre"
+                  class="campo-formulario w-28"
+                />
+
+                <span class="text-sm text-texto-apagado">{{ l.unidad }}</span>
+
+                <button
+                  type="button"
+                  (click)="guardarLimite(l)"
+                  [disabled]="!puedeGuardar(l)"
+                  class="ml-auto whitespace-nowrap rounded-lg bg-negro-acento px-3 py-1.5 text-[13px] font-medium text-superficie hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+                >
+                  {{
+                    limiteEnVuelo() === l.clave
+                      ? t().empresas.limites.guardando
+                      : t().empresas.limites.guardar
+                  }}
+                </button>
+
+                <!--
+                  Solo si hay excepción que quitar. En las demás filas no hay nada que
+                  deshacer: ya están en el valor por defecto.
+                -->
+                @if (l.esExcepcion) {
+                  <button
+                    type="button"
+                    (click)="quitarLimite(l)"
+                    [disabled]="limiteEnVuelo() !== null"
+                    [title]="t().empresas.limites.quitarApoyo"
+                    class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+                  >
+                    {{
+                      limiteEnVuelo() === l.clave
+                        ? t().empresas.limites.quitando
+                        : t().empresas.limites.quitar
+                    }}
+                  </button>
+                }
+              </div>
+
+              <p class="text-xs text-texto-apagado">{{ t().empresas.limites.ayudaValor }}</p>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <!--
+      El pie SOLO cierra, y no lleva acción principal: cada cupo se guarda en su propia fila,
+      así que un «Guardar» aquí abajo tendría que elegir cuál de los cuatro, o mandar los
+      cuatro y pisar los que nadie tocó.
+
+      Va aunque no haya nada que enviar: el hueco `[pie]` del panel es un contenedor con
+      `border-t`, así que dejarlo vacío pinta un filete suelto al fondo. Y además todos los
+      paneles de la aplicación tienen su botón de cerrar ahí.
+    -->
+    <div pie class="flex px-4 py-3 sm:justify-end sm:px-5">
+      <button
+        type="button"
+        (click)="cerrarLimites()"
+        class="w-full rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento sm:w-auto"
+      >
+        {{ t().empresas.cerrar }}
+      </button>
+    </div>
+  </app-panel-lateral>
+}

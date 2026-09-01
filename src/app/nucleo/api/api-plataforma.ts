@@ -9,6 +9,7 @@ import type {
   AltaDePlan,
   EmpresaAprovisionada,
   IdentidadPlataforma,
+  LimiteDeEmpresa,
   ResultadoReenvio,
   ResumenEmpresa,
   ResumenModulo,
@@ -218,5 +219,43 @@ export class ApiPlataforma {
     return this.http
       .post<ResultadoReenvio>(`${this.base}/empresas/${encodeURIComponent(slug)}/invitacion`, null)
       .pipe(tap(() => this.recargarEmpresas()));
+  }
+
+  /**
+   * Los cupos de UNA empresa.
+   *
+   * NO es un `httpResource` compartido como las empresas o los planes, y es deliberado:
+   * esos son listas globales que dos pantallas leen a la vez, y esto depende del slug que
+   * se esté mirando. Un recurso por slug tendría que invalidarse al cambiar de empresa, y
+   * lo lee una sola hoja que se abre y se cierra.
+   *
+   * Los tres devuelven la LISTA COMPLETA ya actualizada —también el PUT y el DELETE—, así
+   * que la hoja se repinta de la respuesta y no puede quedarse enseñando el estado
+   * anterior.
+   */
+  limitesDe(slug: string) {
+    return this.http.get<readonly LimiteDeEmpresa[]>(
+      `${this.base}/empresas/${encodeURIComponent(slug)}/limites`,
+    );
+  }
+
+  /** `SIN_LIMITE` (-1) o un entero mayor o igual a cero. El 0 es válido: no puede crear ninguno. */
+  fijarLimite(slug: string, clave: string, valor: number) {
+    return this.http.put<readonly LimiteDeEmpresa[]>(
+      `${this.base}/empresas/${encodeURIComponent(slug)}/limites/${encodeURIComponent(clave)}`,
+      { valor },
+    );
+  }
+
+  /**
+   * Quita la excepción y devuelve el cupo al valor por defecto del catálogo.
+   *
+   * No es lo mismo que fijarlo en el valor por defecto: sin fila, el día que cambie el
+   * catálogo esta empresa lo sigue; con fila, se queda anclada al número viejo.
+   */
+  quitarLimite(slug: string, clave: string) {
+    return this.http.delete<readonly LimiteDeEmpresa[]>(
+      `${this.base}/empresas/${encodeURIComponent(slug)}/limites/${encodeURIComponent(clave)}`,
+    );
   }
 }

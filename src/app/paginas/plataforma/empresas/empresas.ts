@@ -9,14 +9,16 @@ import {
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Barra } from '../../../disposicion/barra';
-import { Hoja } from '../../../disposicion/hoja';
+import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
 import { t } from '../../../nucleo/i18n/i18n';
 import { configuracion } from '../../../nucleo/ambiente/configuracion';
 import {
   EstadoAprovisionamiento,
   EstadoTenant,
+  SIN_LIMITE,
   type EmpresaAprovisionada,
+  type LimiteDeEmpresa,
   type ResumenEmpresa,
   type ResultadoReenvio,
 } from '../../../nucleo/api/contratos-plataforma';
@@ -40,7 +42,7 @@ const PATRON_SLUG = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 
 @Component({
   selector: 'app-empresas',
-  imports: [EmpresasEsqueleto, ErrorCampo, Hoja, ReactiveFormsModule],
+  imports: [EmpresasEsqueleto, ErrorCampo, PanelLateral, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './empresas.html',
 })
@@ -108,10 +110,11 @@ export class Empresas {
   protected readonly reenvio = signal<ResultadoReenvio | null>(null);
 
   /**
-   * Si la hoja del alta esta abierta. El `<dialog>`, el gesto y los anclajes los maneja
-   * `app-hoja`; aqui solo se dice cuando se ve. Mismo trato que en la pantalla de planes.
+   * Si el panel del alta esta abierto. El `<dialog>`, el velo y el cierre los maneja
+   * `app-panel-lateral`; aqui solo se dice cuando se ve. Mismo trato que en la pantalla de
+   * planes.
    */
-  protected readonly hojaAbierta = signal(false);
+  protected readonly panelAbierto = signal(false);
 
   /**
    * El error de lo que la persona acaba de disparar en esta pantalla —el alta o un reenvio—.
@@ -146,29 +149,29 @@ export class Empresas {
   });
 
   constructor() {
-    // El alta ya NO vive en la pantalla: vive en la hoja inferior, asi que la barra por
+    // El alta ya NO vive en la pantalla: vive en el panel lateral, asi que la barra por
     // fin tiene accion principal. Antes no la tenia porque un boton amarillo que apuntara
-    // al formulario de mas abajo no llevaba a ninguna parte; ahora abre la hoja, igual que
+    // al formulario de mas abajo no llevaba a ninguna parte; ahora abre el panel, igual que
     // en planes. Es `alPulsar` y no `ruta`, asi que el armazon pinta un `<button>`: anunciar
-    // «enlace» para algo que abre una hoja en la misma pantalla le miente a un lector.
+    // «enlace» para algo que abre un panel en la misma pantalla le miente a un lector.
     effect(() =>
       this.barra.configurar({
         titulo: t().empresas.titulo,
         contexto: t().panel.contexto(this.empresas().length),
-        accion: { etiqueta: t().empresas.crear, alPulsar: () => this.abrirHoja() },
+        accion: { etiqueta: t().empresas.crear, alPulsar: () => this.abrirPanel() },
       }),
     );
   }
 
-  protected abrirHoja(): void {
-    // El aviso del intento anterior no se arrastra a la hoja nueva: quien la abre otra vez
+  protected abrirPanel(): void {
+    // El aviso del intento anterior no se arrastra al panel nuevo: quien lo abre otra vez
     // no esta mirando el fallo de hace un rato.
     this.errorAlta.set(null);
-    this.hojaAbierta.set(true);
+    this.panelAbierto.set(true);
   }
 
-  protected cerrarHoja(): void {
-    this.hojaAbierta.set(false);
+  protected cerrarPanel(): void {
+    this.panelAbierto.set(false);
   }
 
   /**
@@ -221,6 +224,170 @@ export class Empresas {
         this.reenviandoSlug.set(null);
       },
     });
+  }
+
+  // ------------------------------------------------------------------ límites --
+  //
+  // Los cupos de una empresa, en su propio panel. Se abren desde la fila porque es lo que
+  // se está mirando: un cupo es de UNA empresa, así que una pantalla suelta obligaría a
+  // volver a elegirla.
+
+  /** El slug cuyo panel de límites está abierto, o `null`. Hace de «abierto» y de «cuál». */
+  protected readonly limitesSlug = signal<string | null>(null);
+
+  protected readonly limites = signal<readonly LimiteDeEmpresa[]>([]);
+
+  protected readonly limitesCargando = signal(false);
+
+  /**
+   * La clave del cupo que tiene una petición en vuelo.
+   *
+   * Por clave y no un booleano global, por lo mismo que `reenviandoSlug`: con el booleano,
+   * guardar un cupo deshabilitaba los botones de los cuatro.
+   */
+  protected readonly limiteEnVuelo = signal<string | null>(null);
+
+  protected readonly errorLimites = signal<string | null>(null);
+
+  /**
+   * Lo que hay escrito en cada fila, por clave.
+   *
+   * Se guarda el TEXTO y no el número: un `<input type="number">` vacío da `null`, y
+   * distinguir «lo borré para escribir otro» de «vale cero» necesita el texto tal cual.
+   * Es la trampa 3 de `AGENTS.md`, vista desde el otro lado.
+   */
+  protected readonly borrador = signal<Record<string, { texto: string; sinLimite: boolean }>>({});
+
+  protected abrirLimites(slug: string): void {
+    this.limitesSlug.set(slug);
+    this.limites.set([]);
+    this.borrador.set({});
+    this.errorLimites.set(null);
+    this.limitesCargando.set(true);
+
+    this.api.limitesDe(slug).subscribe({
+      next: (lista) => this.recibirLimites(lista),
+      error: (e: unknown) => {
+        this.errorLimites.set(mensajeDeError(e));
+        this.limitesCargando.set(false);
+      },
+    });
+  }
+
+  protected cerrarLimites(): void {
+    this.limitesSlug.set(null);
+  }
+
+  /** El valor efectivo, ya legible: «sin límite» no es un número que se pueda enseñar. */
+  protected valorMostrado(l: LimiteDeEmpresa): string {
+    return l.valor === SIN_LIMITE ? t().empresas.limites.sinLimite : `${l.valor} ${l.unidad}`;
+  }
+
+  /** Lo que aplicaría si se quitara la excepción. Solo hace falta cuando la hay. */
+  protected defectoMostrado(l: LimiteDeEmpresa): string {
+    return l.valorDefecto === SIN_LIMITE
+      ? t().empresas.limites.sinLimite
+      : `${l.valorDefecto} ${l.unidad}`;
+  }
+
+  protected filaDe(clave: string): { texto: string; sinLimite: boolean } {
+    return this.borrador()[clave] ?? { texto: '', sinLimite: false };
+  }
+
+  protected escribirValor(clave: string, texto: string): void {
+    this.borrador.update((b) => ({ ...b, [clave]: { ...this.filaDe(clave), texto } }));
+  }
+
+  protected alternarSinLimite(clave: string, sinLimite: boolean): void {
+    this.borrador.update((b) => ({ ...b, [clave]: { ...this.filaDe(clave), sinLimite } }));
+  }
+
+  /**
+   * El valor que se mandaría, o `null` si lo escrito no sirve.
+   *
+   * `Number.isInteger` y no `parseInt`: `parseInt('3 equipos')` devuelve 3 y guardaría un
+   * cupo que nadie escribió.
+   */
+  private valorAMandar(clave: string): number | null {
+    const fila = this.filaDe(clave);
+
+    if (fila.sinLimite) {
+      return SIN_LIMITE;
+    }
+
+    const n = Number(fila.texto);
+
+    return fila.texto.trim() !== '' && Number.isInteger(n) && n >= 0 ? n : null;
+  }
+
+  /** Deshabilita el botón mientras lo escrito no sea válido o no haya cambiado nada. */
+  protected puedeGuardar(l: LimiteDeEmpresa): boolean {
+    const valor = this.valorAMandar(l.clave);
+
+    return valor !== null && !(valor === l.valor && l.esExcepcion) && !this.limiteEnVuelo();
+  }
+
+  protected guardarLimite(l: LimiteDeEmpresa): void {
+    const valor = this.valorAMandar(l.clave);
+    const slug = this.limitesSlug();
+
+    if (valor === null || slug === null) {
+      return;
+    }
+
+    this.limiteEnVuelo.set(l.clave);
+    this.errorLimites.set(null);
+
+    this.api.fijarLimite(slug, l.clave, valor).subscribe({
+      next: (lista) => this.recibirLimites(lista),
+      error: (e: unknown) => {
+        this.errorLimites.set(mensajeDeError(e));
+        this.limiteEnVuelo.set(null);
+      },
+    });
+  }
+
+  protected quitarLimite(l: LimiteDeEmpresa): void {
+    const slug = this.limitesSlug();
+
+    if (slug === null) {
+      return;
+    }
+
+    this.limiteEnVuelo.set(l.clave);
+    this.errorLimites.set(null);
+
+    this.api.quitarLimite(slug, l.clave).subscribe({
+      next: (lista) => this.recibirLimites(lista),
+      error: (e: unknown) => {
+        this.errorLimites.set(mensajeDeError(e));
+        this.limiteEnVuelo.set(null);
+      },
+    });
+  }
+
+  /**
+   * Los tres endpoints devuelven la lista completa, así que se repinta de la respuesta y
+   * el borrador se resiembra con lo que quedó guardado.
+   *
+   * Resembrar y no conservar lo tecleado: si el servidor normalizó algo, lo que se ve
+   * tiene que ser lo que hay en la base, no lo que se escribió.
+   */
+  private recibirLimites(lista: readonly LimiteDeEmpresa[]): void {
+    this.limites.set(lista);
+    this.borrador.set(
+      Object.fromEntries(
+        lista.map((l) => [
+          l.clave,
+          {
+            texto: l.valor === SIN_LIMITE ? '' : String(l.valor),
+            sinLimite: l.valor === SIN_LIMITE,
+          },
+        ]),
+      ),
+    );
+    this.limitesCargando.set(false);
+    this.limiteEnVuelo.set(null);
   }
 
   protected enProceso(e: ResumenEmpresa): boolean {
@@ -338,11 +505,11 @@ export class Empresas {
           this.formulario.reset();
           this.enviando.set(false);
 
-          // Se cierra al terminar, y la confirmacion queda en la PANTALLA y no en la hoja:
+          // Se cierra al terminar, y la confirmacion queda en la PANTALLA y no en el panel:
           // lleva la liga de invitacion, que es justo lo que hay que poder copiar y leer con
-          // calma. Dejarla dentro de una hoja que se descarta con un gesto la haria
+          // calma. Dejarla dentro de un panel que se cierra al terminar la haria
           // desaparecer con el mismo movimiento que la abrio.
-          this.cerrarHoja();
+          this.cerrarPanel();
         },
         error: (e: unknown) => {
           this.errorAlta.set(mensajeDeError(e));

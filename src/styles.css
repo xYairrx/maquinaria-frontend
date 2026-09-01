@@ -664,99 +664,19 @@ input:-webkit-autofill:focus {
 }
 
 /*
- * HOJA INFERIOR, al estilo de las de movil: sube desde abajo, ocupa el ancho y deja ver el
- * fondo detras.
+ * PANEL LATERAL DERECHO — el formulario de alta y edicion de TODA la aplicacion: las
+ * pantallas de empresa y, desde el 2026-09-01, tambien las de plataforma.
  *
- * Va sobre un `<dialog>` NATIVO, y eso es lo que la hace corta. `showModal()` regala el
- * atrapado de foco, el cierre con Escape, el `aria-modal`, el inerte del resto de la pagina
- * y la capa superior — cuatro cosas que a mano son mucho codigo y se hacen mal. Lo unico
- * que aporta este CSS es la posicion y la forma.
+ * Convivio con una hoja inferior arrastrable, que se quedaba con plataforma porque ahi los
+ * formularios eran cortos y no habia una tabla debajo compitiendo por la atencion. Las dos
+ * mitades resultaron falsas —el alta de una empresa tiene siete campos, y la lista de
+ * empresas es justo lo que la hoja tapaba al subir—, asi que la hoja se borro y quedo un
+ * solo patron.
  *
- * `margin: auto auto 0` es lo que la pega abajo: un `<dialog>` viene centrado por defecto y
- * el margen automatico solo arriba lo empuja al fondo.
- */
-@utility hoja-inferior {
-  /*
-   * PEGADA AL FONDO Y A LO ANCHO, sin huecos, con solo las esquinas de arriba redondeadas.
-   * Y no se centra nunca: una hoja centrada es un modal.
-   *
-   * `inset: auto 0 0` y no `margin: auto auto 0`: un `<dialog>` modal llega con `inset: 0`
-   * del navegador, y con las cuatro anclas puestas el margen automatico reparte el hueco en
-   * vez de pegar la caja abajo.
-   */
-  position: fixed;
-  inset: auto 0 0;
-  margin: 0;
-  width: 100%;
-
-  /*
-   * Anular el `max-width` del NAVEGADOR, no un capricho: a un `<dialog>` modal le pone
-   * `calc(100% - 6px - 2em)` —el borde y el relleno que tambien le da por defecto— y eso
-   * dejaba la hoja 38 px mas estrecha que la pantalla, con un hueco a la derecha. Es el mismo
-   * origen que el `max-height` que capaba el anclaje.
-   */
-  max-width: 100%;
-
-  /*
-   * ESTO NO ES OPCIONAL, y su ausencia fue un fallo real: un `<dialog>` cerrado se oculta con
-   * el `display: none` que le pone el NAVEGADOR, y el `display: flex` de aqui abajo lo pisa
-   * —misma especificidad, gana el nuestro por orden—. Sin esta regla la hoja se ve en la
-   * pagina estando cerrada, con su formulario y todo.
-   */
-  &:not([open]) {
-    display: none;
-  }
-
-  /*
-   * Columna, y el tope de alto lo manda el anclaje desde el componente. Es lo que permite que
-   * la cabecera y el pie se queden fijos mientras el cuerpo se desplaza: sin `flex` aqui, el
-   * `flex-1` del cuerpo no tiene contra que crecer.
-   *
-   * El tope va EN LINEA y no aqui: el navegador le pone su propio `max-height` a un `<dialog>`
-   * modal —`calc(100% - 38px)`— y una regla de hoja de estilos no siempre le gana. El sintoma
-   * era una hoja de alto constante que ignoraba el anclaje, sin ningun error de por medio.
-   */
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-
-  border: none;
-  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-  background-color: var(--color-superficie);
-  padding: 0;
-
-  /* Hacia arriba, que es por donde se separa del contenido. */
-  box-shadow: 0 -8px 30px -8px rgb(0 0 0 / 0.25);
-
-  /*
-   * La transicion hace que soltar el asa se sienta como un muelle en lugar de como un salto.
-   * La curva es la de iOS: frena al final.
-   *
-   * MIENTRAS SE ARRASTRA hay que apagarla —de eso se encarga `hoja-en-gesto`— o la hoja
-   * persigue al dedo con retraso en vez de ir pegada a el.
-   */
-  transition:
-    translate 260ms cubic-bezier(0.32, 0.72, 0, 1),
-    max-height 260ms cubic-bezier(0.32, 0.72, 0, 1);
-
-  /* Solo entrada: la salida necesita `allow-discrete`, que aun no esta en todos los motores. */
-  animation: hoja-sube 300ms cubic-bezier(0.32, 0.72, 0, 1);
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    animation: none;
-  }
-}
-
-/*
- * PANEL LATERAL DERECHO — el formulario de alta y edicion de las pantallas de EMPRESA.
+ * ES RESPONSIVO AQUI Y NO EN CADA PANTALLA: todo el ancho en telefono, 32rem desde `sm`.
+ * Una pantalla que quiera otro ancho esta pidiendo otro componente.
  *
- * Por que aqui y no la hoja inferior: la hoja nacio para el panel de superadministracion, con
- * formularios cortos y en pantallas donde el gesto de arrastre tiene sentido. En las pantallas
- * de empresa el formulario convive con una tabla ancha, y un panel que entra desde la derecha
- * deja la tabla a la vista mientras se captura. La hoja sigue viva en `plataforma/`.
- *
- * Hereda las tres correcciones que la hoja ya pago contra los valores por defecto del
+ * Hereda las tres correcciones que la hoja pago contra los valores por defecto del
  * navegador. No son cosmetica: cada una fue un sintoma real.
  */
 @utility panel-lateral {
@@ -828,43 +748,17 @@ input:-webkit-autofill:focus {
   }
 }
 
-/*
- * Mientras el dedo esta encima, la hoja va PEGADA a el: cero transicion. Con la transicion
- * puesta el arrastre se siente elastico y perezoso, que es el sintoma clasico de una hoja
- * que no se programo con el gesto en mente.
- */
-@utility hoja-en-gesto {
-  transition: none;
-}
-
-@keyframes hoja-sube {
+@keyframes capa-sube {
   from {
     /*
-     * `100%` de su propia altura: la hoja entra desde FUERA de la pantalla, que es lo que la
-     * hace leerse como una hoja que sube y no como un cuadro que aparece. La curva de
+     * `100%` de su propia altura: la capa entra desde FUERA de su sitio, que es lo que la
+     * hace leerse como algo que sube y no como un cuadro que aparece. La curva de
      * `animation` es la de iOS, que frena al final en lugar de llegar de golpe.
+     *
+     * Se llamaba `hoja-sube` y la compartia con la hoja inferior; al borrarse esa, el
+     * unico usuario que queda es el globo de ayuda.
      */
     transform: translateY(100%);
-  }
-}
-
-/*
- * El velo del `<dialog>`. Va como regla suelta y no como utilidad porque `::backdrop` es un
- * pseudoelemento y no se puede alcanzar con una clase.
- */
-dialog.hoja-inferior::backdrop {
-  /*
-   * Negro puro y no el negro de la marca: el velo no es parte de la paleta, es ausencia de
-   * pantalla. Al 55 % se percibe con claridad que hay una capa encima sin llegar a tapar el
-   * contexto de detras, que es justo lo que una hoja quiere conservar.
-   */
-  background-color: rgb(0 0 0 / 0.55);
-
-  /* Entra a la vez que la hoja, o el velo aparece de golpe y la hoja llega despues. */
-  animation: velo-aparece 300ms ease-out;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
   }
 }
 
@@ -901,7 +795,7 @@ dialog.hoja-inferior::backdrop {
   box-shadow: 0 10px 30px -10px rgb(0 0 0 / 0.25);
 
   &:popover-open {
-    animation: hoja-sube 160ms ease-out;
+    animation: capa-sube 160ms ease-out;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -943,7 +837,7 @@ dialog.hoja-inferior::backdrop {
    * ESTO NO ES OPCIONAL: un `<dialog>` cerrado se oculta con el `display: none` que le pone
    * el NAVEGADOR, y cualquier `display` propio lo pisa por orden a igual especificidad.
    * Sin esta regla el dialogo se ve en la pagina estando cerrado. Es el mismo fallo que ya
-   * se pago una vez en `hoja-inferior`.
+   * se pago una vez en la hoja inferior, que ya no existe.
    */
   &:not([open]) {
     display: none;
