@@ -21,6 +21,7 @@ const URL = 'http://localhost:5123/api/plataforma/empresas';
 const URL_PLANES = 'http://localhost:5123/api/plataforma/planes';
 const URL_MODULOS = 'http://localhost:5123/api/plataforma/modulos';
 const URL_SALUD = 'http://localhost:5123/api/plataforma/salud/esquemas';
+const URL_LIMITES = 'http://localhost:5123/api/plataforma/limites';
 
 /** Un reporte de salud vacio, para los casos que no van de esquemas. */
 const SALUD_VACIA = {
@@ -31,11 +32,12 @@ const SALUD_VACIA = {
 };
 
 /**
- * Con sesion, el servicio dispara CUATRO recursos a la vez: empresas, planes, modulos y la
- * salud de esquemas. Los tres ultimos se despachan aqui para que `verify()` siga
- * significando «no quedo nada inesperado» en lugar de «no quedo nada».
+ * Con sesion, el servicio dispara CINCO recursos a la vez: empresas, planes, modulos, la
+ * salud de esquemas y el catalogo de tipos de limite. Los cuatro ultimos se despachan aqui
+ * para que `verify()` siga significando «no quedo nada inesperado» en lugar de «no quedo
+ * nada».
  *
- * Que sean cuatro peticiones al abrir el panel es deliberado: las cuatro se comparten entre
+ * Que sean cinco peticiones al abrir el panel es deliberado: las cinco se comparten entre
  * pantallas y se cachean para el resto de la sesion, asi que el coste es una vez. La de
  * salud la leen el dashboard y la pantalla de esquemas.
  */
@@ -43,6 +45,7 @@ function despacharCatalogo(http: HttpTestingController) {
   http.expectOne(URL_PLANES).flush([]);
   http.expectOne(URL_MODULOS).flush([]);
   http.expectOne(URL_SALUD).flush(SALUD_VACIA);
+  http.expectOne(URL_LIMITES).flush([]);
 }
 
 /**
@@ -187,6 +190,7 @@ describe('ApiPlataforma: el catalogo de planes', () => {
     http.expectOne(URL_PLANES).flush(planes);
     http.expectOne(URL_MODULOS).flush([{ clave: 'equipos', numero: 2, orden: 1 }]);
     http.expectOne(URL_SALUD).flush(SALUD_VACIA);
+    http.expectOne(URL_LIMITES).flush([]);
     await asentar();
   }
 
@@ -301,6 +305,7 @@ describe('ApiPlataforma: el reporte de salud de esquemas', () => {
       desfasadas: 2,
       empresas: [{ slug: 'bajio', desfasada: true, versionReconocida: true }],
     });
+    http.expectOne(URL_LIMITES).flush([]);
     await asentar();
 
     expect(api.saludEsquemas()?.desfasadas).toBe(2);

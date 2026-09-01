@@ -39,6 +39,13 @@ export const rutasPlataforma: Routes = [
         title: () => t().titulos.planes,
         loadComponent: () => import('./paginas/plataforma/planes/planes').then((m) => m.Planes),
       },
+      // El catalogo de TIPOS de limite. Su entrada de menu va en `menuPlataforma()`, y las
+      // dos se agregan JUNTAS: una opcion sin ruta cae en `path: '**'` y rebota.
+      {
+        path: 'limites',
+        title: () => t().titulos.limites,
+        loadComponent: () => import('./paginas/plataforma/limites/limites').then((m) => m.Limites),
+      },
       {
         path: 'empresas',
         title: () => t().titulos.empresas,

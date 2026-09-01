@@ -1,0 +1,42 @@
+<!--
+  Silueta de la tabla de `limites.html`: cinco columnas, cuatro filas.
+
+  El bloque es `h-4` y no `h-3` porque un texto de 12 px ocupa 16 de caja de línea. Los
+  bloques van `aria-hidden` —son decoración— y el anuncio vive en el `role="status"`.
+-->
+<section class="rounded-xl border border-borde bg-superficie" aria-busy="true">
+  <p role="status" class="sr-only">{{ t().limites.cargando }}</p>
+
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-160 text-left text-sm" aria-hidden="true">
+      <thead class="border-b border-borde">
+        <tr>
+          <th class="border-r border-borde px-4 py-2.5 md:px-5">
+            <span class="esqueleto block h-3 w-24"></span>
+          </th>
+          <th class="px-4 py-2.5"><span class="esqueleto ml-auto block h-3 w-20"></span></th>
+          <th class="px-4 py-2.5"><span class="esqueleto block h-3 w-16"></span></th>
+          <th class="px-4 py-2.5"><span class="esqueleto ml-auto block h-3 w-20"></span></th>
+          <th class="px-4 py-2.5 md:px-5"></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @for (fila of filas; track fila) {
+          <tr class="border-b border-borde-fila align-top last:border-0">
+            <td class="border-r border-borde px-4 py-3 md:px-5">
+              <span class="esqueleto block h-4 w-40"></span>
+              <span class="esqueleto mt-1.5 block h-3 w-28"></span>
+            </td>
+            <td class="px-4 py-3"><span class="esqueleto ml-auto block h-4 w-16"></span></td>
+            <td class="px-4 py-3"><span class="esqueleto block h-4 w-20"></span></td>
+            <td class="px-4 py-3"><span class="esqueleto ml-auto block h-4 w-8"></span></td>
+            <td class="px-4 py-3 md:px-5">
+              <span class="esqueleto ml-auto block h-8 w-20"></span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

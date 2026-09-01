@@ -1,0 +1,337 @@
+<!--
+  Sin <header> ni <main> propios: los aporta DisposicionPlataforma. El <h1> lo pinta la barra
+  del armazón, y el botón de «Nuevo límite» también: la pantalla solo declara la acción.
+
+  Responsivo desde el primer commit. Ver `docs/convenciones.md#responsivo`.
+-->
+<div class="mx-auto flex flex-col gap-5">
+  <p class="max-w-3xl text-[13px] leading-relaxed text-texto-apagado">
+    {{ t().limites.queEsUnLimite }}
+  </p>
+
+  <!--
+    EL AVISO MÁS IMPORTANTE DE LA PANTALLA, y va arriba y siempre, no escondido en un globo:
+    crear un tipo no crea un límite. Sin esto, alguien crea «max_obras», le fija 50 a un
+    cliente y da por hecho que el sistema lo va a respetar.
+  -->
+  <p class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto">
+    {{ t().limites.crearNoEsAplicar }}
+  </p>
+
+  @if (cargando()) {
+    <app-limites-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie">
+      @if (tipos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ t().limites.ninguno }}</p>
+      } @else {
+        <!--
+          `overflow-x-auto` en la tabla y no en la página: el documento nunca se desplaza en
+          horizontal. La primera columna se FIJA, con fondo propio y filete, o al desplazar
+          de lado se pierde de vista qué límite se está leyendo.
+        -->
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="w-full min-w-160 text-left text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().limites.colLimite }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                  {{ t().limites.colDefecto }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().limites.colUnidad }}</th>
+                <th scope="col" class="px-4 py-2.5 text-right font-medium">
+                  {{ t().limites.colExcepciones }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 md:px-5">
+                  <span class="sr-only">{{ t().limites.colAcciones }}</span>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (tipo of tipos(); track tipo.id) {
+                <tr class="border-b border-borde-fila align-top last:border-0">
+                  <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p class="font-medium text-texto">{{ tipo.nombre }}</p>
+
+                      <span
+                        class="inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium"
+                        [class]="
+                          tipo.activo
+                            ? 'bg-negro-tarjeta text-texto-inverso'
+                            : 'bg-estado-neutro-fondo text-estado-neutro-texto'
+                        "
+                      >
+                        {{ tipo.activo ? t().limites.activo : t().limites.retirado }}
+                      </span>
+                    </div>
+
+                    <p class="text-xs text-texto-apagado">{{ tipo.clave }}</p>
+
+                    <!--
+                      SIN CÓDIGO DETRÁS. Va pegado a la clave porque es de la clave de quien
+                      depende, y no lleva color propio: la fila entera no es un error, solo
+                      hay que saber qué se puede esperar de ella.
+                    -->
+                    @if (!tipo.reconocida) {
+                      <p class="mt-1 max-w-80 text-xs leading-relaxed text-alerta-texto">
+                        {{ t().limites.sinCodigoDetras }}
+                      </p>
+                    }
+
+                    @if (tipo.descripcion) {
+                      <p class="mt-1 max-w-80 text-xs leading-relaxed text-texto-apagado">
+                        {{ tipo.descripcion }}
+                      </p>
+                    }
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 text-right font-medium text-texto">
+                    {{ defectoMostrado(tipo) }}
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">{{ tipo.unidad }}</td>
+
+                  <!--
+                    Cuántas empresas tienen cupo propio. Es lo que dice si mover el valor por
+                    defecto va a notarse mucho o poco, y si retirar el tipo deja a alguien
+                    colgado.
+                  -->
+                  <td class="px-4 py-3 text-right text-texto-secundario">
+                    {{ tipo.excepciones }}
+                  </td>
+
+                  <td class="px-4 py-3 text-right md:px-5">
+                    <button
+                      type="button"
+                      (click)="abrirEdicion(tipo)"
+                      class="whitespace-nowrap rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                    >
+                      {{ t().limites.editar }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</div>
+
+<!--
+  UN SOLO PANEL para el alta y la edición: los campos son los mismos menos uno, la clave, que
+  al editar se enseña deshabilitada en lugar de esconderse — es el dato que identifica lo que
+  se está tocando.
+-->
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="editando() ? t().limites.editarTitulo : t().limites.crear"
+  [apoyo]="editando() ? t().limites.editarApoyo : t().limites.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-limite">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="clave" class="text-sm font-medium text-texto-secundario">
+          {{ t().limites.clave }}
+        </label>
+        <input
+          id="clave"
+          formControlName="clave"
+          autocapitalize="off"
+          spellcheck="false"
+          [attr.aria-invalid]="mal(formulario.controls.clave) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.clave) ? 'ayuda-clave error-clave' : 'ayuda-clave'
+          "
+          class="campo-formulario"
+        />
+        <p id="ayuda-clave" class="break-words text-xs text-texto-apagado">
+          {{ editando() ? t().limites.claveNoSeEdita : t().limites.ayudaClave }}
+        </p>
+        <app-error-campo
+          id="error-clave"
+          [visible]="mal(formulario.controls.clave)"
+          [mensaje]="t().limites.errorClave"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="nombre" class="text-sm font-medium text-texto-secundario">
+            {{ t().limites.nombre }}
+          </label>
+          <input
+            id="nombre"
+            formControlName="nombre"
+            [attr.aria-invalid]="mal(formulario.controls.nombre) ? 'true' : null"
+            [attr.aria-describedby]="mal(formulario.controls.nombre) ? 'error-nombre' : null"
+            class="campo-formulario"
+          />
+          <app-error-campo
+            id="error-nombre"
+            [visible]="mal(formulario.controls.nombre)"
+            [mensaje]="t().limites.errorNombre"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="unidad" class="text-sm font-medium text-texto-secundario">
+            {{ t().limites.unidad }}
+          </label>
+          <input
+            id="unidad"
+            formControlName="unidad"
+            [attr.aria-invalid]="mal(formulario.controls.unidad) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.unidad) ? 'ayuda-unidad error-unidad' : 'ayuda-unidad'
+            "
+            class="campo-formulario"
+          />
+          <p id="ayuda-unidad" class="text-xs text-texto-apagado">
+            {{ t().limites.ayudaUnidad }}
+          </p>
+          <app-error-campo
+            id="error-unidad"
+            [visible]="mal(formulario.controls.unidad)"
+            [mensaje]="t().limites.errorUnidad"
+          />
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+          {{ t().limites.descripcion }}
+        </label>
+        <textarea
+          id="descripcion"
+          formControlName="descripcion"
+          rows="2"
+          class="campo-formulario"
+        ></textarea>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="valorDefecto" class="text-sm font-medium text-texto-secundario">
+            {{ t().limites.valorDefecto }}
+          </label>
+          <input
+            id="valorDefecto"
+            type="number"
+            [min]="sinLimite"
+            step="1"
+            inputmode="numeric"
+            formControlName="valorDefecto"
+            [attr.aria-invalid]="mal(formulario.controls.valorDefecto) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.valorDefecto)
+                ? 'ayuda-defecto error-defecto'
+                : 'ayuda-defecto'
+            "
+            class="campo-formulario"
+          />
+          <p id="ayuda-defecto" class="text-xs text-texto-apagado">
+            {{ t().limites.ayudaValorDefecto }}
+          </p>
+          <app-error-campo
+            id="error-defecto"
+            [visible]="mal(formulario.controls.valorDefecto)"
+            [mensaje]="t().limites.errorValorDefecto"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="orden" class="text-sm font-medium text-texto-secundario">
+            {{ t().limites.orden }}
+          </label>
+          <input
+            id="orden"
+            type="number"
+            step="1"
+            inputmode="numeric"
+            formControlName="orden"
+            class="campo-formulario"
+          />
+          <p class="text-xs text-texto-apagado">{{ t().limites.ayudaOrden }}</p>
+        </div>
+      </div>
+
+      <!--
+        Retirar solo al EDITAR: un tipo no nace retirado. Y no hay borrar en ninguna parte —
+        la FK de los cupos es RESTRICT justamente para impedir que se borre un tipo que
+        alguien tiene negociado.
+      -->
+      @if (editando(); as tipo) {
+        <div class="flex flex-col gap-2 rounded-lg border border-borde bg-superficie-sutil p-3">
+          <label class="flex items-center gap-2 text-sm text-texto-secundario">
+            <input
+              type="checkbox"
+              formControlName="activo"
+              class="size-4 rounded border-borde-campo"
+            />
+            {{ t().limites.activoCampo }}
+          </label>
+
+          <p class="text-xs text-texto-apagado">{{ t().limites.ayudaActivo }}</p>
+
+          <!--
+            Lo que cambiar el valor por defecto va a mover. Se dice al revés —«las que no
+            tengan cupo propio»— porque esta pantalla no pidió el total de empresas y no
+            puede afirmar sobre lo que no consultó.
+          -->
+          <p class="text-xs text-texto-apagado">
+            {{ t().limites.afectaA(tipo.excepciones) }}
+          </p>
+        </div>
+      }
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().limites.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-limite"
+      [disabled]="!puedeEnviar()"
+      class="whitespace-nowrap rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().limites.guardando : t().limites.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

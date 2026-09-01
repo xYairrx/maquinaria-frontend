@@ -215,3 +215,56 @@ export interface LimiteDeEmpresa {
   readonly esExcepcion: boolean;
   readonly orden: number;
 }
+
+/**
+ * Un tipo de límite del catálogo. `GET /api/plataforma/limites`.
+ *
+ * `reconocida` es el campo que importa: dice si hay CÓDIGO detrás de la clave. Un tipo cuya
+ * clave no está en las que el backend conoce se puede crear, editar y fijar por empresa —y
+ * no va a acotar nada nunca—. Viaja hasta aquí para que la pantalla lo diga, en lugar de que
+ * alguien lo descubra el día que el cupo no se respete.
+ *
+ * `excepciones` es cuántas empresas tienen un cupo propio de este tipo. Es lo que convierte
+ * la lista en algo con lo que se puede decidir: retirar un tipo que veinte empresas tienen
+ * negociado no es lo mismo que retirar uno que no usa nadie.
+ */
+export interface TipoLimite {
+  readonly id: string;
+  readonly clave: string;
+  readonly nombre: string;
+  readonly descripcion: string;
+  readonly unidad: string;
+  readonly valorDefecto: number;
+  readonly orden: number;
+  readonly activo: boolean;
+  readonly reconocida: boolean;
+  readonly excepciones: number;
+}
+
+/**
+ * `POST /api/plataforma/limites`.
+ *
+ * La clave NO se puede editar después, por lo mismo que el código de un plan: es lo que el
+ * código busca para aplicar el límite.
+ */
+export interface AltaTipoLimite {
+  readonly clave: string;
+  readonly nombre: string;
+  readonly descripcion: string | null;
+  readonly unidad: string;
+  readonly valorDefecto: number;
+  readonly orden: number;
+}
+
+/**
+ * `PATCH /api/plataforma/limites/{clave}`. Reemplaza los campos editables — la clave no es
+ * uno de ellos.
+ */
+export interface CambioTipoLimite {
+  readonly nombre: string;
+  readonly descripcion: string | null;
+  readonly unidad: string;
+  readonly valorDefecto: number;
+  readonly orden: number;
+  readonly activo: boolean;
+}

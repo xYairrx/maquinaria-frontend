@@ -314,6 +314,7 @@ export function menuPlataforma(): readonly GrupoMenu[] {
       opciones: [
         { titulo: t().menu.dashboard, ruta: '/dashboard', icono: ICONOS.tablero },
         { titulo: t().menu.planes, ruta: '/planes', icono: ICONOS.etiqueta },
+        { titulo: t().menu.limites, ruta: '/limites', icono: ICONOS.capas },
         { titulo: t().menu.empresas, ruta: '/empresas', icono: ICONOS.edificios },
         // La entrada y su ruta se agregan JUNTAS: `rutas-plataforma.ts` registra
         // `esquemas`. Ver el comentario de `menuEmpresa()`.

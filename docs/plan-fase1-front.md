@@ -1071,6 +1071,55 @@ El paquete inicial está **rozando el budget de aviso de 500 kB** —ya estaba e
 tocar nada—, así que casi cualquier pantalla nueva lo cruza. La sospecha es que `textos.ts`, con
 los dos idiomas, viaja en el arranque. El README dice 373.59 kB y está desactualizado en ~126 kB.
 
+#### Y la pantalla del CATÁLOGO de tipos — `/limites`
+
+Los cupos se ajustan sobre los tipos que existan, así que faltaba poder crear un tipo. Pantalla
+propia en el menú de plataforma, entre Planes y Empresas.
+
+Es una pantalla de catálogo del mismo molde que Planes: tabla con la primera columna fijada,
+esqueleto espejo, y un panel lateral que sirve de alta **y** de edición — los campos son los
+mismos menos uno, la clave, que al editar se enseña deshabilitada en lugar de esconderse
+porque es el dato que identifica lo que se está tocando.
+
+Las cuatro ediciones de una pantalla nueva, hechas: la ruta en `rutas-plataforma.ts`, la
+entrada en `menuPlataforma()`, y `titulos.limites` y `menu.limites` en los dos idiomas.
+
+**LO QUE ESTA PANTALLA TIENE QUE DECIR EN VOZ ALTA, y por eso `reconocida` viaja en el
+contrato: crear un tipo no crea un límite.** Un límite acota cuando hay código que lo lee y
+bloquea la operación, y ese código busca claves concretas. Si alguien crea `max_obras`, se
+guarda, se puede fijar por empresa y no va a impedir nada nunca.
+
+Se dice en dos sitios, y ninguno es un globo de ayuda que haya que ir a abrir:
+
+- **Arriba y siempre**, en el aviso amarillo: «crear un tipo no crea un límite: solo le pone
+  nombre».
+- **En la fila**, pegado a la clave, solo cuando `reconocida` es falso: «Sin código detrás: se
+  puede fijar por empresa y no va a acotar nada».
+
+Tres decisiones más, chicas:
+
+- **La columna «con cupo propio»** dice cuántas empresas tienen excepción de ese tipo. Es lo
+  que responde si mover el valor por defecto se va a notar mucho o poco, y si retirar el tipo
+  deja a alguien colgado.
+- **Un tipo nace en «sin límite», nunca en cero.** Uno que naciera en cero dejaría a todas las
+  empresas sin poder crear ninguno, de golpe y sin que nadie lo pidiera empresa por empresa.
+- **No hay borrar en ninguna parte**, ni en la pantalla ni en la API: la FK de los cupos es
+  `RESTRICT` justamente para impedir que se borre un tipo que alguien tiene negociado.
+
+El catálogo es el **quinto recurso compartido** de `ApiPlataforma`. Eso rompió cinco pruebas de
+`api-plataforma.spec.ts` —que verifican que no quede ninguna petición inesperada— y se
+arreglaron despachando `/limites` en el helper y en los dos casos que enumeran las hermanas a
+mano. Es exactamente lo que esa prueba existe para atrapar.
+
+**234 pruebas en 20 archivos, 0 fallos**, y `ng build` limpio.
+
+#### El paquete inicial cruzó el budget de aviso
+
+Está en **505.39 kB**, 5.39 por encima del aviso de 500 — antes de esta pantalla eran 0.22 por
+encima. Casi todo es el bloque de textos de la pantalla nueva, en los dos idiomas. Sigue siendo
+un aviso y no un fallo —eso es a 1 MB—, pero la deuda ya no es teórica: cada pantalla nueva
+suma en el arranque lo que debería ir en su chunk.
+
 ### Lo que sigue, en orden
 
 **El alcance de la Fase 1 tiene pantalla completa.** Los 136 endpoints tienen cliente y ninguna

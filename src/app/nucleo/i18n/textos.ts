@@ -81,6 +81,7 @@ const ES_MX = {
     inicio: 'Inicio',
     dashboard: 'Dashboard',
     planes: 'Planes',
+    limites: 'Límites',
     catalogos: 'Catálogos',
     organizacion: 'Organización',
     comercial: 'Comercial',
@@ -384,6 +385,59 @@ const ES_MX = {
       'Quitar un módulo se lo quita a todos sus suscriptores, retroactivamente. Para cambiar la composición se retira el plan y se crea su sucesor.',
   },
 
+  limites: {
+    titulo: 'Límites',
+    contexto: (n: number) => `${n} tipos`,
+    queEsUnLimite:
+      'Un límite dice CUÁNTO puede tener una empresa. Aquí se define qué límites existen y cuánto valen por omisión; el cupo de una empresa concreta se ajusta desde su fila en Empresas.',
+    // El aviso que evita que alguien confíe en un tope que no existe.
+    crearNoEsAplicar:
+      'Crear un tipo no crea un límite: solo le pone nombre. Un límite acota cuando hay código que lo lee y bloquea la operación, y hoy no lo hay para ninguno.',
+    ninguno: 'Todavía no hay ningún tipo de límite. El primero se crea con el botón de arriba.',
+    cargando: 'Cargando los tipos de límite…',
+    colLimite: 'Límite',
+    colDefecto: 'Por defecto',
+    colUnidad: 'Unidad',
+    colExcepciones: 'Con cupo propio',
+    colAcciones: 'Acciones',
+    activo: 'Activo',
+    retirado: 'Retirado',
+    sinLimite: 'Sin límite',
+    sinCodigoDetras: 'Sin código detrás: se puede fijar por empresa y no va a acotar nada.',
+    editar: 'Editar',
+    crear: 'Nuevo límite',
+    crearApoyo: 'Define un tipo de límite y lo que aplica a toda empresa que no negocie el suyo.',
+    editarTitulo: 'Editar el límite',
+    editarApoyo: 'La clave no se toca: es lo que el código busca para aplicarlo.',
+    cerrar: 'Cerrar',
+    clave: 'Clave',
+    ayudaClave: 'Minúsculas, dígitos y guiones bajos. Por ejemplo: max_equipos.',
+    claveNoSeEdita: 'No se puede cambiar: es lo que el código busca para aplicar el límite.',
+    nombre: 'Nombre',
+    unidad: 'Unidad',
+    ayudaUnidad: 'En qué se cuenta: equipos, usuarios, GB.',
+    descripcion: 'Descripción',
+    valorDefecto: 'Valor por defecto',
+    ayudaValorDefecto: '-1 es sin límite. Cero significa que no puede crear ninguno.',
+    orden: 'Orden',
+    ayudaOrden: 'Posición en la que se muestra al comparar planes.',
+    activoCampo: 'Activo',
+    ayudaActivo:
+      'Un tipo retirado no se borra nunca —las empresas que lo tengan negociado lo conservan—: deja de ofrecerse.',
+    afectaA: (n: number) =>
+      n === 0
+        ? 'Ninguna empresa tiene cupo propio de este tipo, así que el valor por defecto es el que aplica a todas.'
+        : `${n} ${n === 1 ? 'empresa tiene cupo propio' : 'empresas tienen cupo propio'}: a esas no les afecta cambiar el valor por defecto.`,
+    guardar: 'Guardar',
+    guardando: 'Guardando…',
+
+    errorClave:
+      'La clave va en minúsculas, dígitos y guiones bajos, no empieza ni acaba en guion bajo, y no pasa de 40 caracteres.',
+    errorNombre: 'Escribe el nombre que se lee al comparar planes.',
+    errorUnidad: 'Escribe en qué se cuenta: equipos, usuarios, GB.',
+    errorValorDefecto: 'Escribe -1 para sin límite, o un entero mayor o igual a cero.',
+  },
+
   empresas: {
     titulo: 'Empresas',
     aprovisionada: (slug: string) => `${slug} aprovisionada`,
@@ -520,6 +574,7 @@ const ES_MX = {
     invitacion: 'Define tu contraseña',
     panel: 'Resumen',
     planes: 'Planes',
+    limites: 'Límites',
     entrar: 'Entrar',
     recuperar: 'Recuperar tu contraseña',
     restablecer: 'Tu contraseña nueva',
@@ -2209,6 +2264,7 @@ const EN_US: Textos = {
     inicio: 'Home',
     dashboard: 'Dashboard',
     planes: 'Plans',
+    limites: 'Limits',
     catalogos: 'Catalogs',
     organizacion: 'Organization',
     comercial: 'Commercial',
@@ -2504,6 +2560,59 @@ const EN_US: Textos = {
       'Removing a module removes it from every subscriber, retroactively. To change the composition, retire the plan and create its successor.',
   },
 
+  limites: {
+    titulo: 'Limits',
+    contexto: (n: number) => `${n} types`,
+    queEsUnLimite:
+      'A limit says HOW MANY a company may have. Here you define which limits exist and what they are worth by default; the quota of a specific company is set from its row in Companies.',
+    crearNoEsAplicar:
+      'Creating a type does not create a limit: it only names it. A limit bites when there is code reading it and blocking the operation, and today there is none for any of them.',
+    ninguno: 'There are no limit types yet. Create the first one with the button above.',
+    cargando: 'Loading the limit types…',
+    colLimite: 'Limit',
+    colDefecto: 'Default',
+    colUnidad: 'Unit',
+    colExcepciones: 'With own quota',
+    colAcciones: 'Actions',
+    activo: 'Active',
+    retirado: 'Retired',
+    sinLimite: 'Unlimited',
+    sinCodigoDetras: 'No code behind it: it can be set per company and will not bite.',
+    editar: 'Edit',
+    crear: 'New limit',
+    crearApoyo:
+      'Define a limit type and what applies to every company that does not negotiate its own.',
+    editarTitulo: 'Edit the limit',
+    editarApoyo: 'The key stays put: it is what the code looks up to apply it.',
+    cerrar: 'Close',
+    clave: 'Key',
+    ayudaClave: 'Lowercase, digits and underscores. For example: max_equipos.',
+    claveNoSeEdita: 'It cannot be changed: it is what the code looks up to apply the limit.',
+    nombre: 'Name',
+    unidad: 'Unit',
+    ayudaUnidad: 'What it is counted in: machines, users, GB.',
+    descripcion: 'Description',
+    valorDefecto: 'Default value',
+    ayudaValorDefecto: '-1 is unlimited. Zero means they cannot create any.',
+    orden: 'Order',
+    ayudaOrden: 'Position it takes when comparing plans.',
+    activoCampo: 'Active',
+    ayudaActivo:
+      'A retired type is never deleted — companies that negotiated it keep it: it simply stops being offered.',
+    afectaA: (n: number) =>
+      n === 0
+        ? 'No company has its own quota of this type, so the default is what applies to all of them.'
+        : `${n} ${n === 1 ? 'company has its own quota' : 'companies have their own quota'}: changing the default does not affect those.`,
+    guardar: 'Save',
+    guardando: 'Saving…',
+
+    errorClave:
+      'The key takes lowercase letters, digits and underscores, does not start or end with an underscore, and is at most 40 characters.',
+    errorNombre: 'Write the name that is read when comparing plans.',
+    errorUnidad: 'Write what it is counted in: machines, users, GB.',
+    errorValorDefecto: 'Write -1 for unlimited, or an integer greater than or equal to zero.',
+  },
+
   empresas: {
     titulo: 'Companies',
     aprovisionada: (slug: string) => `${slug} provisioned`,
@@ -2612,6 +2721,7 @@ const EN_US: Textos = {
     invitacion: 'Set your password',
     panel: 'Overview',
     planes: 'Plans',
+    limites: 'Limits',
     entrar: 'Sign in',
     recuperar: 'Recover your password',
     restablecer: 'Your new password',

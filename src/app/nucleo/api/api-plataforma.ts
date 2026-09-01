@@ -7,6 +7,8 @@ import { SesionPlataformaStore } from '../sesion/sesion-plataforma';
 import type {
   AltaDeEmpresa,
   AltaDePlan,
+  AltaTipoLimite,
+  CambioTipoLimite,
   EmpresaAprovisionada,
   IdentidadPlataforma,
   LimiteDeEmpresa,
@@ -16,6 +18,7 @@ import type {
   ResumenPlan,
   SaludEsquemas,
   SesionPlataforma,
+  TipoLimite,
 } from './contratos-plataforma';
 import { mensajeDeErrorDeRecurso } from './mensaje-error';
 
@@ -121,6 +124,30 @@ export class ApiPlataforma {
   );
 
   readonly modulosCargando = this.recursoModulos.isLoading;
+
+  /**
+   * El catálogo de TIPOS de límite. Compartido como los demás: hoy lo lee una pantalla, y
+   * el día que el panel de cupos de una empresa quiera enseñar la descripción del catálogo
+   * ya está aquí, sin una segunda petición.
+   *
+   * Trae activos e inactivos: el panel es donde se administra el catálogo, y un tipo
+   * retirado hay que poder verlo para reactivarlo.
+   */
+  private readonly recursoTiposLimite = httpResource<readonly TipoLimite[]>(
+    () => (this.sesion.activa() ? `${this.base}/limites` : undefined),
+    { defaultValue: [] },
+  );
+
+  /** Ver el comentario de `empresas`: `hasValue()` porque `value()` lanza en error. */
+  readonly tiposLimite = computed<readonly TipoLimite[]>(() =>
+    this.recursoTiposLimite.hasValue() ? this.recursoTiposLimite.value() : [],
+  );
+
+  readonly tiposLimiteCargando = this.recursoTiposLimite.isLoading;
+
+  readonly tiposLimiteError = computed(() =>
+    mensajeDeErrorDeRecurso(this.recursoTiposLimite.error()),
+  );
 
   /**
    * El reporte de salud de esquemas. COMPARTIDO, y por la misma razón que las empresas: lo
@@ -257,5 +284,35 @@ export class ApiPlataforma {
     return this.http.delete<readonly LimiteDeEmpresa[]>(
       `${this.base}/empresas/${encodeURIComponent(slug)}/limites/${encodeURIComponent(clave)}`,
     );
+  }
+
+  recargarTiposLimite(): void {
+    this.recursoTiposLimite.reload();
+  }
+
+  /**
+   * Crea un tipo de límite y refresca el catálogo solo, igual que el alta de plan.
+   *
+   * OJO CON LO QUE ESTO NO HACE: crear el tipo no crea el límite. Solo lo nombra. Mientras
+   * no haya código que lo lea y bloquee la operación, un tipo nuevo es una fila con un
+   * nombre bonito — y por eso la respuesta trae `reconocida`.
+   */
+  crearTipoLimite(alta: AltaTipoLimite) {
+    return this.http
+      .post<TipoLimite>(`${this.base}/limites`, alta)
+      .pipe(tap(() => this.recargarTiposLimite()));
+  }
+
+  /**
+   * Edita un tipo. La clave no se toca: es lo que el código busca para aplicar el límite.
+   *
+   * Mover `valorDefecto` cambia el cupo efectivo de TODA empresa que no tenga excepción
+   * propia, de golpe. Es lo que un valor por defecto significa, y por eso la pantalla dice
+   * cuántas quedan afectadas.
+   */
+  editarTipoLimite(clave: string, cambio: CambioTipoLimite) {
+    return this.http
+      .patch<TipoLimite>(`${this.base}/limites/${encodeURIComponent(clave)}`, cambio)
+      .pipe(tap(() => this.recargarTiposLimite()));
   }
 }
