@@ -1,10 +1,10 @@
 # Despliegue en Cloudflare
 
-Un Worker de solo activos, `maquinaria-frontend-produccion`, sirviendo `maqvia.com`,
+Un Worker de solo activos, `maquinaria-frontend`, sirviendo `maqvia.com`,
 `<empresa>.maqvia.com` y `admin.maqvia.com`:
 
 ```
-npm run deploy:prod
+npm run deploy
 ```
 
 `nucleo/ambiente/configuracion.ts` elige la API leyendo `location.hostname`, así que no
@@ -26,33 +26,42 @@ hay build por ambiente ni variables de Cloudflare que sincronizar.
    el registro está proxied, la petición nunca sale hacia ahí, la atiende el Worker. El
    comodín es lo que hace que una empresa nueva funcione en `<empresa>.maqvia.com` sin
    dar de alta nada.
-4. `npm run deploy:prod`.
+4. `npm run deploy`.
 
 ## Despliegue automático desde git
 
 Cada push a **`develop`** construye y despliega en vivo, vía Workers Builds. Es la
 configuración del dashboard, no vive en el repo, así que queda escrita aquí por si se
-desconecta: **Workers & Pages → `maquinaria-frontend-produccion` → Settings → Builds**.
+desconecta: **Workers & Pages → `maquinaria-frontend` → Settings → Builds**.
 
 | Campo | Valor |
 | --- | --- |
 | Repositorio | `xYairrx/maquinaria-frontend` |
 | Root directory | `/` |
 | Build command | `npm run build` |
-| Deploy command | `npx wrangler deploy --env produccion` |
+| Deploy command | `npx wrangler deploy` |
 | Branch control | `develop` |
 | Non-production branch builds | apagado |
 
-**El `--env produccion` no es opcional.** Sin él Cloudflare corre `npx wrangler deploy`
-pelado, que crea un Worker `maquinaria-frontend` sin rutas y deja intacto el que sirve
-el tráfico: un despliegue en verde que no cambia nada, y de los peores de diagnosticar
-porque el build pasa.
+**El Deploy command va sin `--env`, y el `wrangler.jsonc` sin bloque `env`.** No es
+descuido: es la lección de haberlo intentado al revés. Con un `env.produccion`, el
+Worker se llama `maquinaria-frontend-produccion` y todo despliegue tiene que llevar
+`--env produccion`. Falla de las dos maneras posibles:
+
+- Sin el flag, `wrangler deploy` crea un Worker aparte sin rutas. El build queda en
+  verde, el sitio no cambia, y no hay nada que se vea roto.
+- Con el flag pero conectando el repo desde «Import a repository», el Worker del
+  dashboard se llama `maquinaria-frontend` y el del config `…-produccion`. Cloudflare
+  exige que coincidan y la compilación falla.
+
+Un solo ambiente no necesita nombrarse. El comando por defecto es el correcto y no hay
+nada que olvidar.
 
 Las preview URLs quedan apagadas a propósito. Viven en `*.workers.dev`, que no soporta
 subdominio comodín, así que una preview no dejaría probar ninguna empresa —serviría
 para ver que compila, y eso ya lo dice el build.
 
-`npm run deploy:prod` sigue funcionando para saltarse el CI.
+`npm run deploy` sigue funcionando para saltarse el CI.
 
 ### Que cada push salga en vivo es una decisión con fecha de caducidad
 
@@ -74,8 +83,9 @@ comodín vuelve al primer nivel— pero mientras no haya clientes en producción
 directo en `maqvia.com` sale gratis y se prueba lo mismo.
 
 **Cuando entre el primer cliente esto deja de ser aceptable.** Para entonces: segundo
-dominio, una entrada nueva en `AMBIENTES`, y un `env.dev` en `wrangler.jsonc` copiado
-del de producción.
+dominio, una entrada nueva en `AMBIENTES`, y un `env` en `wrangler.jsonc` —y ahí sí,
+con dos ambientes, los dos despliegues llevan `--env` y el de producción se renombra.
+Es el momento de releer la nota de arriba sobre por qué hoy no hay bloque `env`.
 
 ## Caché del navegador
 
