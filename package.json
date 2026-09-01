@@ -11,7 +11,7 @@
     "api:check": "openapi-typescript http://localhost:5123/openapi/v1.json -o src/app/nucleo/api/generado.ts --immutable --alphabetize --check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "deploy:prod": "ng build && wrangler deploy --env produccion"
+    "deploy": "ng build && wrangler deploy"
   },
   "private": true,
   "packageManager": "npm@11.6.2",

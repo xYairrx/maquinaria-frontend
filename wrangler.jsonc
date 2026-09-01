@@ -1,17 +1,23 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
 
-  // Worker de solo activos: no hay `main` porque no hace falta código, Cloudflare
-  // sirve el `dist` de Angular directamente. Los dos ambientes salen del mismo
-  // artefacto; lo único que cambia es a qué anfitrión responde cada uno.
+  // Worker de solo activos: no hay `main` porque no hace falta código, Cloudflare sirve
+  // el `dist` de Angular directamente.
   //
-  // Nada se despliega desde este nivel: siempre `--env produccion`. Un `wrangler deploy`
-  // pelado crearía un segundo Worker sin rutas, que es molesto pero inofensivo.
+  // NO HAY BLOQUE `env`, Y ES A PROPÓSITO. Con un solo ambiente, un `env` obliga a que
+  // cada despliegue lleve `--env <nombre>`, y el día que se olvida `wrangler deploy`
+  // crea un Worker aparte sin rutas: el build queda en verde, el sitio no cambia y no
+  // hay nada que se vea roto. Ya pasó una vez con Workers Builds. Sin `env`, el comando
+  // por defecto es el correcto y no hay nada que olvidar.
   //
-  // Hay un solo ambiente A PROPÓSITO, y el bloque `env` se queda para que agregar otro
-  // sea copiar y pegar. Ver `docs/despliegue.md` para por qué se quitó el de `dev`.
+  // El nombre tiene que coincidir con el del Worker en el dashboard o el build de git
+  // falla. Si algún día hace falta un segundo ambiente, ver `docs/despliegue.md`.
   "name": "maquinaria-frontend",
   "compatibility_date": "2026-09-01",
+
+  // Sin subdominio `workers.dev`: sería una copia pública de la app en una URL que nadie
+  // vigila y que se indexa igual que el dominio bueno.
+  "workers_dev": false,
 
   // El `browser` lo pone el builder `application` de Angular: `dist/<proyecto>/browser`.
   "assets": {
@@ -21,20 +27,12 @@
     "not_found_handling": "single-page-application",
   },
 
-  "env": {
-    "produccion": {
-      "assets": {
-        "directory": "./dist/maquinaria-frontend/browser",
-        "not_found_handling": "single-page-application",
-      },
-      "workers_dev": false,
-      // El comodín es lo que hace funcionar el subdominio por empresa
-      // (`bajio.maqvia.com`) sin dar de alta cada empresa a mano. Exige el registro
-      // DNS comodín proxied; ver README.
-      "routes": [
-        { "pattern": "maqvia.com/*", "zone_name": "maqvia.com" },
-        { "pattern": "*.maqvia.com/*", "zone_name": "maqvia.com" },
-      ],
-    },
-  },
+  // Rutas y no dominios personalizados: un dominio personalizado se ejecuta DESPUÉS de
+  // las rutas, así que el comodín se lo tragaría. El comodín es lo que hace funcionar el
+  // subdominio por empresa (`bajio.maqvia.com`) sin dar de alta cada una a mano, y exige
+  // el registro DNS comodín proxied. Ver README.
+  "routes": [
+    { "pattern": "maqvia.com/*", "zone_name": "maqvia.com" },
+    { "pattern": "*.maqvia.com/*", "zone_name": "maqvia.com" },
+  ],
 }
