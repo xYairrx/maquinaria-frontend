@@ -28,6 +28,38 @@ hay build por ambiente ni variables de Cloudflare que sincronizar.
    dar de alta nada.
 4. `npm run deploy:prod`.
 
+## Despliegue automático desde git
+
+Cada push a **`develop`** construye y despliega en vivo, vía Workers Builds. Es la
+configuración del dashboard, no vive en el repo, así que queda escrita aquí por si se
+desconecta: **Workers & Pages → `maquinaria-frontend-produccion` → Settings → Builds**.
+
+| Campo | Valor |
+| --- | --- |
+| Repositorio | `xYairrx/maquinaria-frontend` |
+| Root directory | `/` |
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy --env produccion` |
+| Branch control | `develop` |
+| Non-production branch builds | apagado |
+
+**El `--env produccion` no es opcional.** Sin él Cloudflare corre `npx wrangler deploy`
+pelado, que crea un Worker `maquinaria-frontend` sin rutas y deja intacto el que sirve
+el tráfico: un despliegue en verde que no cambia nada, y de los peores de diagnosticar
+porque el build pasa.
+
+Las preview URLs quedan apagadas a propósito. Viven en `*.workers.dev`, que no soporta
+subdominio comodín, así que una preview no dejaría probar ninguna empresa —serviría
+para ver que compila, y eso ya lo dice el build.
+
+`npm run deploy:prod` sigue funcionando para saltarse el CI.
+
+### Que cada push salga en vivo es una decisión con fecha de caducidad
+
+`develop` publica directo porque hoy no hay clientes y el ciclo corto vale más que la
+red de seguridad. Cuando entre el primero, la rama de publicación pasa a `main` y
+`develop` vuelve a ser lo que su nombre dice. Es un dropdown, no una migración.
+
 ## Por qué NO hay un ambiente `dev` desplegado
 
 Lo hubo y se quitó. El certificado Universal de Cloudflare cubre `maqvia.com` y
