@@ -23,21 +23,10 @@
  */
 export const AMBIENTES = [
   {
-    // Sin barra final: `urlApi` se concatena con `/api/...`, y una barra de más produce
-    // `//api/...`, que el enrutador de ASP.NET Core no reconoce. Lo vigila el spec.
-    urlApi: 'https://maquinaria-backend-development.up.railway.app',
-    /**
-     * `bajio.localhost:4200` funciona sin tocar el archivo `hosts` porque Chrome y
-     * Edge resuelven `*.localhost` a 127.0.0.1 de forma nativa.
-     */
+    urlApi: 'http://localhost:5123',
     dominioBase: 'localhost',
   },
   {
-    // El MISMO backend que en local, y no `api.maqvia.com`: ese host no existe, y como
-    // la ruta comodín del Worker se traga todo `*.maqvia.com`, respondía el `index.html`
-    // del frontend a la petición de sondeo y el navegador lo reportaba como fallo de
-    // CORS. Cuando haya una API de producción de verdad, se cambia AQUÍ y además hay que
-    // darle su propia ruta en `wrangler.jsonc`; ver `docs/despliegue.md`.
     urlApi: 'https://maquinaria-backend-development.up.railway.app',
     dominioBase: 'maqvia.com',
   },
