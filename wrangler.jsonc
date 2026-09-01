@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+
+  // Worker de solo activos: no hay `main` porque no hace falta código, Cloudflare
+  // sirve el `dist` de Angular directamente. Los dos ambientes salen del mismo
+  // artefacto; lo único que cambia es a qué anfitrión responde cada uno.
+  //
+  // Nada se despliega desde este nivel: siempre `--env produccion`. Un `wrangler deploy`
+  // pelado crearía un segundo Worker sin rutas, que es molesto pero inofensivo.
+  //
+  // Hay un solo ambiente A PROPÓSITO, y el bloque `env` se queda para que agregar otro
+  // sea copiar y pegar. Ver `docs/despliegue.md` para por qué se quitó el de `dev`.
+  "name": "maquinaria-frontend",
+  "compatibility_date": "2026-09-01",
+
+  // El `browser` lo pone el builder `application` de Angular: `dist/<proyecto>/browser`.
+  "assets": {
+    "directory": "./dist/maquinaria-frontend/browser",
+    // Angular resuelve las rutas en el cliente, así que cualquier ruta que no sea un
+    // archivo tiene que devolver `index.html` en lugar de 404.
+    "not_found_handling": "single-page-application",
+  },
+
+  "env": {
+    "produccion": {
+      "assets": {
+        "directory": "./dist/maquinaria-frontend/browser",
+        "not_found_handling": "single-page-application",
+      },
+      "workers_dev": false,
+      // El comodín es lo que hace funcionar el subdominio por empresa
+      // (`bajio.maqvia.com`) sin dar de alta cada empresa a mano. Exige el registro
+      // DNS comodín proxied; ver README.
+      "routes": [
+        { "pattern": "maqvia.com/*", "zone_name": "maqvia.com" },
+        { "pattern": "*.maqvia.com/*", "zone_name": "maqvia.com" },
+      ],
+    },
+  },
+}

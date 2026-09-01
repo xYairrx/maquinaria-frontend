@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ApiCatalogos, aParametros } from './api-catalogos';
 import type { FiltroListado } from './contratos';
+import { configuracion } from '../ambiente/configuracion';
 
 /**
  * El listado de marcas.
@@ -23,7 +24,7 @@ import type { FiltroListado } from './contratos';
  * Lo que se fija aquí: que cambiar el filtro DISPARE una petición nueva con los parámetros
  * correctos, y que `Activo: false` viaje en lugar de perderse por ser falsy.
  */
-const URL = 'http://localhost:5123/api/catalogos/marcas';
+const URL = `${configuracion.urlApi}/api/catalogos/marcas`;
 
 /** Una página vacía, que es lo que la API contesta cuando el filtro no encuentra nada. */
 const VACIA = { filas: [], numero: 1, tamano: 50, total: 0, paginas: 0 };

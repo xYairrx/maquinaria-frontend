@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ApiPlataforma } from './api-plataforma';
+import { configuracion } from '../ambiente/configuracion';
 
 /**
  * El recurso compartido de empresas.
@@ -17,11 +18,11 @@ import { ApiPlataforma } from './api-plataforma';
  * dar de alta una empresa recargue la lista sin que nadie lo pida.
  */
 const LLAVE = 'maquinaria.plataforma.token';
-const URL = 'http://localhost:5123/api/plataforma/empresas';
-const URL_PLANES = 'http://localhost:5123/api/plataforma/planes';
-const URL_MODULOS = 'http://localhost:5123/api/plataforma/modulos';
-const URL_SALUD = 'http://localhost:5123/api/plataforma/salud/esquemas';
-const URL_LIMITES = 'http://localhost:5123/api/plataforma/limites';
+const URL = `${configuracion.urlApi}/api/plataforma/empresas`;
+const URL_PLANES = `${configuracion.urlApi}/api/plataforma/planes`;
+const URL_MODULOS = `${configuracion.urlApi}/api/plataforma/modulos`;
+const URL_SALUD = `${configuracion.urlApi}/api/plataforma/salud/esquemas`;
+const URL_LIMITES = `${configuracion.urlApi}/api/plataforma/limites`;
 
 /** Un reporte de salud vacio, para los casos que no van de esquemas. */
 const SALUD_VACIA = {

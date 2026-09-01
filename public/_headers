@@ -1,0 +1,20 @@
+# Caché del navegador para los activos con hash.
+#
+# Por defecto Cloudflare manda `max-age=0, must-revalidate` en todo, que es lo correcto
+# para `index.html` —tiene que cambiar en cada despliegue— pero un desperdicio para los
+# ~70 chunks: el nombre YA lleva el hash del contenido, así que un archivo con el mismo
+# nombre nunca cambia y revalidarlo es una petición condicional garantizada a devolver
+# 304. El despliegue nuevo trae nombres nuevos, así que no hay caché vieja que purgar.
+#
+# Ojo con lo que NO entra aquí: `index.html`, y los archivos de `public/` —el favicon,
+# `excavadora.webp`, las banderas— que se sirven con su nombre de siempre. Marcarlos
+# inmutables los dejaría clavados un año en el navegador de quien ya los tenga.
+
+/chunk-*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/main-*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/styles-*.css
+  Cache-Control: public, max-age=31536000, immutable

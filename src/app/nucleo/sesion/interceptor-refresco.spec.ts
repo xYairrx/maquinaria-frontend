@@ -13,6 +13,7 @@ import type { SesionEmpresa } from '../api/contratos';
 import { interceptorRefresco } from './interceptor-refresco';
 import { interceptorToken } from './interceptor-token';
 import { Sesion } from './sesion';
+import { configuracion } from '../ambiente/configuracion';
 
 /**
  * El interceptor de refresco.
@@ -24,7 +25,7 @@ import { Sesion } from './sesion';
  * trabajando. Lo demás de aquí es la red alrededor de eso.
  */
 
-const API = 'http://localhost:5123';
+const API = configuracion.urlApi;
 const MI_SESION = `${API}/api/mi/sesion`;
 const OTRA = `${API}/api/empresas/bajio/algo`;
 const REFRESCO = `${API}/api/empresas/bajio/sesion/refresco`;

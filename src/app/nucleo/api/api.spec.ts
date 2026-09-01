@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Api, type ConsultaDeLiga } from './api';
+import { configuracion } from '../ambiente/configuracion';
 
 /**
  * Las dos consultas de liga.
@@ -17,7 +18,7 @@ import { Api, type ConsultaDeLiga } from './api';
  * También se fija que un token vacío no dispare ninguna petición, y que leer el valor con la
  * consulta en error no lance.
  */
-const BASE = 'http://localhost:5123/api/empresas';
+const BASE = `${configuracion.urlApi}/api/empresas`;
 
 /**
  * Deja correr lo pendiente: los recursos lanzan su petición en una microtarea, así que
