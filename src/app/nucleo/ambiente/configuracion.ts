@@ -7,7 +7,7 @@
  */
 export const configuracion = {
   /** La API en el perfil `http` de launchSettings.json. */
-  urlApi: 'https://maquinaria-backend-development.up.railway.app',
+  urlApi: 'http://localhost:5123',
 
   /**
    * Dominio bajo el cual cada empresa tiene su subdominio: `bajio.<dominioBase>`.
@@ -17,5 +17,5 @@ export const configuracion = {
    * nativa. En producción es el dominio real, y tiene que coincidir con
    * `Cors:DominioBase` de la API o el navegador bloqueará todas las llamadas.
    */
-  dominioBase: 'maqvia.com',
+  dominioBase: 'localhost',
 } as const;

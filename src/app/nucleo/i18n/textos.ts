@@ -107,7 +107,7 @@ const ES_MX = {
     ordenesCompra: 'Órdenes de compra',
     ordenesVenta: 'Órdenes de venta',
     empresas: 'Empresas',
-    esquemas: 'Esquemas',
+    esquemas: 'Actualizaciones',
     navegacionPrincipal: 'Navegación principal',
     navegacionEmpresa: 'Navegación de la empresa',
     navegacionPlataforma: 'Navegación de la plataforma',
@@ -208,14 +208,14 @@ const ES_MX = {
 
   panel: {
     titulo: 'Resumen',
-    apoyo: 'Todo lo que se ve aquí sale del alta de empresas. No hay ninguna cifra estimada.',
+    apoyo: 'Todas las cifras salen de las empresas dadas de alta. Ninguna es estimada.',
 
     totalEmpresas: 'Empresas',
     pieTotal: (n: number) => (n === 1 ? 'Una en la plataforma' : `${n} en la plataforma`),
     activas: 'Activas',
     pieActivas: 'Con suscripción en curso',
     enPrueba: 'En prueba',
-    pieEnPrueba: 'Todavía sin contratar',
+    pieEnPrueba: 'Todavía no contratan',
     requierenAtencion: 'Requieren atención',
     pieAtencionCero: 'Nada pendiente',
     pieAtencion: (n: number) => (n === 1 ? '1 aviso abierto' : `${n} avisos abiertos`),
@@ -229,26 +229,26 @@ const ES_MX = {
 
     motivoFallida: 'El alta falló',
     detalleFallida:
-      'Su base quedó a medias. Volver a darla de alta con el mismo identificador reintenta el proceso.',
+      'Quedó a medio crear. Vuelve a darla de alta con el mismo identificador y el sistema lo reintenta.',
     motivoSinSuscripcion: 'Sin suscripción',
     detalleSinSuscripcion:
-      'Su base existe pero no tiene plan, así que su gente no ve ningún módulo.',
-    motivoEsquemaDesfasado: 'Esquema desfasado',
+      'Ya está creada pero no tiene plan, así que su gente entra y no ve ninguna pantalla.',
+    motivoEsquemaDesfasado: 'Le faltan actualizaciones',
     /** El conteo lo manda el reporte; este lado no lo calcula. */
     detalleEsquemaDesfasado: (pendientes: number) =>
       pendientes === 1
-        ? 'Le falta una migración para llegar a la del binario que responde.'
-        : `Le faltan ${pendientes} migraciones para llegar a la del binario que responde.`,
-    motivoEsquemaSinComparar: 'Esquema sin comparar',
+        ? 'Le falta una actualización para ponerse al día con el sistema.'
+        : `Le faltan ${pendientes} actualizaciones para ponerse al día con el sistema.`,
+    motivoEsquemaSinComparar: 'No se pudo revisar',
     detalleEsquemaSinComparar:
-      'No se pudo comparar su versión con la del binario: o nunca se migró, o va por delante del código desplegado. No se sabe si le faltan migraciones.',
+      'No se pudo comparar con la versión del sistema: o nunca se ha actualizado, o va por delante. No se sabe si le falta algo.',
 
     recientes: 'Últimas altas',
-    esquemaReferencia: (version: string) => `Esquema más avanzado: ${version}`,
-    sinEsquema: 'Ninguna base está lista todavía.',
+    esquemaReferencia: (version: string) => `Versión más reciente: ${version}`,
+    sinEsquema: 'Todavía no hay ninguna empresa lista.',
 
     verEmpresas: 'Ver todas las empresas',
-    verSalud: 'Ver la salud de los esquemas',
+    verSalud: 'Ver el estado de las actualizaciones',
 
     // --- Barra de la pantalla ---
     contexto: (n: number) => (n === 1 ? 'Una empresa' : `${n} empresas`),
@@ -269,7 +269,7 @@ const ES_MX = {
     chipPrueba: 'En prueba',
     chipDetenidas: 'Detenidas',
     verModulo: 'Ver módulo',
-    colEsquema: 'Esquema',
+    colEsquema: 'Versión',
     colModulos: 'Módulos',
     sinCoincidencias: 'Ninguna empresa coincide con lo que buscas.',
     modulosDe: (n: number, total: number) => `${n} de ${total} módulos`,
@@ -277,51 +277,51 @@ const ES_MX = {
 
   /** La pantalla de salud de esquemas, y el vocabulario de los TRES estados de esquema. */
   salud: {
-    titulo: 'Salud de esquemas',
+    titulo: 'Actualizaciones',
     contexto: (n: number) => (n === 1 ? 'Una empresa' : `${n} empresas`),
     contextoDesfasadas: (n: number) => (n === 1 ? 'una desfasada' : `${n} desfasadas`),
 
-    versionDisponible: 'Versión disponible',
+    versionDisponible: 'Versión del sistema',
     versionDisponibleApoyo:
-      'La migración más avanzada del binario que respondió, no la de la empresa más adelantada.',
+      'La versión que trae el sistema ahora mismo. Es contra ésta que se compara cada empresa, no contra la empresa más adelantada.',
     totalEmpresas: 'Empresas',
     pieTotal: 'En el reporte',
-    desfasadas: 'Desfasadas',
+    desfasadas: 'Atrasadas',
     pieDesfasadas: (n: number) =>
-      n === 0 ? 'Ninguna' : n === 1 ? 'Una base por migrar' : `${n} bases por migrar`,
+      n === 0 ? 'Ninguna' : n === 1 ? 'Una por actualizar' : `${n} por actualizar`,
 
-    nadaQueReportar: 'No hay ninguna empresa desfasada.',
+    nadaQueReportar: 'Ninguna empresa está atrasada.',
     nadaQueReportarApoyo: (n: number) =>
       n === 1
-        ? 'La única base del reporte va en la versión disponible.'
-        : `Las ${n} bases del reporte van en la versión disponible.`,
+        ? 'La única empresa revisada está al día.'
+        : `Las ${n} empresas revisadas están al día.`,
     peroSinComparar: (n: number) =>
       n === 1
-        ? 'Ninguna aparece desfasada, pero hay una que no se pudo comparar. Revísala en la tabla.'
-        : `Ninguna aparece desfasada, pero hay ${n} que no se pudieron comparar. Revísalas en la tabla.`,
+        ? 'Ninguna aparece atrasada, pero hay una que no se pudo revisar. Míralas en la tabla.'
+        : `Ninguna aparece atrasada, pero hay ${n} que no se pudieron revisar. Míralas en la tabla.`,
 
-    tabla: 'Esquema de cada empresa',
+    tabla: 'Versión de cada empresa',
     verEmpresas: 'Ver todas las empresas',
-    sinEmpresas: 'El reporte no trae ninguna empresa.',
-    sinReporte: 'Todavía no hay reporte de esquemas.',
+    sinEmpresas: 'No se revisó ninguna empresa.',
+    sinReporte: 'Todavía no se ha hecho la revisión.',
 
     colEmpresa: 'Identificador',
-    colVersionAplicada: 'Versión aplicada',
-    colPendientes: 'Pendientes',
-    colEsquema: 'Esquema',
-    nuncaMigrada: 'Nunca se migró',
-    noAplica: 'No se pudo comparar',
+    colVersionAplicada: 'Su versión',
+    colPendientes: 'Le faltan',
+    colEsquema: 'Estado',
+    nuncaMigrada: 'Nunca se ha actualizado',
+    noAplica: 'No se pudo revisar',
 
     estadoAlDia: 'Al día',
-    estadoDesfasada: 'Desfasada',
-    estadoSinComparar: 'Sin comparar',
-    leyendaAlDia: 'Su base va en la versión disponible.',
+    estadoDesfasada: 'Atrasada',
+    estadoSinComparar: 'Sin revisar',
+    leyendaAlDia: 'Está en la misma versión que el sistema.',
     leyendaDesfasada:
-      'Le faltan migraciones para llegar a la versión disponible. Las aplica el comando migrar-empresas.',
+      'Le faltan actualizaciones para ponerse al día. Se aplican desde el servidor, con el comando de mantenimiento.',
     leyendaSinComparar:
-      'No se pudo comparar: o nunca se migró, o su versión no la conoce el binario que respondió, que es lo que pasa cuando la base va POR DELANTE del código desplegado. Aquí no se afirma si le faltan migraciones ni cuántas.',
+      'No se pudo comparar. Puede ser que nunca se haya actualizado, o que vaya por delante del sistema —eso pasa cuando se actualizó antes de publicar la versión nueva—. No se sabe si le falta algo ni cuánto.',
     limitacion:
-      'El reporte abre cada base y lee su historial de migraciones, no la copia que la central tiene registrada, así que detecta también a quien migró por fuera. La contrapartida: una base que no responda aparece como «sin comparar», no como un error.',
+      'La revisión abre cada empresa y mira lo que tiene aplicado de verdad, no lo que quedó anotado. Así detecta también a quien se actualizó por fuera. A cambio, una empresa que no responda sale como «sin revisar» en vez de como error.',
   },
 
   hoja: {
@@ -336,7 +336,7 @@ const ES_MX = {
 
     // --- Qué es un plan, dicho una vez y bien ---
     queEsUnPlan:
-      'Crea y gestiona los planes que cada empresa podrá contratar. Los límites por empresa se gestionan en la propia empresa: este catálogo solo define qué módulos incluye cada plan.',
+      'Aquí armas los planes que tus clientes pueden contratar. Un plan dice QUÉ MÓDULOS incluye; cuántos equipos o usuarios puede tener cada empresa se ajusta en la empresa misma.',
 
     sinPlanes: 'Todavía no hay ningún plan en el catálogo.',
     colPlan: 'Plan',
@@ -349,26 +349,27 @@ const ES_MX = {
     reactivar: 'Reactivar',
     /** Se pregunta antes de retirar porque deja de poder contratarse. */
     confirmarRetiro: (codigo: string) =>
-      `¿Retirar el plan «${codigo}»? Deja de ofrecerse en el alta de empresas. Quien ya lo tiene contratado no se ve afectado.`,
+      `¿Retirar el plan «${codigo}»? Dejará de aparecer al dar de alta una empresa. Las que ya lo tienen contratado siguen igual.`,
     sinSuscripciones: 'Nadie',
     conSuscripciones: (n: number) => (n === 1 ? 'Una empresa' : `${n} empresas`),
 
     // --- Formulario ---
     crear: 'Crear un plan',
-    crearApoyo: 'El código no se puede cambiar después: es lo que viaja en el alta de una empresa.',
+    crearApoyo:
+      'El código no se podrá cambiar después: es con el que se contrata el plan al dar de alta una empresa.',
     codigo: 'Código',
     ayudaCodigo: 'Minúsculas, dígitos y guiones. Por ejemplo: profesional, basico-anual.',
     nombre: 'Nombre',
     descripcion: 'Descripción',
     opcional: '(opcional)',
     precio: 'Precio mensual',
-    ayudaPrecio: 'Cero es válido: es un plan de cortesía o de prueba.',
+    ayudaPrecio: 'Puedes poner cero, para un plan de cortesía o de prueba.',
     moneda: 'Moneda',
     orden: 'Orden',
-    ayudaOrden: 'Posición al comparar planes. El menor va primero.',
+    ayudaOrden: 'En qué lugar aparece en la lista. El número más chico va primero.',
     modulos: 'Módulos que incluye',
     ayudaModulos:
-      'Al menos uno. Un plan sin módulos deja a la empresa dentro sin ver ni una pantalla.',
+      'Elige al menos uno. Con un plan sin módulos, la gente de esa empresa entra y no ve ninguna pantalla.',
     seleccionados: (n: number, total: number) => `${n} de ${total} seleccionados`,
     todos: 'Todos',
     ninguno: 'Ninguno',
@@ -380,108 +381,114 @@ const ES_MX = {
     cerrar: 'Cerrar',
     noSeEdita: 'Por qué no se puede editar un plan',
     noSeEditaPrecio:
-      'El precio no tiene historia: la suscripción no guarda importe, solo apunta al plan. Cambiarlo reescribiría lo que pagaron los suscriptores anteriores.',
+      'Cada empresa apunta al plan, y el plan es el que guarda el precio. Cambiarlo ahora cambiaría también lo que dice que pagaron las que lo contrataron antes.',
     noSeEditaModulos:
-      'Quitar un módulo se lo quita a todos sus suscriptores, retroactivamente. Para cambiar la composición se retira el plan y se crea su sucesor.',
+      'Quitar un módulo se lo quita de golpe a todas las empresas que ya tienen el plan. Para cambiarlo, retira el plan y crea el que lo sustituye.',
   },
 
   limites: {
     titulo: 'Límites',
-    contexto: (n: number) => `${n} tipos`,
+    contexto: (n: number) => (n === 1 ? 'Un límite' : `${n} límites`),
     queEsUnLimite:
-      'Un límite dice CUÁNTO puede tener una empresa. Aquí se define qué límites existen y cuánto valen por omisión; el cupo de una empresa concreta se ajusta desde su fila en Empresas.',
+      'Un límite dice CUÁNTO puede tener una empresa: cuántos equipos, cuántos usuarios. Aquí defines qué límites existen y cuánto vale cada uno de forma general; lo que le toca a una empresa en particular se ajusta desde su fila en Empresas.',
     // El aviso que evita que alguien confíe en un tope que no existe.
     crearNoEsAplicar:
-      'Crear un tipo no crea un límite: solo le pone nombre. Un límite acota cuando hay código que lo lee y bloquea la operación, y hoy no lo hay para ninguno.',
-    ninguno: 'Todavía no hay ningún tipo de límite. El primero se crea con el botón de arriba.',
-    cargando: 'Cargando los tipos de límite…',
+      'Ojo: por ahora los límites se guardan pero el sistema todavía no los hace cumplir. Puedes definirlos y asignarlos, pero nadie se va a topar con ellos al trabajar.',
+    ninguno: 'Todavía no hay ningún límite. El primero se crea con el botón de arriba.',
+    cargando: 'Cargando los límites…',
     colLimite: 'Límite',
-    colDefecto: 'Por defecto',
+    colDefecto: 'Valor general',
     colUnidad: 'Unidad',
     colExcepciones: 'Con cupo propio',
     colAcciones: 'Acciones',
     activo: 'Activo',
     retirado: 'Retirado',
     sinLimite: 'Sin límite',
-    sinCodigoDetras: 'Sin código detrás: se puede fijar por empresa y no va a acotar nada.',
+    sinCodigoDetras:
+      'De éste el sistema no está pendiente: puedes asignarlo, pero no va a frenar a nadie.',
     editar: 'Editar',
     crear: 'Nuevo límite',
-    crearApoyo: 'Define un tipo de límite y lo que aplica a toda empresa que no negocie el suyo.',
+    crearApoyo: 'Define un límite nuevo y cuánto vale para las empresas que no tengan uno propio.',
     editarTitulo: 'Editar el límite',
-    editarApoyo: 'La clave no se toca: es lo que el código busca para aplicarlo.',
+    editarApoyo:
+      'El identificador no se puede cambiar: es con el que el sistema reconoce este límite.',
     cerrar: 'Cerrar',
-    clave: 'Clave',
-    ayudaClave: 'Minúsculas, dígitos y guiones bajos. Por ejemplo: max_equipos.',
-    claveNoSeEdita: 'No se puede cambiar: es lo que el código busca para aplicar el límite.',
+    clave: 'Identificador',
+    ayudaClave: 'En minúsculas, sin espacios ni acentos. Por ejemplo: max_equipos.',
+    claveNoSeEdita: 'No se puede cambiar: es con el que el sistema reconoce este límite.',
     nombre: 'Nombre',
     unidad: 'Unidad',
-    ayudaUnidad: 'En qué se cuenta: equipos, usuarios, GB.',
+    ayudaUnidad: 'En qué se cuenta: equipos, usuarios, GB…',
     descripcion: 'Descripción',
-    valorDefecto: 'Valor por defecto',
-    ayudaValorDefecto: '-1 es sin límite. Cero significa que no puede crear ninguno.',
+    valorDefecto: 'Valor general',
+    ayudaValorDefecto:
+      'Lo que aplica a las empresas que no tengan un cupo propio. Escribe -1 si no quieres poner tope, y 0 si no deben poder crear ninguno.',
     orden: 'Orden',
-    ayudaOrden: 'Posición en la que se muestra al comparar planes.',
+    ayudaOrden: 'En qué lugar aparece en la lista. El número más chico va primero.',
     activoCampo: 'Activo',
     ayudaActivo:
-      'Un tipo retirado no se borra nunca —las empresas que lo tengan negociado lo conservan—: deja de ofrecerse.',
+      'Al retirarlo deja de ofrecerse, pero no se borra: las empresas que ya tengan un cupo propio lo conservan.',
     afectaA: (n: number) =>
       n === 0
-        ? 'Ninguna empresa tiene cupo propio de este tipo, así que el valor por defecto es el que aplica a todas.'
-        : `${n} ${n === 1 ? 'empresa tiene cupo propio' : 'empresas tienen cupo propio'}: a esas no les afecta cambiar el valor por defecto.`,
+        ? 'Ninguna empresa tiene un cupo propio, así que este valor es el que aplica a todas.'
+        : `${n} ${n === 1 ? 'empresa tiene un cupo propio' : 'empresas tienen un cupo propio'}: a ésas no les cambia nada tocar este valor.`,
     guardar: 'Guardar',
     guardando: 'Guardando…',
 
     errorClave:
-      'La clave va en minúsculas, dígitos y guiones bajos, no empieza ni acaba en guion bajo, y no pasa de 40 caracteres.',
-    errorNombre: 'Escribe el nombre que se lee al comparar planes.',
-    errorUnidad: 'Escribe en qué se cuenta: equipos, usuarios, GB.',
-    errorValorDefecto: 'Escribe -1 para sin límite, o un entero mayor o igual a cero.',
+      'El identificador va en minúsculas, con números y guiones bajos, sin empezar ni terminar en guion bajo, y de máximo 40 caracteres.',
+    errorNombre: 'Escribe el nombre con el que se va a mostrar.',
+    errorUnidad: 'Escribe en qué se cuenta: equipos, usuarios, GB…',
+    errorValorDefecto:
+      'Escribe -1 si no quieres poner tope, o un número entero de cero en adelante.',
   },
 
   empresas: {
     titulo: 'Empresas',
-    aprovisionada: (slug: string) => `${slug} aprovisionada`,
-    baseYEsquema: (base: string, esquema: string) => `Base ${base}, esquema ${esquema}.`,
+    aprovisionada: (slug: string) => `${slug} ya está lista`,
+    baseYEsquema: (base: string, esquema: string) =>
+      `Su espacio de datos es ${base}, en la versión ${esquema}.`,
     invitacionEnviada: 'Invitación enviada.',
     invitacionNoEnviada: 'Invitación no enviada.',
-    hayQueReenviar: 'Reenvíala desde su fila en la lista.',
+    hayQueReenviar: 'Vuelve a mandarla desde su fila en la lista.',
     reenviar: 'Reenviar la invitación',
     reenviando: 'Reenviando…',
     // Ya no dice que el botón desaparece al recargar: dejó de ser verdad cuando la lista
     // empezó a traer `invitacionEnviada`. Lo que sí desaparece —y hay que decirlo, porque es
     // lo que se ve al terminar— es el botón de ESA fila cuando el envío sale bien.
     reenviarApoyo:
-      'Se manda al correo que la empresa tiene guardado, no a uno que se pueda escribir aquí. Cuando el envío sale bien, el botón desaparece de su fila.',
+      'Se manda al correo que quedó guardado al dar de alta la empresa; no se puede escribir otro aquí. Cuando sale bien, el botón desaparece de esa fila.',
     reenviada: (correo: string) => `Invitación reenviada a ${correo}.`,
-    reenvioSinCorreo: 'La invitación se reemitió pero el correo NO salió',
+    reenvioSinCorreo: 'Se generó una invitación nueva, pero el correo NO salió',
     reenvioSinCorreoApoyo:
-      '— y la liga anterior ya quedó invalidada, así que hay que volver a reenviarla.',
-    ligaSoloDesarrollo: 'Liga (solo en desarrollo):',
+      '— y la liga anterior ya dejó de servir, así que hay que volver a mandarla.',
+    ligaSoloDesarrollo: 'Liga de la invitación (solo se muestra en desarrollo):',
     conteo: (n: number) => `${n} empresas`,
     ninguna: 'Todavía no hay ninguna.',
     colEmpresa: 'Empresa',
     colRazonSocial: 'Razón social',
     colEstado: 'Estado',
-    colBase: 'Base',
+    colBase: 'Alta',
     colPlan: 'Plan',
     colAcciones: 'Acciones',
-    sinSuscripcion: '— sin suscripción',
+    sinSuscripcion: '— sin plan contratado',
     conModulos: (n: number) => `(${n} módulos)`,
     crear: 'Nueva empresa',
     darDeAlta: 'Dar de alta una empresa',
     darDeAltaApoyo:
-      'Crea y migra su base de datos, siembra sus roles y permisos, y manda la invitación a su primer administrador.',
+      'Le prepara su espacio de datos, le deja listos sus roles y permisos, y le manda la invitación a su primer administrador.',
     cerrar: 'Cerrar',
     identificador: 'Identificador',
-    ayudaIdentificador: 'Minúsculas, dígitos y guiones. Es su subdominio: su gente entrará por',
+    ayudaIdentificador:
+      'En minúsculas, sin espacios ni acentos. Es la dirección por la que entrará su gente:',
     razonSocial: 'Razón social',
     rfc: 'RFC',
     telefono: 'Teléfono',
     nombreAdministrador: 'Nombre del administrador',
     correoAdministrador: 'Correo del administrador',
     plan: 'Plan que contrata',
-    ayudaPlan: 'Determina a qué módulos tendrá acceso. Solo se ofrecen los planes activos.',
-    sinPlanesActivos: 'No hay ningún plan activo: crea uno antes de dar de alta una empresa.',
+    ayudaPlan: 'Decide a qué módulos tendrá acceso. Solo aparecen los planes activos.',
+    sinPlanesActivos: 'No hay ningún plan activo. Crea uno antes de dar de alta una empresa.',
 
     /**
      * Los cupos de una empresa. Cuelgan del TENANT y no del plan: un cliente que negocia
@@ -491,27 +498,28 @@ const ES_MX = {
       abrir: 'Límites',
       titulo: (slug: string) => `Límites de ${slug}`,
       apoyo:
-        'El plan decide a qué módulos entra; esto decide cuántos. Un cupo sin fijar hereda el valor por defecto del catálogo.',
+        'El plan decide a qué módulos entra esta empresa; esto decide cuántos equipos, usuarios o sucursales puede tener. Lo que no le fijes aquí toma el valor general.',
       // Se dice en voz alta porque un panel de administración que no acota nada es una
       // trampa: quien fije un cupo esperaría que se cumpla.
       todaviaNoAplica:
-        'Todavía no se aplican: se guardan y quedan auditados, pero ninguna operación los verifica aún.',
+        'Ojo: por ahora se guardan y queda registro de quién los cambió, pero el sistema todavía no los hace cumplir.',
       colLimite: 'Límite',
       colValor: 'Valor',
-      colOrigen: 'Origen',
+      colOrigen: 'De dónde sale',
       sinLimite: 'Sin límite',
-      negociado: 'Negociado',
-      porDefecto: 'Por defecto',
-      porDefectoCon: (valor: string) => `Por defecto (${valor})`,
+      negociado: 'Propio de esta empresa',
+      porDefecto: 'Valor general',
+      porDefectoCon: (valor: string) => `Valor general (${valor})`,
       guardar: 'Guardar',
       guardando: 'Guardando…',
       quitar: 'Quitar',
       quitando: 'Quitando…',
-      quitarApoyo: 'Vuelve al valor por defecto del catálogo.',
+      quitarApoyo: 'Vuelve a usar el valor general.',
       cargando: 'Cargando los límites…',
       // El 0 es válido y es lo que más confunde: no es «sin límite», es «ninguno».
-      ayudaValor: 'Un entero mayor o igual a cero. Cero significa que no puede crear ninguno.',
-      errorValor: 'Escribe un entero mayor o igual a cero, o marca «Sin límite».',
+      ayudaValor:
+        'Un número entero de cero en adelante. Cero significa que no puede crear ninguno.',
+      errorValor: 'Escribe un número entero de cero en adelante, o marca «Sin límite».',
     },
 
     // --- Los mensajes de error de los campos propios de este alta ---
@@ -523,26 +531,26 @@ const ES_MX = {
     // Cada mensaje dice QUÉ SE ESPERA, nunca «campo inválido»: el mensaje es el único que
     // puede explicar por qué el botón amarillo sigue gris.
     errorIdentificador:
-      'El identificador va en minúsculas, dígitos y guiones, de 3 a 50 caracteres, y no puede empezar ni terminar con guion.',
+      'Va en minúsculas, con números y guiones, de 3 a 50 caracteres, y no puede empezar ni terminar con guion.',
     errorRazonSocial: 'Escribe la razón social de la empresa, tal como aparece en su acta.',
     errorNombreAdministrador: 'Escribe el nombre de quien va a administrar la empresa.',
-    errorPlan: 'Elige el plan que contrata la empresa.',
+    errorPlan: 'Elige el plan que va a contratar.',
 
     aprovisionar: 'Dar de alta',
     aprovisionando: 'Creando…',
-    tardaUnosSegundos: 'Tarda unos segundos: crea la base y le corre todas las migraciones.',
+    tardaUnosSegundos: 'Tarda unos segundos: hay que preparar su espacio de datos.',
     estado: {
       prueba: 'Prueba',
       activo: 'Activo',
       suspendido: 'Suspendido',
       cancelado: 'Cancelado',
     },
-    cambiarEstadoDe: (slug: string) => `Situación comercial de ${slug}`,
+    cambiarEstadoDe: (slug: string) => `Estado de la cuenta de ${slug}`,
     cambiandoEstado: 'Guardando…',
     // El mensaje dice QUÉ CAMBIA, no «¿estás seguro?». Una pregunta sin consecuencia
     // dentro obliga a decidir a ciegas.
     confirmarCorte: (slug: string, estado: string) =>
-      `${slug} pasa a ${estado}. Sus usuarios pierden el acceso en cuanto hagan la siguiente petición, no al volver a entrar.`,
+      `${slug} pasa a ${estado}. Su gente pierde el acceso de inmediato, incluso quien ya esté trabajando en ese momento.`,
     confirmarCorteTitulo: 'Cortar el acceso',
     aprovisionamiento: {
       pendiente: 'Pendiente',
@@ -656,7 +664,7 @@ const ES_MX = {
     ordenVenta: 'Orden de venta',
     superadministracion: 'Superadministración',
     empresas: 'Empresas',
-    saludEsquemas: 'Salud de esquemas',
+    saludEsquemas: 'Actualizaciones',
     portal: 'Entrar a tu empresa',
   },
 
@@ -2340,7 +2348,7 @@ const EN_US: Textos = {
     ordenesCompra: 'Purchase orders',
     ordenesVenta: 'Sales orders',
     empresas: 'Companies',
-    esquemas: 'Schemas',
+    esquemas: 'Updates',
     navegacionPrincipal: 'Main navigation',
     navegacionEmpresa: 'Company navigation',
     navegacionPlataforma: 'Platform navigation',
@@ -2438,7 +2446,7 @@ const EN_US: Textos = {
 
   panel: {
     titulo: 'Overview',
-    apoyo: 'Everything here comes from company provisioning. No figure is an estimate.',
+    apoyo: 'Every figure comes from the companies you added. None of them is an estimate.',
 
     totalEmpresas: 'Companies',
     pieTotal: (n: number) => (n === 1 ? 'One on the platform' : `${n} on the platform`),
@@ -2451,33 +2459,33 @@ const EN_US: Textos = {
     pieAtencion: (n: number) => (n === 1 ? '1 open alert' : `${n} open alerts`),
 
     enProceso: (n: number) =>
-      n === 1 ? 'One provisioning run in progress' : `${n} provisioning runs in progress`,
+      n === 1 ? 'One company being set up right now' : `${n} companies being set up right now`,
 
     avisos: 'What needs attention',
     sinAvisos: 'Nothing needs attention.',
     sinEmpresas: 'No company has been added yet.',
 
-    motivoFallida: 'Provisioning failed',
+    motivoFallida: 'Setup failed',
     detalleFallida:
-      'Its database was left half-built. Adding it again with the same identifier retries the process.',
+      'It was left half-built. Add it again with the same identifier and the system retries.',
     motivoSinSuscripcion: 'No subscription',
     detalleSinSuscripcion:
-      'Its database exists but has no plan, so its people see no modules at all.',
-    motivoEsquemaDesfasado: 'Schema behind',
+      'It is already set up but has no plan, so its people sign in and see no screens.',
+    motivoEsquemaDesfasado: 'Updates pending',
     detalleEsquemaDesfasado: (pendientes: number) =>
       pendientes === 1
-        ? 'It is one migration behind the binary that answered.'
-        : `It is ${pendientes} migrations behind the binary that answered.`,
-    motivoEsquemaSinComparar: 'Schema not comparable',
+        ? 'It is one update away from catching up with the system.'
+        : `It is ${pendientes} updates away from catching up with the system.`,
+    motivoEsquemaSinComparar: 'Could not be checked',
     detalleEsquemaSinComparar:
-      'Its version could not be compared with the binary: either it was never migrated, or it is ahead of the deployed code. Whether it is missing migrations is unknown.',
+      'It could not be compared with the system version: either it has never been updated, or it runs ahead. Whether it is missing anything is unknown.',
 
     recientes: 'Latest additions',
-    esquemaReferencia: (version: string) => `Furthest schema: ${version}`,
-    sinEsquema: 'No database is ready yet.',
+    esquemaReferencia: (version: string) => `Latest version: ${version}`,
+    sinEsquema: 'No company is ready yet.',
 
     verEmpresas: 'See every company',
-    verSalud: 'See schema health',
+    verSalud: 'See the update status',
 
     // --- Barra de la pantalla ---
     contexto: (n: number) => (n === 1 ? 'One company' : `${n} companies`),
@@ -2491,65 +2499,64 @@ const EN_US: Textos = {
     altasEnElMes: (n: number, mes: string) =>
       n === 1 ? `One addition in ${mes}` : `${n} additions in ${mes}`,
 
-    // --- Tabla ---
+    // --- Table ---
     tabla: 'Company status',
     chipTodas: 'All',
     chipActivas: 'Active',
     chipPrueba: 'On trial',
     chipDetenidas: 'Stopped',
     verModulo: 'Open module',
-    colEsquema: 'Schema',
+    colEsquema: 'Version',
     colModulos: 'Modules',
     sinCoincidencias: 'No company matches your search.',
     modulosDe: (n: number, total: number) => `${n} of ${total} modules`,
   },
 
   salud: {
-    titulo: 'Schema health',
+    titulo: 'Updates',
     contexto: (n: number) => (n === 1 ? 'One company' : `${n} companies`),
     contextoDesfasadas: (n: number) => (n === 1 ? 'one behind' : `${n} behind`),
 
-    versionDisponible: 'Available version',
+    versionDisponible: 'System version',
     versionDisponibleApoyo:
-      'The furthest migration of the binary that answered, not that of the most advanced company.',
+      'The version the system is running right now. Every company is compared against this one, not against the most advanced company.',
     totalEmpresas: 'Companies',
     pieTotal: 'In the report',
     desfasadas: 'Behind',
-    pieDesfasadas: (n: number) =>
-      n === 0 ? 'None' : n === 1 ? 'One database to migrate' : `${n} databases to migrate`,
+    pieDesfasadas: (n: number) => (n === 0 ? 'None' : n === 1 ? 'One to update' : `${n} to update`),
 
     nadaQueReportar: 'No company is behind.',
     nadaQueReportarApoyo: (n: number) =>
       n === 1
-        ? 'The only database in the report is on the available version.'
-        : `All ${n} databases in the report are on the available version.`,
+        ? 'The only company checked is up to date.'
+        : `All ${n} companies checked are up to date.`,
     peroSinComparar: (n: number) =>
       n === 1
-        ? 'None shows as behind, but one could not be compared. Check it in the table.'
-        : `None shows as behind, but ${n} could not be compared. Check them in the table.`,
+        ? 'None shows as behind, but one could not be checked. Look at the table.'
+        : `None shows as behind, but ${n} could not be checked. Look at the table.`,
 
-    tabla: 'Schema of each company',
+    tabla: 'Version of each company',
     verEmpresas: 'See every company',
-    sinEmpresas: 'The report has no companies in it.',
-    sinReporte: 'There is no schema report yet.',
+    sinEmpresas: 'No company was checked.',
+    sinReporte: 'The check has not been run yet.',
 
     colEmpresa: 'Identifier',
-    colVersionAplicada: 'Applied version',
-    colPendientes: 'Pending',
-    colEsquema: 'Schema',
-    nuncaMigrada: 'Never migrated',
-    noAplica: 'Could not be compared',
+    colVersionAplicada: 'Their version',
+    colPendientes: 'Missing',
+    colEsquema: 'Status',
+    nuncaMigrada: 'Never updated',
+    noAplica: 'Could not be checked',
 
     estadoAlDia: 'Up to date',
     estadoDesfasada: 'Behind',
-    estadoSinComparar: 'Not comparable',
-    leyendaAlDia: 'Its database is on the available version.',
+    estadoSinComparar: 'Not checked',
+    leyendaAlDia: 'It is on the same version as the system.',
     leyendaDesfasada:
-      'It is missing migrations to reach the available version. The migrar-empresas command applies them.',
+      'It is missing updates to catch up. They are applied from the server, with the maintenance command.',
     leyendaSinComparar:
-      'It could not be compared: either it was never migrated, or the binary that answered does not know its version, which is what happens when the database is AHEAD of the deployed code. Nothing is claimed here about whether or how many migrations it is missing.',
+      'It could not be compared. Either it has never been updated, or it is ahead of the system — that happens when it was updated before the new version went out. Nothing is known here about whether it is missing anything, or how much.',
     limitacion:
-      'The report opens each database and reads its migration history, not the copy the central database has on record, so it also catches anyone who migrated outside the tool. The trade-off: a database that does not answer shows up as “could not compare”, not as an error.',
+      'The check opens each company and looks at what it actually has applied, not at what was written down. That way it also catches anyone who updated outside the tool. In exchange, a company that does not answer shows up as “not checked” rather than as an error.',
   },
 
   hoja: {
@@ -2564,7 +2571,7 @@ const EN_US: Textos = {
       n === 1 ? 'One plan in the catalogue' : `${n} plans in the catalogue`,
 
     queEsUnPlan:
-      'A plan is its set of modules: that is what is sold. Quotas —equipment, users, storage— do not belong here: they are negotiated per company.',
+      'Here you put together the plans your clients can subscribe to. A plan says WHICH MODULES it includes; how many machines or users each company can have is set on the company itself.',
 
     sinPlanes: 'There are no plans in the catalogue yet.',
     colPlan: 'Plan',
@@ -2612,22 +2619,23 @@ const EN_US: Textos = {
 
   limites: {
     titulo: 'Limits',
-    contexto: (n: number) => `${n} types`,
+    contexto: (n: number) => (n === 1 ? 'One limit' : `${n} limits`),
     queEsUnLimite:
       'A limit says HOW MANY a company may have. Here you define which limits exist and what they are worth by default; the quota of a specific company is set from its row in Companies.',
     crearNoEsAplicar:
-      'Creating a type does not create a limit: it only names it. A limit bites when there is code reading it and blocking the operation, and today there is none for any of them.',
-    ninguno: 'There are no limit types yet. Create the first one with the button above.',
-    cargando: 'Loading the limit types…',
+      'Heads up: limits are saved but the system does not enforce them yet. You can define and assign them, but nobody will run into them while working.',
+    ninguno: 'There are no limits yet. Create the first one with the button above.',
+    cargando: 'Loading the limits…',
     colLimite: 'Limit',
-    colDefecto: 'Default',
+    colDefecto: 'General value',
     colUnidad: 'Unit',
     colExcepciones: 'With own quota',
     colAcciones: 'Actions',
     activo: 'Active',
     retirado: 'Retired',
     sinLimite: 'Unlimited',
-    sinCodigoDetras: 'No code behind it: it can be set per company and will not bite.',
+    sinCodigoDetras:
+      'The system does not watch this one: you can assign it, but it will not stop anybody.',
     editar: 'Edit',
     crear: 'New limit',
     crearApoyo:
@@ -2635,17 +2643,18 @@ const EN_US: Textos = {
     editarTitulo: 'Edit the limit',
     editarApoyo: 'The key stays put: it is what the code looks up to apply it.',
     cerrar: 'Close',
-    clave: 'Key',
+    clave: 'Identifier',
     ayudaClave: 'Lowercase, digits and underscores. For example: max_equipos.',
     claveNoSeEdita: 'It cannot be changed: it is what the code looks up to apply the limit.',
     nombre: 'Name',
     unidad: 'Unit',
     ayudaUnidad: 'What it is counted in: machines, users, GB.',
     descripcion: 'Description',
-    valorDefecto: 'Default value',
-    ayudaValorDefecto: '-1 is unlimited. Zero means they cannot create any.',
+    valorDefecto: 'General value',
+    ayudaValorDefecto:
+      'What applies to companies without a quota of their own. Write -1 for no cap, and 0 if they should not be able to create any.',
     orden: 'Order',
-    ayudaOrden: 'Position it takes when comparing plans.',
+    ayudaOrden: 'Where it shows up in the list. The lowest number goes first.',
     activoCampo: 'Active',
     ayudaActivo:
       'A retired type is never deleted — companies that negotiated it keep it: it simply stops being offered.',
@@ -2665,8 +2674,9 @@ const EN_US: Textos = {
 
   empresas: {
     titulo: 'Companies',
-    aprovisionada: (slug: string) => `${slug} provisioned`,
-    baseYEsquema: (base: string, esquema: string) => `Database ${base}, schema ${esquema}.`,
+    aprovisionada: (slug: string) => `${slug} is ready`,
+    baseYEsquema: (base: string, esquema: string) =>
+      `Its data lives in ${base}, on version ${esquema}.`,
     invitacionEnviada: 'Invitation sent.',
     invitacionNoEnviada: 'The invitation was NOT sent',
     hayQueReenviar: '— resend it from its row in the list.',
@@ -2678,21 +2688,21 @@ const EN_US: Textos = {
     reenvioSinCorreo: 'The invitation was reissued but the email did NOT go out',
     reenvioSinCorreoApoyo:
       '— and the previous link is already invalidated, so it has to be resent again.',
-    ligaSoloDesarrollo: 'Link (development only):',
+    ligaSoloDesarrollo: 'Invitation link (development only):',
     conteo: (n: number) => `${n} companies`,
     ninguna: 'There are none yet.',
     colEmpresa: 'Company',
     colRazonSocial: 'Legal name',
     colEstado: 'Status',
-    colBase: 'Database',
+    colBase: 'Setup',
     colPlan: 'Plan',
     colAcciones: 'Actions',
-    sinSuscripcion: '— no subscription',
+    sinSuscripcion: '— no plan',
     conModulos: (n: number) => `(${n} modules)`,
     crear: 'New company',
     darDeAlta: 'Add a company',
     darDeAltaApoyo:
-      'Creates and migrates its database, seeds its roles and permissions, and sends the invitation to its first administrator.',
+      'Sets up its data, leaves its roles and permissions ready, and sends the invitation to its first administrator.',
     cerrar: 'Close',
     identificador: 'Identifier',
     ayudaIdentificador:
@@ -2710,21 +2720,21 @@ const EN_US: Textos = {
       abrir: 'Limits',
       titulo: (slug: string) => `${slug} limits`,
       apoyo:
-        'The plan decides which modules they get into; this decides how many. A limit left unset inherits the catalogue default.',
+        'The plan decides which modules this company gets into; this decides how many machines, users or branches it can have. Anything you leave unset takes the general value.',
       todaviaNoAplica:
-        'Not enforced yet: they are saved and audited, but no operation checks them so far.',
+        'Heads up: for now they are saved and the change is logged, but the system does not enforce them yet.',
       colLimite: 'Limit',
       colValor: 'Value',
-      colOrigen: 'Source',
+      colOrigen: 'Where it comes from',
       sinLimite: 'Unlimited',
-      negociado: 'Negotiated',
-      porDefecto: 'Default',
-      porDefectoCon: (valor: string) => `Default (${valor})`,
+      negociado: 'Set for this company',
+      porDefecto: 'General value',
+      porDefectoCon: (valor: string) => `General value (${valor})`,
       guardar: 'Save',
       guardando: 'Saving…',
       quitar: 'Remove',
       quitando: 'Removing…',
-      quitarApoyo: 'Goes back to the catalogue default.',
+      quitarApoyo: 'Goes back to using the general value.',
       cargando: 'Loading the limits…',
       ayudaValor: 'An integer greater than or equal to zero. Zero means they cannot create any.',
       errorValor: 'Write an integer greater than or equal to zero, or tick "Unlimited".',
@@ -2738,18 +2748,17 @@ const EN_US: Textos = {
 
     aprovisionar: 'Add',
     aprovisionando: 'Creating…',
-    tardaUnosSegundos:
-      'Takes a few seconds: it creates the database and runs every migration on it.',
+    tardaUnosSegundos: 'Takes a few seconds: its data has to be set up.',
     estado: {
       prueba: 'Trial',
       activo: 'Active',
       suspendido: 'Suspended',
       cancelado: 'Cancelled',
     },
-    cambiarEstadoDe: (slug: string) => `Commercial status of ${slug}`,
+    cambiarEstadoDe: (slug: string) => `Account status of ${slug}`,
     cambiandoEstado: 'Saving…',
     confirmarCorte: (slug: string, estado: string) =>
-      `${slug} moves to ${estado}. Its users lose access on their very next request, not the next time they sign in.`,
+      `${slug} moves to ${estado}. Its people lose access right away, even anyone working at that moment.`,
     confirmarCorteTitulo: 'Cut off access',
     aprovisionamiento: {
       pendiente: 'Pending',
@@ -2848,7 +2857,7 @@ const EN_US: Textos = {
     ordenVenta: 'Sales order',
     superadministracion: 'Platform admin',
     empresas: 'Companies',
-    saludEsquemas: 'Schema health',
+    saludEsquemas: 'Updates',
     portal: 'Sign in to your company',
   },
 
