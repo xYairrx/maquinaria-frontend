@@ -537,6 +537,13 @@ const ES_MX = {
       suspendido: 'Suspendido',
       cancelado: 'Cancelado',
     },
+    cambiarEstadoDe: (slug: string) => `Situación comercial de ${slug}`,
+    cambiandoEstado: 'Guardando…',
+    // El mensaje dice QUÉ CAMBIA, no «¿estás seguro?». Una pregunta sin consecuencia
+    // dentro obliga a decidir a ciegas.
+    confirmarCorte: (slug: string, estado: string) =>
+      `${slug} pasa a ${estado}. Sus usuarios pierden el acceso en cuanto hagan la siguiente petición, no al volver a entrar.`,
+    confirmarCorteTitulo: 'Cortar el acceso',
     aprovisionamiento: {
       pendiente: 'Pendiente',
       creando: 'Creando…',
@@ -2696,6 +2703,11 @@ const EN_US: Textos = {
       suspendido: 'Suspended',
       cancelado: 'Cancelled',
     },
+    cambiarEstadoDe: (slug: string) => `Commercial status of ${slug}`,
+    cambiandoEstado: 'Saving…',
+    confirmarCorte: (slug: string, estado: string) =>
+      `${slug} moves to ${estado}. Its users lose access on their very next request, not the next time they sign in.`,
+    confirmarCorteTitulo: 'Cut off access',
     aprovisionamiento: {
       pendiente: 'Pending',
       creando: 'Creating…',

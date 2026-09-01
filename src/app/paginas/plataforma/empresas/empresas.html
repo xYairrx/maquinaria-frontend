@@ -185,8 +185,48 @@
                   {{ e.slug }}
                 </td>
                 <td class="px-4 py-2.5 text-texto-secundario">{{ e.razonSocial }}</td>
-                <td class="whitespace-nowrap px-4 py-2.5 text-texto-secundario">
-                  {{ nombreEstado(e.estado) }}
+                <td class="whitespace-nowrap px-4 py-2.5">
+                  <!--
+                    LA SITUACIÓN COMERCIAL SE CAMBIA AQUÍ, en la celda que ya la mostraba.
+                    Un `<select>` y no un panel: son cuatro valores y ninguno pide más datos,
+                    así que un panel sería un viaje de ida y vuelta para elegir uno de cuatro.
+
+                    El `<label>` va en `sr-only` y no a la vista: la columna ya tiene su
+                    encabezado, y repetir «Estado» en cada fila sería ruido para quien ve la
+                    tabla. Quien la escucha necesita saber de QUÉ empresa es este selector,
+                    y eso es lo que dice el texto.
+
+                    LA PRESELECCIÓN VA EN `[selected]` DE CADA OPCIÓN, no en un `[value]`
+                    del `<select>`. El enlace del padre se aplica ANTES de que el `@for`
+                    cree ni una opción, así que se pierde y el navegador cae en la primera:
+                    TODAS las filas dirían «Prueba». Medido en `selector-estado.spec.ts`,
+                    que fija las dos formas.
+
+                    Y no es `[ngValue]` porque esto no está en un formulario reactivo: no
+                    hay `SelectControlValueAccessor` de por medio. El número se recompone en
+                    el manejador con `Number(...)`, que es lo que el DOM obliga.
+                  -->
+                  <label class="sr-only" [attr.for]="'estado-' + e.slug">
+                    {{ t().empresas.cambiarEstadoDe(e.slug) }}
+                  </label>
+                  <select
+                    [id]="'estado-' + e.slug"
+                    [disabled]="cambiandoEstadoDe() !== null"
+                    (change)="cambiarEstado(e, $event)"
+                    class="campo-formulario w-auto py-1.5 text-[13px]"
+                  >
+                    @for (opcion of estadosPosibles(); track opcion.valor) {
+                      <option [value]="opcion.valor" [selected]="opcion.valor === e.estado">
+                        {{ opcion.nombre }}
+                      </option>
+                    }
+                  </select>
+
+                  @if (cambiandoEstadoDe() === e.slug) {
+                    <p class="mt-1 text-xs text-texto-apagado">
+                      {{ t().empresas.cambiandoEstado }}
+                    </p>
+                  }
                 </td>
                 <td class="whitespace-nowrap px-4 py-2.5">
                   <!--

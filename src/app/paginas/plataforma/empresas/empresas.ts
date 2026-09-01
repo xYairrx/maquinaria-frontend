@@ -9,6 +9,7 @@ import {
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Barra } from '../../../disposicion/barra';
+import { Confirmacion } from '../../../disposicion/confirmacion';
 import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiPlataforma } from '../../../nucleo/api/api-plataforma';
 import { t } from '../../../nucleo/i18n/i18n';
@@ -49,6 +50,7 @@ const PATRON_SLUG = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 export class Empresas {
   private readonly api = inject(ApiPlataforma);
   private readonly barra = inject(Barra);
+  private readonly confirmacion = inject(Confirmacion);
   private readonly sesion = inject(SesionPlataformaStore);
   private readonly fb = inject(NonNullableFormBuilder);
 
@@ -388,6 +390,82 @@ export class Empresas {
     );
     this.limitesCargando.set(false);
     this.limiteEnVuelo.set(null);
+  }
+
+  // ------------------------------------------------- situación comercial --
+
+  /**
+   * Los cuatro estados, para el selector de cada fila.
+   *
+   * Una FUNCIÓN y no una constante de módulo: una constante se evalúa al cargar el módulo y
+   * se queda en el idioma que hubiera entonces. Es la misma regla que `menuEmpresa()`.
+   */
+  protected estadosPosibles(): readonly { valor: EstadoTenant; nombre: string }[] {
+    return [
+      EstadoTenant.Prueba,
+      EstadoTenant.Activo,
+      EstadoTenant.Suspendido,
+      EstadoTenant.Cancelado,
+    ].map((valor) => ({ valor, nombre: this.nombreEstado(valor) }));
+  }
+
+  /** El slug cuyo cambio de estado está en vuelo. Por slug, como el reenvío. */
+  protected readonly cambiandoEstadoDe = signal<string | null>(null);
+
+  /**
+   * Cambia la situación comercial desde el `<select>` de la fila.
+   *
+   * PIDE CONFIRMACIÓN SOLO CUANDO CORTA EL ACCESO —suspender o cancelar—, y no siempre:
+   * una confirmación en un cambio inocuo enseña a pulsar «sí» sin leer, que es justo lo que
+   * arruina la que sí importa.
+   *
+   * `Number(...)` sobre el valor del `<select>`: el DOM entrega SIEMPRE una cadena, así que
+   * sin esto se mandaría `"3"` y el enum del backend recibiría un texto. Es la misma trampa
+   * que `[ngValue]` resuelve dentro de un formulario reactivo; aquí no hay formulario, así
+   * que se convierte a mano.
+   */
+  protected async cambiarEstado(e: ResumenEmpresa, evento: Event): Promise<void> {
+    const control = evento.target as HTMLSelectElement;
+    const estado = Number(control.value) as EstadoTenant;
+
+    if (estado === e.estado || this.cambiandoEstadoDe() !== null) {
+      return;
+    }
+
+    // Lo que el backend llama `PuedeOperar`: prueba y activo sí, los otros dos no.
+    const corta = estado === EstadoTenant.Suspendido || estado === EstadoTenant.Cancelado;
+
+    if (corta) {
+      const sigue = await this.confirmacion.pedir({
+        titulo: t().empresas.confirmarCorteTitulo,
+        mensaje: t().empresas.confirmarCorte(e.slug, this.nombreEstado(estado)),
+        // Un VERBO, nunca «Aceptar»: es lo que se va a hacer.
+        confirmar: this.nombreEstado(estado),
+        peligro: true,
+      });
+
+      if (!sigue) {
+        // SE DEVUELVE EL `<select>` A MANO, y no sobra: la fila no cambió, así que
+        // `[value]="e.estado"` sigue valiendo lo mismo y Angular no reescribe el DOM. Sin
+        // esta línea el selector se queda enseñando el estado que se acaba de rechazar.
+        control.value = String(e.estado);
+        return;
+      }
+    }
+
+    this.cambiandoEstadoDe.set(e.slug);
+    this.errorAlta.set(null);
+
+    this.api.cambiarEstadoEmpresa(e.slug, estado).subscribe({
+      next: () => this.cambiandoEstadoDe.set(null),
+      error: (error: unknown) => {
+        this.errorAlta.set(mensajeDeError(error));
+        this.cambiandoEstadoDe.set(null);
+
+        // Falló: la fila sigue como estaba, así que el selector tiene que decirlo.
+        control.value = String(e.estado);
+      },
+    });
   }
 
   protected enProceso(e: ResumenEmpresa): boolean {

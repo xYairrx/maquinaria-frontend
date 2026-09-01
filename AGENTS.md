@@ -446,6 +446,44 @@ compiler checks the declaration and nothing checks the accessor, so these two ru
 one and `[ngValue]` — are the whole list of places where a typed reactive form will lie to
 you. Regression tests: `paginas/empresa/modelos/modelos.spec.ts`.
 
+## A `<select>` OUTSIDE a reactive form preselects with `[selected]`, not `[value]`
+
+Third of the same family, and the one with no accessor to blame. A plain `<select>` — no
+`formControlName`, no `ngModel` — bound like this **does not work**:
+
+```html
+<select [value]="fila.estado">            <!-- no — lost -->
+  @for (o of opciones; track o) { <option [value]="o">{{ o }}</option> }
+</select>
+
+<select>                                   <!-- yes — order-independent -->
+  @for (o of opciones; track o) {
+    <option [value]="o" [selected]="o === fila.estado">{{ o }}</option>
+  }
+</select>
+```
+
+**The parent's binding is applied BEFORE the `@for` has created a single `<option>`**, so
+`select.value = 3` lands on an element with no options, is silently dropped, and the browser
+falls back to the first one. Measured, not assumed: `"1"` instead of `"3"`.
+
+The symptom is a table where **every row shows the first option** regardless of its data —
+and it is worse than it looks, because the underlying value is correct: the view is the only
+thing lying, so a change that did save reads as if it had not.
+
+Two more things that cost a debugging round each while pinning this down:
+
+- **The two forms cannot share a host component in a test.** The broken one's `[value]`
+  changes between passes and dev-mode change detection throws `NG0100`, which masks what you
+  are measuring. One host each.
+- **Drive the test host from a SIGNAL**, the way the real screen gets its row. A plain field
+  mutated between two `detectChanges()` throws `NG0100` too — an artifact of the harness, not
+  something the app can hit.
+
+Regression tests: `paginas/plataforma/empresas/selector-estado.spec.ts`, which pins BOTH
+forms — the broken one included, so nobody "simplifies" the template back to `[value]`.
+
+
 ## Route inputs can be `undefined` despite their type
 
 `withComponentInputBinding` assigns `undefined` when a query param is absent from the URL,

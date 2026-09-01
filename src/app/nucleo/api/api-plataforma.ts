@@ -10,6 +10,7 @@ import type {
   AltaTipoLimite,
   CambioTipoLimite,
   EmpresaAprovisionada,
+  EstadoTenant,
   IdentidadPlataforma,
   LimiteDeEmpresa,
   ResultadoReenvio,
@@ -314,5 +315,20 @@ export class ApiPlataforma {
     return this.http
       .patch<TipoLimite>(`${this.base}/limites/${encodeURIComponent(clave)}`, cambio)
       .pipe(tap(() => this.recargarTiposLimite()));
+  }
+
+  /**
+   * Mueve la situación comercial de una empresa.
+   *
+   * SUSPENDER O CANCELAR CORTA EL ACCESO A TODOS SUS USUARIOS en la SIGUIENTE petición que
+   * hagan, no en su siguiente login: `MiddlewareTenant` comprueba el estado en cada una,
+   * justamente para que no haya que esperar a que caduquen los tokens ya emitidos.
+   *
+   * Recarga la lista sola, como el alta y el reenvío: quien llame no tiene que acordarse.
+   */
+  cambiarEstadoEmpresa(slug: string, estado: EstadoTenant) {
+    return this.http
+      .patch<ResumenEmpresa>(`${this.base}/empresas/${encodeURIComponent(slug)}/estado`, { estado })
+      .pipe(tap(() => this.recargarEmpresas()));
   }
 }

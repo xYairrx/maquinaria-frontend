@@ -1120,6 +1120,52 @@ encima. Casi todo es el bloque de textos de la pantalla nueva, en los dos idioma
 un aviso y no un fallo —eso es a 1 MB—, pero la deuda ya no es teórica: cada pantalla nueva
 suma en el arranque lo que debería ir en su chunk.
 
+#### La situación comercial se cambia desde la fila — 2026-09-01
+
+Un `<select>` con los cuatro estados en la celda que ya los mostraba, en `/empresas`. No un
+panel: son cuatro valores y ninguno pide más datos, así que un panel sería un viaje de ida y
+vuelta para elegir uno de cuatro.
+
+**Pide confirmación solo cuando corta el acceso** —suspender o cancelar—, y no siempre: una
+confirmación en un cambio inocuo enseña a pulsar «sí» sin leer, que es lo que arruina la que
+sí importa. El mensaje dice qué cambia, no «¿estás seguro?»: «*sus usuarios pierden el acceso
+en cuanto hagan la siguiente petición, no al volver a entrar*».
+
+Si se cancela la confirmación —o si el PATCH falla— el selector vuelve a su valor **a mano**.
+No sobra: la fila no cambió, así que Angular no reescribe el DOM y el selector se quedaría
+enseñando el estado que se acaba de rechazar.
+
+#### Y una trampa nueva, que estuvo a punto de reintroducir el bug original
+
+El selector se escribió con `[value]` sobre el `<select>`. Medido antes de darlo por bueno:
+
+```
+[value] en el select    => "1"
+[selected] en la opcion => "3"
+```
+
+**El enlace del elemento padre se aplica ANTES de que el `@for` cree ni una `<option>`**, así
+que `select.value = 3` se pierde en un elemento vacío y el navegador cae en la primera. El
+síntoma habría sido exactamente el que originó todo esto —cada empresa enseñando «Prueba»—
+pero peor: el dato de abajo sí sería correcto, así que la vista mentiría sobre un cambio que
+sí se guardó.
+
+Corregido a `[selected]` en cada opción y fijado en `selector-estado.spec.ts`, que pinta las
+DOS formas: la buena y la rota. La rota se afirma a propósito, para que nadie «simplifique»
+la plantilla volviendo a `[value]`.
+
+Es la tercera de la misma familia que `AGENTS.md` ya documentaba —`[ngValue]` y el
+`<input type="number">`—, y la única sin un value accessor al que culpar. Quedó escrita ahí,
+junto a las otras dos.
+
+Dos cosas que costaron una vuelta cada una al fijarla: las dos formas **no pueden compartir
+anfitrión** en una prueba, porque el `[value]` de la rota cambia entre pasadas y el `NG0100`
+de desarrollo tapa lo que se quiere medir; y el anfitrión bueno se maneja con una **señal**,
+como llega el dato en la pantalla real — un campo normal mutado entre dos `detectChanges()`
+también dispara `NG0100`, y eso es artefacto del arnés, no algo que la aplicación pueda tocar.
+
+**237 pruebas en 21 archivos, 0 fallos.**
+
 ### Lo que sigue, en orden
 
 **El alcance de la Fase 1 tiene pantalla completa.** Los 136 endpoints tienen cliente y ninguna
