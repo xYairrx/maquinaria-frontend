@@ -57,6 +57,36 @@ permitiría mandar un token al ámbito equivocado —un 403 desconcertante— y 
 cliente la separación que el servidor mantiene. Además, así se pueden tener las dos
 abiertas a la vez: dar de alta una empresa y entrar a ella para revisarla.
 
+#### Eso se reporta como fallo de seguridad, y no lo es — 2026-09-01
+
+El síntoma: estando dentro del panel, ir de `admin.localhost:4200/dashboard` a
+`bajio.localhost:4200/inicio` **deja entrar, y con otro usuario**. Y al revés también.
+
+Lo que pasa es lo de arriba: son **dos sesiones distintas, en dos orígenes distintos**, las
+dos abiertas de antes. Entrar a la empresa no reusa la sesión de admin — reanuda la de la
+empresa, que llevaba ahí desde la última vez, porque el token de refresco dura 30 días.
+«Cambió de usuario» es literal: es otra sesión, de otra persona.
+
+Comprobado en un navegador, no razonado. Escribiendo una marca en el `localStorage` de cada
+subdominio y yendo a leerla desde el otro:
+
+| Desde                  | Lee la marca del otro | Sin sesión, `/inicio` y `/dashboard` acaban en |
+| ---------------------- | --------------------- | ---------------------------------------------- |
+| `admin.localhost:4200` | `null`                | `/entrar`                                      |
+| `bajio.localhost:4200` | `null`                | `/entrar`                                      |
+
+**`localStorage` está partido por ORIGEN**, y el origen incluye el host completo:
+`admin.localhost` y `bajio.localhost` son dos orígenes, así que dos almacenes. El token de uno
+es ilegible desde el otro.
+
+Para convencerse en diez segundos: abre el subdominio de la empresa en una ventana de
+incógnito. Te manda a `/entrar`.
+
+Y la separación de verdad no la hacen los guards —son comodidad de interfaz y sus propios
+comentarios lo dicen—, sino la API: dos audiencias de JWT y una policy de ámbito por endpoint.
+Eso quedó fijado el mismo día con `AmbitoCruzadoPruebas` en el backend, porque hasta entonces
+**nada fallaba si alguien le quitaba el `[Authorize]` a un controlador**.
+
 Lo que **sigue faltando**:
 
 - **`api:sync`.** Los tipos de `contratos.ts` están escritos a mano. El plan sigue siendo

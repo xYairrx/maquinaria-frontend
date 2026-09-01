@@ -529,7 +529,7 @@ const ES_MX = {
     errorPlan: 'Elige el plan que contrata la empresa.',
 
     aprovisionar: 'Dar de alta',
-    aprovisionando: 'Aprovisionando…',
+    aprovisionando: 'Creando…',
     tardaUnosSegundos: 'Tarda unos segundos: crea la base y le corre todas las migraciones.',
     estado: {
       prueba: 'Prueba',
@@ -2687,7 +2687,7 @@ const EN_US: Textos = {
     errorPlan: 'Pick the plan the company subscribes to.',
 
     aprovisionar: 'Add',
-    aprovisionando: 'Provisioning…',
+    aprovisionando: 'Creating…',
     tardaUnosSegundos:
       'Takes a few seconds: it creates the database and runs every migration on it.',
     estado: {
