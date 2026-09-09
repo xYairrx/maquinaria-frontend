@@ -8,12 +8,14 @@ import type {
   AltaOrdenCompraDetalle,
   AltaOrdenVenta,
   AltaOrdenVentaDetalle,
+  DocumentoVenta,
   EstadoOrden,
   OrdenCompra,
   OrdenCompraDetalle,
   OrdenVenta,
   OrdenVentaDetalle,
   RegistroDeEquipo,
+  TipoArchivoVenta,
 } from './contratos';
 import { mensajeDeErrorDeRecurso } from './mensaje-error';
 import { FabricaDeRecursos } from './recursos-rest';
@@ -159,5 +161,48 @@ export class ApiOrdenes {
       {},
       { recargar: 'ordenes-venta' },
     );
+  }
+
+  // ------------------------------------------------ el papel de una venta --
+
+  /**
+   * Adjunta contrato, factura o comprobante a una venta.
+   *
+   * `FormData` **sin fijar `Content-Type`**: el navegador tiene que ponerlo él para incluir el
+   * `boundary`, y escribirlo a mano rompe el multipart. Es la misma nota que en
+   * `ApiEquipos.subirDocumento`, y por el mismo motivo.
+   *
+   * **SE PUEDE ADJUNTAR CON LA VENTA YA CERRADA**: la factura y el último comprobante llegan
+   * después, y exigir que siguiera abierta obligaría a reabrirla para archivar su propio papel.
+   */
+  subirDocumentoVenta(
+    id: string,
+    archivo: File,
+    tipo: TipoArchivoVenta,
+    descripcion: string | null,
+  ): Observable<DocumentoVenta> {
+    const cuerpo = new FormData();
+    cuerpo.append('archivo', archivo);
+    cuerpo.append('tipo', String(tipo));
+
+    if (descripcion !== null) {
+      cuerpo.append('descripcion', descripcion);
+    }
+
+    return this.http.post<DocumentoVenta>(
+      `${configuracion.urlApi}/api/ordenes-venta/${encodeURIComponent(id)}/documentos`,
+      cuerpo,
+    );
+  }
+
+  eliminarDocumentoVenta(id: string, documentoId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${configuracion.urlApi}/api/ordenes-venta/${encodeURIComponent(id)}/documentos/${encodeURIComponent(documentoId)}`,
+    );
+  }
+
+  /** La URL de descarga. La compone quien la pinta, como en el expediente de un equipo. */
+  urlDocumentoVenta(id: string, documentoId: string): string {
+    return `${configuracion.urlApi}/api/ordenes-venta/${encodeURIComponent(id)}/documentos/${encodeURIComponent(documentoId)}/contenido`;
   }
 }

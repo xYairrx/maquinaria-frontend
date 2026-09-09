@@ -4,6 +4,39 @@
  */
 
 export interface paths {
+    readonly "/api/bitacora": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** La bitacora, filtrable por modulo, accion, resultado, usuario, entidad y fechas. */
+        readonly get: operations["ListarBitacora"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/bitacora/modulos": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ModulosDeLaBitacora"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/catalogos/categorias-equipo": {
         readonly parameters: {
             readonly query?: never;
@@ -209,6 +242,54 @@ export interface paths {
         readonly patch: operations["CambiarActivoModeloEquipo"];
         readonly trace?: never;
     };
+    readonly "/api/catalogos/motivos-movimiento": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ListarMotivosMovimiento"];
+        readonly put?: never;
+        readonly post: operations["CrearMotivoMovimiento"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/catalogos/motivos-movimiento/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ObtenerMotivoMovimiento"];
+        readonly put: operations["EditarMotivoMovimiento"];
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/catalogos/motivos-movimiento/{id}/activo": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch: operations["CambiarActivoMotivoMovimiento"];
+        readonly trace?: never;
+    };
     readonly "/api/catalogos/puestos": {
         readonly parameters: {
             readonly query?: never;
@@ -307,32 +388,31 @@ export interface paths {
         readonly patch: operations["CambiarActivoTarifa"];
         readonly trace?: never;
     };
-    readonly "/api/catalogos/tipos-equipo": {
+    readonly "/api/catalogos/tipos-tarifa": {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
             readonly path?: never;
             readonly cookie?: never;
         };
-        /** Los tipos de equipo, filtrables por categoria. */
-        readonly get: operations["ListarTiposEquipo"];
+        readonly get: operations["ListarTiposTarifa"];
         readonly put?: never;
-        readonly post: operations["CrearTipoEquipo"];
+        readonly post: operations["CrearTipoTarifa"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
         readonly patch?: never;
         readonly trace?: never;
     };
-    readonly "/api/catalogos/tipos-equipo/{id}": {
+    readonly "/api/catalogos/tipos-tarifa/{id}": {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
             readonly path?: never;
             readonly cookie?: never;
         };
-        readonly get: operations["ObtenerTipoEquipo"];
-        readonly put: operations["EditarTipoEquipo"];
+        readonly get: operations["ObtenerTipoTarifa"];
+        readonly put: operations["EditarTipoTarifa"];
         readonly post?: never;
         readonly delete?: never;
         readonly options?: never;
@@ -340,7 +420,7 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
-    readonly "/api/catalogos/tipos-equipo/{id}/activo": {
+    readonly "/api/catalogos/tipos-tarifa/{id}/activo": {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
@@ -353,8 +433,7 @@ export interface paths {
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
-        /** Retira o reactiva un tipo. No borra: los equipos siguen existiendo. */
-        readonly patch: operations["CambiarActivoTipoEquipo"];
+        readonly patch: operations["CambiarActivoTipoTarifa"];
         readonly trace?: never;
     };
     readonly "/api/clientes": {
@@ -569,7 +648,7 @@ export interface paths {
         };
         readonly get?: never;
         readonly put?: never;
-        /** Agrega una linea. El importe se calcula: cantidad por precio. */
+        /** Agrega una linea CON SUS CONCEPTOS. Al menos uno. Los importes se calculan: cantidad por precio en cada concepto, y su suma es el de la linea. */
         readonly post: operations["AgregarLineaACotizacion"];
         readonly delete?: never;
         readonly options?: never;
@@ -588,6 +667,39 @@ export interface paths {
         readonly put?: never;
         readonly post?: never;
         readonly delete: operations["QuitarLineaDeCotizacion"];
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/cotizaciones/{id}/lineas/{lineaId}/tarifas": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Anade un concepto a la linea. El importe se calcula: cantidad por precio. */
+        readonly post: operations["AgregarTarifaALineaDeCotizacion"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/cotizaciones/{id}/lineas/{lineaId}/tarifas/{tarifaLineaId}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete: operations["QuitarTarifaDeLineaDeCotizacion"];
         readonly options?: never;
         readonly head?: never;
         readonly patch?: never;
@@ -755,9 +867,10 @@ export interface paths {
             readonly path?: never;
             readonly cookie?: never;
         };
-        /** El parque, filtrable por ubicacion, tipo, modelo, estado y proposito. */
+        /** El parque, filtrable por ubicacion, categoria, marca, modelo, estado y proposito. */
         readonly get: operations["ListarEquipos"];
         readonly put?: never;
+        /** Da de alta una maquina. Con ubicacion, genera su movimiento de entrada. */
         readonly post: operations["CrearEquipo"];
         readonly delete?: never;
         readonly options?: never;
@@ -822,10 +935,10 @@ export interface paths {
             readonly path?: never;
             readonly cookie?: never;
         };
-        /** Los precios cargados. Sin paginar: son unos pocos por concepto. */
+        /** Los precios cargados: uno por concepto. Sin paginar, son unos pocos. */
         readonly get: operations["ListarPreciosDeEquipo"];
         readonly put?: never;
-        /** Carga un precio. Choca con 409 si ya hay uno vigente para esa combinacion. */
+        /** Carga un precio. Choca con 409 si la maquina ya tiene uno de ese concepto. */
         readonly post: operations["CargarPrecioDeEquipo"];
         readonly delete?: never;
         readonly options?: never;
@@ -833,7 +946,7 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
-    readonly "/api/equipos/{equipoId}/tarifas/{id}/cierre": {
+    readonly "/api/equipos/{equipoId}/tarifas/{id}": {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
@@ -841,13 +954,30 @@ export interface paths {
             readonly cookie?: never;
         };
         readonly get?: never;
+        /** Cambia el precio de un concepto para esta maquina. */
+        readonly put: operations["EditarPrecioDeEquipo"];
+        readonly post?: never;
+        readonly delete: operations["QuitarPrecioDeEquipo"];
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/equipos/{equipoId}/tarifas/vigentes": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Los precios de la maquina, uno por concepto. */
+        readonly get: operations["PreciosVigentesDeEquipo"];
         readonly put?: never;
         readonly post?: never;
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
-        /** Le pone fecha de fin a un precio vigente. Es como se cambia un precio. */
-        readonly patch: operations["CerrarPrecioDeEquipo"];
+        readonly patch?: never;
         readonly trace?: never;
     };
     readonly "/api/equipos/{id}": {
@@ -859,7 +989,7 @@ export interface paths {
         };
         /** El expediente de un equipo. */
         readonly get: operations["ObtenerEquipo"];
-        /** Corrige el expediente. Mover la ubicacion aqui NO es un traspaso. */
+        /** Corrige el expediente. La ubicacion NO se cambia aqui: se mueve con un movimiento. */
         readonly put: operations["EditarEquipo"];
         readonly post?: never;
         /** Borrado logico. Se rechaza si el equipo tiene calendario ocupado. */
@@ -886,6 +1016,103 @@ export interface paths {
         readonly patch: operations["CambiarEstadoEquipo"];
         readonly trace?: never;
     };
+    readonly "/api/equipos/anios": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ListarAniosDeEquipos"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/mantenimiento": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Los trabajos, filtrables por equipo, estado, tipo, taller y fechas. */
+        readonly get: operations["ListarMantenimientos"];
+        readonly put?: never;
+        readonly post: operations["AbrirMantenimiento"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/mantenimiento/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ObtenerMantenimiento"];
+        readonly put: operations["EditarMantenimiento"];
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/mantenimiento/{id}/cancelar": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: operations["CancelarMantenimiento"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/mantenimiento/{id}/en-proceso": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch: operations["MarcarMantenimientoEnProceso"];
+        readonly trace?: never;
+    };
+    readonly "/api/mantenimiento/{id}/finalizar": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: operations["FinalizarMantenimiento"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/mi/sesion": {
         readonly parameters: {
             readonly query?: never;
@@ -897,6 +1124,74 @@ export interface paths {
         readonly get: operations["ObtenerSesionEmpresa"];
         readonly put?: never;
         readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/movimientos": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** El historial, filtrable por equipo, ubicacion, obra, tipo, motivo y fechas. */
+        readonly get: operations["ListarMovimientos"];
+        readonly put?: never;
+        /** Registra un movimiento y mueve la ubicacion del equipo. */
+        readonly post: operations["RegistrarMovimiento"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/movimientos/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Un movimiento con sus nombres resueltos. */
+        readonly get: operations["ObtenerMovimiento"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/movimientos/{id}/evidencia": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["DescargarEvidenciaDeMovimiento"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/movimientos/evidencias": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Sube la evidencia y devuelve su id. multipart/form-data. */
+        readonly post: operations["SubirEvidenciaDeMovimiento"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -1101,6 +1396,55 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/ordenes-venta/{ordenId}/documentos": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ListarDocumentosDeVenta"];
+        readonly put?: never;
+        /** Adjunta contrato, factura o comprobante. multipart/form-data. */
+        readonly post: operations["SubirDocumentoDeVenta"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/ordenes-venta/{ordenId}/documentos/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete: operations["BorrarDocumentoDeVenta"];
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/ordenes-venta/{ordenId}/documentos/{id}/contenido": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["DescargarDocumentoDeVenta"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/plataforma/empresas": {
         readonly parameters: {
             readonly query?: never;
@@ -1119,6 +1463,23 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/plataforma/empresas/{slug}/estado": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        /** Mueve la situacion comercial: prueba, activa, suspendida o cancelada. Suspender corta el acceso en la SIGUIENTE peticion de sus usuarios. */
+        readonly patch: operations["CambiarEstadoEmpresa"];
+        readonly trace?: never;
+    };
     readonly "/api/plataforma/empresas/{slug}/invitacion": {
         readonly parameters: {
             readonly query?: never;
@@ -1131,6 +1492,41 @@ export interface paths {
         /** Reemite la invitacion del administrador. Solo si sigue Invitado. */
         readonly post: operations["ReenviarInvitacionEmpresa"];
         readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/plataforma/empresas/{slug}/limites": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Los cupos de la empresa, con su valor efectivo y de donde sale. */
+        readonly get: operations["ListarLimitesEmpresa"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/plataforma/empresas/{slug}/limites/{clave}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        /** Fija el cupo de un tipo para esta empresa. -1 es sin limite. */
+        readonly put: operations["FijarLimiteEmpresa"];
+        readonly post?: never;
+        /** Devuelve el cupo al valor por defecto del catalogo. */
+        readonly delete: operations["QuitarLimiteEmpresa"];
         readonly options?: never;
         readonly head?: never;
         readonly patch?: never;
@@ -1151,6 +1547,41 @@ export interface paths {
         readonly options?: never;
         readonly head?: never;
         readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/plataforma/limites": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** El catalogo de tipos de limite, activos e inactivos. */
+        readonly get: operations["ListarTiposLimite"];
+        readonly put?: never;
+        /** Crea un tipo de limite. OJO: crear el tipo no crea el limite — solo lo nombra. */
+        readonly post: operations["CrearTipoLimite"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/plataforma/limites/{clave}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        /** Edita un tipo. Mover el valor por defecto cambia el cupo de toda empresa sin excepcion. */
+        readonly patch: operations["EditarTipoLimite"];
         readonly trace?: never;
     };
     readonly "/api/plataforma/modulos": {
@@ -1302,6 +1733,54 @@ export interface paths {
         readonly options?: never;
         readonly head?: never;
         readonly patch: operations["CambiarActivoProveedor"];
+        readonly trace?: never;
+    };
+    readonly "/api/proyectos": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ListarProyectos"];
+        readonly put?: never;
+        readonly post: operations["AbrirProyecto"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/proyectos/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ObtenerProyecto"];
+        readonly put: operations["EditarProyecto"];
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/proyectos/{id}/estado": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch: operations["CambiarEstadoProyecto"];
         readonly trace?: never;
     };
     readonly "/api/rentas": {
@@ -1467,7 +1946,7 @@ export interface paths {
         };
         readonly get?: never;
         readonly put?: never;
-        /** Agrega un equipo. Solo en Borrador: despues tiene calendario detras. */
+        /** Agrega un equipo con sus cargos. Solo en Borrador: despues tiene calendario detras. */
         readonly post: operations["AgregarLineaARenta"];
         readonly delete?: never;
         readonly options?: never;
@@ -1491,6 +1970,56 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/rentas/{id}/lineas/{lineaId}/destino": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        /** Asigna la maquina a una obra, o le pone un sitio de entrega suelto. */
+        readonly put: operations["AsignarDestinoDeLineaDeRenta"];
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/rentas/{id}/lineas/{lineaId}/tarifas": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Agrega un cargo a una maquina de la renta. Solo en Borrador. */
+        readonly post: operations["AgregarCargoALineaDeRenta"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/rentas/{id}/lineas/{lineaId}/tarifas/{tarifaLineaId}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete: operations["QuitarCargoDeLineaDeRenta"];
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/rentas/desde-cotizacion/{cotizacionId}": {
         readonly parameters: {
             readonly query?: never;
@@ -1502,6 +2031,187 @@ export interface paths {
         readonly put?: never;
         /** Copia una cotizacion aceptada a una renta nueva, con precios congelados. */
         readonly post: operations["CrearRentaDesdeCotizacion"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reportes/clientes": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ReporteClientes"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reportes/mantenimiento": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ReporteMantenimiento"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reportes/movimientos": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ReporteMovimientos"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reportes/parque": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ReporteParque"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reportes/rentas": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Las rentas que se CRUZAN con el periodo, no solo las que empiezan ahi. */
+        readonly get: operations["ReporteRentas"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reportes/utilizacion": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ReporteUtilizacion"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/roles": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Los roles con su matriz de permisos y cuanta gente los tiene. */
+        readonly get: operations["ListarRoles"];
+        readonly put?: never;
+        /** Crea un rol propio de la empresa. Nace sin permisos. */
+        readonly post: operations["CrearRol"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/roles/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ObtenerRol"];
+        /** Renombra el rol. Los de sistema TAMBIEN se pueden renombrar. */
+        readonly put: operations["EditarRol"];
+        readonly post?: never;
+        readonly delete: operations["EliminarRol"];
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/roles/{id}/permisos": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put: operations["ActualizarPermisosRol"];
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/roles/catalogo": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["CatalogoDePermisos"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/tablero": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Los cinco bloques de indicadores de la operacion. */
+        readonly get: operations["ObtenerTablero"];
+        readonly put?: never;
+        readonly post?: never;
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -1558,24 +2268,6 @@ export interface paths {
         readonly patch: operations["CambiarEstadoTrabajador"];
         readonly trace?: never;
     };
-    readonly "/api/transferencias": {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path?: never;
-            readonly cookie?: never;
-        };
-        /** Historial de traspasos, filtrable por equipo o por ubicacion. */
-        readonly get: operations["ListarTransferencias"];
-        readonly put?: never;
-        /** Traspasa un equipo. Solo entre ubicaciones que almacenan. */
-        readonly post: operations["TraspasarEquipo"];
-        readonly delete?: never;
-        readonly options?: never;
-        readonly head?: never;
-        readonly patch?: never;
-        readonly trace?: never;
-    };
     readonly "/api/ubicaciones": {
         readonly parameters: {
             readonly query?: never;
@@ -1626,10 +2318,97 @@ export interface paths {
         readonly patch: operations["CambiarActivoUbicacion"];
         readonly trace?: never;
     };
+    readonly "/api/usuarios": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Los usuarios de la empresa, filtrables por estado y por rol. */
+        readonly get: operations["ListarUsuariosEmpresa"];
+        readonly put?: never;
+        /** Invita a alguien: crea su cuenta, sus roles y su liga de invitacion. */
+        readonly post: operations["InvitarUsuarioEmpresa"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/usuarios/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: operations["ObtenerUsuarioEmpresa"];
+        readonly put: operations["EditarUsuarioEmpresa"];
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/usuarios/{id}/estado": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch: operations["CambiarEstadoUsuarioEmpresa"];
+        readonly trace?: never;
+    };
+    readonly "/api/usuarios/{id}/invitacion": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: operations["ReenviarInvitacionUsuarioEmpresa"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/usuarios/{id}/roles": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put: operations["AsignarRolesUsuarioEmpresa"];
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description 1 = Alta · 2 = Cambio · 3 = Borrado · 4 = Acceso · 5 = Denegado · 6 = Exportacion · 7 = Login · 8 = LoginFallido · 9 = Confirmacion · 10 = Cancelacion · 11 = CambioEstado
+         * @enum {integer}
+         */
+        readonly AccionAuditoria: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
         readonly AceptacionAceptada: {
             readonly correo?: string;
             readonly empresa?: string;
@@ -1670,8 +2449,9 @@ export interface components {
             /** Format: double */
             readonly limiteCredito?: number;
             readonly nombreComercial?: null | string;
+            readonly observaciones?: null | string;
             readonly razonSocial?: string;
-            readonly rfc?: null | string;
+            readonly rfc?: string;
             readonly telefono?: null | string;
         };
         readonly AltaContrato: {
@@ -1693,8 +2473,6 @@ export interface components {
             readonly titulo?: string;
         };
         readonly AltaCotizacion: {
-            /** Format: uuid */
-            readonly clienteId?: string;
             /** Format: double */
             readonly descuento?: number;
             /** Format: date */
@@ -1702,27 +2480,34 @@ export interface components {
             /** Format: double */
             readonly impuestos?: number;
             readonly notas?: null | string;
-            /** Format: uuid */
-            readonly trabajadorId?: string;
-            /** Format: uuid */
-            readonly ubicacionId?: string;
+            /** Format: date-time */
+            readonly periodoFin?: null | string;
+            /** Format: date-time */
+            readonly periodoInicio?: null | string;
+            readonly tipo?: components["schemas"]["TipoCotizacion"];
+            readonly unidad?: components["schemas"]["UnidadTarifa"];
             /** Format: date */
-            readonly vigenciaHasta?: null | string;
+            readonly vigenciaHasta?: string;
         };
         readonly AltaCotizacionLinea: {
             /** Format: double */
-            readonly cantidad?: number;
+            readonly costoUnitario?: null | number;
             readonly descripcion?: null | string;
             /** Format: uuid */
             readonly equipoId?: null | string;
+            /** Format: int32 */
+            readonly orden?: number;
+            readonly tarifas?: readonly components["schemas"]["AltaCotizacionLineaTarifa"][];
+        };
+        readonly AltaCotizacionLineaTarifa: {
+            /** Format: double */
+            readonly cantidad?: number;
             /** Format: int32 */
             readonly orden?: number;
             /** Format: double */
             readonly precioUnitario?: number;
             /** Format: uuid */
             readonly tarifaId?: string;
-            /** Format: uuid */
-            readonly tipoEquipoId?: null | string;
         };
         readonly AltaDeEmpresa: {
             readonly codigoPlan?: string;
@@ -1749,9 +2534,12 @@ export interface components {
         readonly AltaEquipo: {
             /** Format: int32 */
             readonly anio?: null | number;
+            /** Format: uuid */
+            readonly categoriaEquipoId?: string;
             readonly codigoInterno?: string;
             /** Format: double */
             readonly costoAdquisicion?: null | number;
+            readonly descripcion?: null | string;
             /** Format: date */
             readonly fechaAdquisicion?: null | string;
             /** Format: double */
@@ -1762,27 +2550,23 @@ export interface components {
             readonly modeloEquipoId?: string;
             readonly notas?: null | string;
             readonly numeroSerie?: null | string;
-            readonly origen?: components["schemas"]["OrigenEquipo"];
-            readonly proposito?: components["schemas"]["PropositoEquipo"];
-            /** Format: uuid */
-            readonly tipoEquipoId?: string;
+            /** Format: double */
+            readonly tarifaDia?: null | number;
+            /** Format: double */
+            readonly tarifaHora?: null | number;
+            /** Format: double */
+            readonly tarifaMes?: null | number;
+            /** Format: double */
+            readonly tarifaSemana?: null | number;
             /** Format: uuid */
             readonly ubicacionId?: null | string;
-            /** Format: double */
-            readonly valorActual?: null | number;
         };
         readonly AltaEquipoTarifa: {
-            /** Format: uuid */
-            readonly clienteId?: null | string;
             readonly moneda?: null | string;
             /** Format: double */
             readonly precio?: number;
             /** Format: uuid */
             readonly tarifaId?: string;
-            /** Format: date-time */
-            readonly vigenciaDesde?: string;
-            /** Format: date-time */
-            readonly vigenciaHasta?: null | string;
         };
         readonly AltaExtension: {
             /** Format: date-time */
@@ -1791,18 +2575,67 @@ export interface components {
             /** Format: uuid */
             readonly trabajadorId?: string;
         };
+        readonly AltaMantenimiento: {
+            readonly descripcion?: null | string;
+            /** Format: uuid */
+            readonly equipoId?: string;
+            /** Format: date-time */
+            readonly fechaInicio?: null | string;
+            /** Format: double */
+            readonly horometroInicio?: null | number;
+            /** Format: uuid */
+            readonly motivoId?: string;
+            readonly observaciones?: null | string;
+            /** Format: uuid */
+            readonly proveedorId?: null | string;
+            /** Format: uuid */
+            readonly tallerId?: null | string;
+            readonly tipo?: components["schemas"]["TipoMantenimiento"];
+            /** Format: uuid */
+            readonly trabajadorId?: string;
+        };
         readonly AltaMarca: {
             readonly nombre?: string;
         };
         readonly AltaModeloEquipo: {
+            /** Format: uuid */
+            readonly categoriaEquipoId?: null | string;
             readonly descripcion?: null | string;
             /** Format: int32 */
             readonly horasEntreServicios?: null | number;
             /** Format: uuid */
             readonly marcaId?: string;
             readonly nombre?: string;
+        };
+        readonly AltaMotivoMovimiento: {
+            readonly codigo?: string;
+            readonly descripcion?: null | string;
+            readonly nombre?: string;
+        };
+        readonly AltaMovimiento: {
             /** Format: uuid */
-            readonly tipoEquipoId?: null | string;
+            readonly clienteId?: null | string;
+            /** Format: uuid */
+            readonly equipoId?: string;
+            /** Format: uuid */
+            readonly evidenciaArchivoId?: null | string;
+            /** Format: date-time */
+            readonly fecha?: null | string;
+            /** Format: double */
+            readonly horometro?: null | number;
+            /** Format: uuid */
+            readonly motivoId?: string;
+            readonly observaciones?: null | string;
+            /** Format: uuid */
+            readonly proyectoId?: null | string;
+            readonly referenciaFolio?: null | string;
+            readonly tipo?: components["schemas"]["TipoMovimiento"];
+            /** Format: uuid */
+            readonly trabajadorId?: string;
+            /** Format: uuid */
+            readonly ubicacionDestinoId?: null | string;
+            /** Format: uuid */
+            readonly ubicacionOrigenId?: null | string;
         };
         readonly AltaOrdenCompra: {
             /** Format: date */
@@ -1831,6 +2664,7 @@ export interface components {
         readonly AltaOrdenVenta: {
             /** Format: uuid */
             readonly clienteId?: string;
+            readonly condicionesPago?: null | string;
             /** Format: double */
             readonly descuento?: number;
             /** Format: date */
@@ -1855,9 +2689,28 @@ export interface components {
             readonly correo?: null | string;
             readonly domicilio?: null | string;
             readonly nombreComercial?: null | string;
+            readonly observaciones?: null | string;
             readonly razonSocial?: string;
             readonly rfc?: null | string;
             readonly telefono?: null | string;
+        };
+        readonly AltaProyecto: {
+            /** Format: uuid */
+            readonly clienteId?: string;
+            readonly codigo?: string;
+            readonly contactoNombre?: null | string;
+            readonly contactoTelefono?: null | string;
+            readonly domicilio?: null | string;
+            /** Format: date */
+            readonly fechaFin?: null | string;
+            /** Format: date */
+            readonly fechaInicio?: null | string;
+            /** Format: double */
+            readonly latitud?: null | number;
+            /** Format: double */
+            readonly longitud?: null | number;
+            readonly nombre?: string;
+            readonly observaciones?: null | string;
         };
         readonly AltaPuesto: {
             readonly codigo?: string;
@@ -1869,6 +2722,7 @@ export interface components {
             readonly anticipo?: number;
             /** Format: uuid */
             readonly clienteId?: string;
+            readonly condiciones?: null | string;
             /** Format: uuid */
             readonly cotizacionId?: null | string;
             /** Format: double */
@@ -1881,10 +2735,10 @@ export interface components {
             readonly impuestos?: number;
             /** Format: date-time */
             readonly inicio?: string;
-            readonly lugar?: components["schemas"]["LugarRenta"];
             readonly notas?: null | string;
             /** Format: uuid */
-            readonly trabajadorId?: string;
+            readonly trabajadorId?: null | string;
+            readonly unidad?: components["schemas"]["UnidadTarifa"];
         };
         readonly AltaRentaConcepto: {
             /** Format: double */
@@ -1901,7 +2755,7 @@ export interface components {
         };
         readonly AltaRentaLinea: {
             /** Format: double */
-            readonly cantidad?: number;
+            readonly cantidad?: null | number;
             /** Format: uuid */
             readonly equipoId?: string;
             /** Format: double */
@@ -1909,9 +2763,32 @@ export interface components {
             /** Format: int32 */
             readonly orden?: number;
             /** Format: double */
+            readonly precioUnitario?: null | number;
+            /** Format: uuid */
+            readonly proyectoId?: null | string;
+            readonly tarifas?: null | readonly components["schemas"]["AltaRentaLineaTarifa"][];
+            /** Format: uuid */
+            readonly ubicacionDestinoId?: null | string;
+        };
+        readonly AltaRentaLineaTarifa: {
+            /** Format: double */
+            readonly cantidad?: number;
+            /** Format: double */
+            readonly costo?: null | number;
+            readonly descripcion?: null | string;
+            /** Format: int32 */
+            readonly orden?: number;
+            /** Format: double */
             readonly precioUnitario?: number;
             /** Format: uuid */
             readonly tarifaId?: string;
+            /** Format: uuid */
+            readonly trabajadorId?: null | string;
+        };
+        readonly AltaRol: {
+            readonly codigo?: string;
+            readonly descripcion?: null | string;
+            readonly nombre?: string;
         };
         readonly AltaTarifa: {
             readonly aplicaRenta?: boolean;
@@ -1919,12 +2796,23 @@ export interface components {
             readonly codigo?: string;
             readonly descripcion?: null | string;
             readonly nombre?: string;
+            /** Format: uuid */
+            readonly tipoTarifaId?: null | string;
             readonly unidad?: components["schemas"]["UnidadTarifa"];
         };
-        readonly AltaTipoEquipo: {
-            /** Format: uuid */
-            readonly categoriaEquipoId?: string;
+        readonly AltaTipoLimite: {
+            readonly clave?: string;
+            readonly descripcion?: null | string;
+            readonly nombre?: string;
+            /** Format: int32 */
+            readonly orden?: number;
+            readonly unidad?: string;
+            /** Format: int32 */
+            readonly valorDefecto?: number;
+        };
+        readonly AltaTipoTarifa: {
             readonly codigo?: string;
+            readonly descripcion?: null | string;
             readonly nombre?: string;
         };
         readonly AltaTrabajador: {
@@ -1942,20 +2830,8 @@ export interface components {
             /** Format: uuid */
             readonly usuarioId?: null | string;
         };
-        readonly AltaTransferencia: {
-            /** Format: uuid */
-            readonly destinoId?: string;
-            /** Format: uuid */
-            readonly equipoId?: string;
-            /** Format: date-time */
-            readonly fecha?: string;
-            /** Format: date-time */
-            readonly fin?: null | string;
-            readonly motivo?: null | string;
-            /** Format: uuid */
-            readonly trabajadorId?: string;
-        };
         readonly AltaUbicacion: {
+            readonly administrativaManual?: boolean;
             readonly codigo?: string;
             readonly domicilio?: null | string;
             /** Format: double */
@@ -1963,14 +2839,109 @@ export interface components {
             /** Format: double */
             readonly longitud?: null | number;
             readonly nombre?: string;
+            readonly observaciones?: null | string;
             readonly telefono?: null | string;
             readonly tipo?: components["schemas"]["TipoUbicacion"];
+            /** Format: uuid */
+            readonly trabajadorId?: null | string;
+        };
+        readonly AltaUsuarioEmpresa: {
+            readonly apellidos?: null | string;
+            readonly correo?: string;
+            readonly nombre?: string;
+            readonly rolesIds?: null | readonly string[];
+            readonly telefono?: null | string;
+        };
+        readonly AsignacionDeRoles: {
+            readonly rolesIds?: readonly string[];
+        };
+        readonly AuditoriaDto: {
+            readonly accion: components["schemas"]["AccionAuditoria"];
+            /** Format: uuid */
+            readonly correlacionId: string;
+            readonly entidad: string;
+            readonly entidadId: string;
+            /** Format: date-time */
+            readonly fechaUtc: string;
+            /** Format: int64 */
+            readonly id: number;
+            readonly ip: null | string;
+            readonly modulo: null | string;
+            readonly origen: string;
+            readonly resultado: components["schemas"]["ResultadoAuditoria"];
+            readonly roles: readonly string[];
+            readonly usuarioCorreo: null | string;
+            /** Format: uuid */
+            readonly usuarioId: null | string;
+            readonly valoresAnteriores: null | string;
+            readonly valoresNuevos: null | string;
+        };
+        readonly BloqueCotizaciones: {
+            /** Format: int32 */
+            readonly abiertas: number;
+            /** Format: int32 */
+            readonly aceptadasSinRenta: number;
+            /** Format: int32 */
+            readonly porVencer: number;
+        };
+        readonly BloqueMantenimiento: {
+            /** Format: int32 */
+            readonly abiertos: number;
+            /** Format: double */
+            readonly costoDelMes: number;
+            /** Format: int32 */
+            readonly enProceso: number;
+            /** Format: int32 */
+            readonly finalizadosDelMes: number;
+        };
+        readonly BloqueMovimientos: {
+            /** Format: int32 */
+            readonly hoy: number;
+            /** Format: int32 */
+            readonly sieteDias: number;
+        };
+        readonly BloqueParque: {
+            /** Format: int32 */
+            readonly disponibles: number;
+            /** Format: int32 */
+            readonly enMantenimiento: number;
+            /** Format: int32 */
+            readonly fueraDeServicio: number;
+            /** Format: int32 */
+            readonly rentados: number;
+            /** Format: int32 */
+            readonly sinUbicacion: number;
+            /** Format: int32 */
+            readonly total: number;
+        };
+        readonly BloqueRentas: {
+            /** Format: int32 */
+            readonly porEntregar: number;
+            /** Format: int32 */
+            readonly porVencer: number;
+            /** Format: int32 */
+            readonly vencidas: number;
+            /** Format: int32 */
+            readonly vigentes: number;
         };
         readonly CambioDeActivo: {
             readonly activo?: boolean;
         };
         readonly CambioDeActivoCatalogo: {
             readonly activo?: boolean;
+        };
+        readonly CambioDeEstadoEmpresa: {
+            readonly estado?: components["schemas"]["EstadoTenant"];
+        };
+        readonly CambioDeEstadoProyecto: {
+            readonly estado?: components["schemas"]["EstadoProyecto"];
+        };
+        readonly CambioDePrecio: {
+            /** Format: double */
+            readonly precio?: number;
+        };
+        readonly CambioEnProceso: {
+            readonly enProceso?: boolean;
         };
         readonly CambioEstadoCliente: {
             readonly estado?: components["schemas"]["EstadoCliente"];
@@ -1996,25 +2967,68 @@ export interface components {
             /** Format: date */
             readonly fechaBaja?: null | string;
         };
+        readonly CambioEstadoUsuario: {
+            readonly estado?: components["schemas"]["EstadoUsuario"];
+        };
+        readonly CambioMantenimiento: {
+            /** Format: double */
+            readonly costo?: null | number;
+            readonly descripcion?: null | string;
+            /** Format: uuid */
+            readonly motivoId?: string;
+            readonly observaciones?: null | string;
+            /** Format: uuid */
+            readonly proveedorId?: null | string;
+            readonly tipo?: components["schemas"]["TipoMantenimiento"];
+            /** Format: uuid */
+            readonly trabajadorId?: string;
+        };
+        readonly CambioTipoLimite: {
+            readonly activo?: boolean;
+            readonly descripcion?: null | string;
+            readonly nombre?: string;
+            /** Format: int32 */
+            readonly orden?: number;
+            readonly unidad?: string;
+            /** Format: int32 */
+            readonly valorDefecto?: number;
+        };
+        readonly CambioUsuarioEmpresa: {
+            readonly apellidos?: null | string;
+            readonly nombre?: string;
+            readonly telefono?: null | string;
+        };
+        readonly CancelacionMantenimiento: {
+            readonly motivo?: null | string;
+            /** Format: uuid */
+            readonly ubicacionRegresoId?: null | string;
+        };
         readonly CategoriaEquipoDto: {
             readonly activo: boolean;
             readonly codigo: string;
             readonly descripcion: null | string;
+            /** Format: int32 */
+            readonly equipos: number;
             /** Format: uuid */
             readonly id: string;
             readonly nombre: string;
-            /** Format: int32 */
-            readonly tipos: number;
-        };
-        readonly CierreDePrecio: {
-            /** Format: date-time */
-            readonly vigenciaHasta?: string;
         };
         readonly CierreDeRenta: {
             readonly horometrosDevolucion?: null | {
                 readonly [key: string]: number;
             };
             readonly nota?: null | string;
+        };
+        readonly CierreMantenimiento: {
+            /** Format: double */
+            readonly costo?: null | number;
+            /** Format: date-time */
+            readonly fechaFin?: null | string;
+            /** Format: double */
+            readonly horometroFin?: null | number;
+            readonly observaciones?: null | string;
+            /** Format: uuid */
+            readonly ubicacionRegresoId?: null | string;
         };
         readonly ClausulaDto: {
             readonly activo: boolean;
@@ -2043,10 +3057,11 @@ export interface components {
             /** Format: double */
             readonly limiteCredito: number;
             readonly nombreComercial: null | string;
+            readonly observaciones: null | string;
             readonly razonSocial: string;
             /** Format: int32 */
             readonly rentas: number;
-            readonly rfc: null | string;
+            readonly rfc: string;
             readonly telefono: null | string;
         };
         readonly ContactoCliente: {
@@ -2091,22 +3106,21 @@ export interface components {
         readonly ConversionARenta: {
             /** Format: double */
             readonly anticipo?: number;
+            /** Format: uuid */
+            readonly clienteId?: string;
+            readonly condiciones?: null | string;
             /** Format: double */
             readonly deposito?: number;
             /** Format: date-time */
             readonly fin?: string;
             /** Format: date-time */
             readonly inicio?: string;
-            readonly lugar?: components["schemas"]["LugarRenta"];
         };
         readonly ConversionDeCotizacion: {
             readonly pendientes: readonly string[];
             readonly renta: components["schemas"]["RentaDto"];
         };
         readonly CotizacionDto: {
-            readonly cliente: string;
-            /** Format: uuid */
-            readonly clienteId: string;
             /** Format: double */
             readonly descuento: number;
             readonly estado: components["schemas"]["EstadoCotizacion"];
@@ -2119,26 +3133,44 @@ export interface components {
             readonly impuestos: number;
             readonly lineas: readonly components["schemas"]["CotizacionLineaDto"][];
             readonly notas: null | string;
+            /** Format: date-time */
+            readonly periodoFin: null | string;
+            /** Format: date-time */
+            readonly periodoInicio: null | string;
             /** Format: double */
             readonly subtotal: number;
+            readonly tipo: components["schemas"]["TipoCotizacion"];
             /** Format: double */
             readonly total: number;
-            readonly trabajador: string;
-            /** Format: uuid */
-            readonly trabajadorId: string;
-            readonly ubicacion: string;
-            /** Format: uuid */
-            readonly ubicacionId: string;
+            readonly unidad: components["schemas"]["UnidadTarifa"];
+            /** Format: double */
+            readonly unidadesDelPeriodo?: number;
             /** Format: date */
-            readonly vigenciaHasta: null | string;
+            readonly vigenciaHasta: string;
         };
         readonly CotizacionLineaDto: {
             /** Format: double */
             readonly cantidad: number;
+            readonly codigoInterno: null | string;
+            /** Format: double */
+            readonly costoDeLaMaquina?: number;
+            /** Format: double */
+            readonly costoUnitario: number;
             readonly descripcion: null | string;
-            readonly equipo: null | string;
             /** Format: uuid */
             readonly equipoId: null | string;
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: double */
+            readonly importe: number;
+            readonly nombre: null | string;
+            /** Format: int32 */
+            readonly orden: number;
+            readonly tarifas: readonly components["schemas"]["CotizacionLineaTarifaDto"][];
+        };
+        readonly CotizacionLineaTarifaDto: {
+            /** Format: double */
+            readonly cantidad: number;
             /** Format: uuid */
             readonly id: string;
             /** Format: double */
@@ -2150,13 +3182,16 @@ export interface components {
             readonly tarifa: string;
             /** Format: uuid */
             readonly tarifaId: string;
-            readonly tipoEquipo: null | string;
-            /** Format: uuid */
-            readonly tipoEquipoId: null | string;
             readonly unidad: string;
         };
         readonly DefinirContrasena: {
             readonly contrasena?: string;
+        };
+        readonly DestinoDeLinea: {
+            /** Format: uuid */
+            readonly proyectoId?: null | string;
+            /** Format: uuid */
+            readonly ubicacionDestinoId?: null | string;
         };
         readonly DocumentoEquipoDto: {
             /** Format: uuid */
@@ -2172,6 +3207,20 @@ export interface components {
             /** Format: int64 */
             readonly tamanoBytes: number;
             readonly tipo: components["schemas"]["TipoArchivoEquipo"];
+            readonly tipoMime: string;
+        };
+        readonly DocumentoVentaDto: {
+            /** Format: uuid */
+            readonly archivoId: string;
+            /** Format: date-time */
+            readonly creadoEn: string;
+            readonly descripcion: null | string;
+            /** Format: uuid */
+            readonly id: string;
+            readonly nombreOriginal: string;
+            /** Format: int64 */
+            readonly tamanoBytes: number;
+            readonly tipo: components["schemas"]["TipoArchivoVenta"];
             readonly tipoMime: string;
         };
         readonly DomicilioCliente: {
@@ -2196,16 +3245,17 @@ export interface components {
             readonly versionEsquema?: string;
         };
         readonly EquipoDisponibleDto: {
+            readonly categoria: string;
+            /** Format: uuid */
+            readonly categoriaEquipoId: string;
             readonly codigoInterno: string;
             /** Format: uuid */
             readonly id: string;
             readonly marca: string;
             readonly modelo: string;
+            readonly nombre: null | string;
             /** Format: double */
             readonly precioRentaDiaria: null | number;
-            readonly tipoEquipo: string;
-            /** Format: uuid */
-            readonly tipoEquipoId: string;
             readonly ubicacion: null | string;
             /** Format: uuid */
             readonly ubicacionId: null | string;
@@ -2213,9 +3263,13 @@ export interface components {
         readonly EquipoDto: {
             /** Format: int32 */
             readonly anio: null | number;
+            readonly categoria: string;
+            /** Format: uuid */
+            readonly categoriaEquipoId: string;
             readonly codigoInterno: string;
             /** Format: double */
             readonly costoAdquisicion: null | number;
+            readonly descripcion: null | string;
             /** Format: int32 */
             readonly documentos: number;
             readonly estado: components["schemas"]["EstadoEquipo"];
@@ -2228,28 +3282,28 @@ export interface components {
             /** Format: double */
             readonly kilometraje: null | number;
             readonly marca: string;
+            /** Format: uuid */
+            readonly marcaId: string;
             readonly modelo: string;
             /** Format: uuid */
             readonly modeloEquipoId: string;
             readonly notas: null | string;
             readonly numeroSerie: null | string;
-            readonly origen: components["schemas"]["OrigenEquipo"];
             /** Format: int32 */
             readonly preciosVigentes: number;
-            readonly proposito: components["schemas"]["PropositoEquipo"];
-            readonly tipoEquipo: string;
-            /** Format: uuid */
-            readonly tipoEquipoId: string;
+            /** Format: double */
+            readonly tarifaDia: null | number;
+            /** Format: double */
+            readonly tarifaHora: null | number;
+            /** Format: double */
+            readonly tarifaMes: null | number;
+            /** Format: double */
+            readonly tarifaSemana: null | number;
             readonly ubicacion: null | string;
             /** Format: uuid */
             readonly ubicacionId: null | string;
-            /** Format: double */
-            readonly valorActual: null | number;
         };
         readonly EquipoTarifaDto: {
-            readonly cliente: null | string;
-            /** Format: uuid */
-            readonly clienteId: null | string;
             /** Format: uuid */
             readonly equipoId: string;
             /** Format: uuid */
@@ -2261,11 +3315,6 @@ export interface components {
             /** Format: uuid */
             readonly tarifaId: string;
             readonly unidad: string;
-            /** Format: date-time */
-            readonly vigenciaDesde: string;
-            /** Format: date-time */
-            readonly vigenciaHasta: null | string;
-            readonly vigente?: boolean;
         };
         /**
          * @description 1 = Pendiente · 2 = Creando · 3 = Lista · 4 = Fallida
@@ -2306,10 +3355,20 @@ export interface components {
             readonly versionReconocida: boolean;
         };
         /**
+         * @description 1 = Abierto · 2 = EnProceso · 3 = Finalizado · 4 = Cancelado
+         * @enum {integer}
+         */
+        readonly EstadoMantenimiento: 1 | 2 | 3 | 4;
+        /**
          * @description 1 = Borrador · 2 = Autorizada · 3 = Finalizada · 4 = Cancelada
          * @enum {integer}
          */
         readonly EstadoOrden: 1 | 2 | 3 | 4;
+        /**
+         * @description 1 = Activo · 2 = Suspendido · 3 = Cerrado
+         * @enum {integer}
+         */
+        readonly EstadoProyecto: 1 | 2 | 3;
         /**
          * @description 1 = Borrador · 2 = Confirmada · 3 = PorEntregar · 4 = EnTraslado · 5 = Activa · 6 = PorVencer · 7 = Vencida · 8 = Devuelta · 9 = Cerrada · 10 = Cancelada
          * @enum {integer}
@@ -2325,6 +3384,19 @@ export interface components {
          * @enum {integer}
          */
         readonly EstadoTrabajador: 1 | 2 | 3;
+        /**
+         * @description 1 = Invitado · 2 = Activo · 3 = Suspendido · 4 = Baja
+         * @enum {integer}
+         */
+        readonly EstadoUsuario: 1 | 2 | 3 | 4;
+        readonly EvidenciaSubidaDto: {
+            /** Format: uuid */
+            readonly archivoId?: string;
+            readonly nombreOriginal?: string;
+            /** Format: int64 */
+            readonly tamanoBytes?: number;
+            readonly tipoMime?: string;
+        };
         readonly ExtensionRentaDto: {
             /** Format: date-time */
             readonly creadoEn: string;
@@ -2338,6 +3410,90 @@ export interface components {
             readonly trabajador: string;
             /** Format: uuid */
             readonly trabajadorId: string;
+        };
+        readonly FijarLimite: {
+            /** Format: int32 */
+            readonly valor?: number;
+        };
+        readonly FilaClientes: {
+            /** Format: uuid */
+            readonly clienteId: string;
+            /** Format: int32 */
+            readonly proyectos: number;
+            readonly razonSocial: string;
+            /** Format: int32 */
+            readonly rentas: number;
+            /** Format: int32 */
+            readonly rentasVigentes: number;
+            /** Format: double */
+            readonly totalRentado: number;
+        };
+        readonly FilaMantenimiento: {
+            readonly codigoInterno: string;
+            /** Format: double */
+            readonly costo: null | number;
+            /** Format: int32 */
+            readonly diasFuera: null | number;
+            /** Format: int32 */
+            readonly estado: number;
+            /** Format: date-time */
+            readonly fechaFin: null | string;
+            /** Format: date-time */
+            readonly fechaInicio: string;
+            readonly folio: string;
+            /** Format: uuid */
+            readonly id: string;
+            readonly nombre: null | string;
+            /** Format: int32 */
+            readonly tipo: number;
+        };
+        readonly FilaMovimientos: {
+            /** Format: int32 */
+            readonly cantidad: number;
+            readonly motivo: string;
+            /** Format: int32 */
+            readonly tipo: number;
+        };
+        readonly FilaParque: {
+            /** Format: int32 */
+            readonly equipos: number;
+            readonly grupo: string;
+            readonly valor: string;
+        };
+        readonly FilaRentas: {
+            readonly cliente: string;
+            /** Format: int32 */
+            readonly estado: number;
+            /** Format: date-time */
+            readonly fechaFin: string;
+            /** Format: date-time */
+            readonly fechaInicio: string;
+            readonly folio: string;
+            /** Format: int32 */
+            readonly maquinas: number;
+            /** Format: uuid */
+            readonly rentaId: string;
+            /** Format: double */
+            readonly total: number;
+        };
+        readonly FilaUtilizacion: {
+            readonly codigoInterno: string;
+            /** Format: int32 */
+            readonly diasDelPeriodo: number;
+            /** Format: int32 */
+            readonly diasMantenimiento: number;
+            /** Format: int32 */
+            readonly diasOcupados: number;
+            /** Format: int32 */
+            readonly diasRentados: number;
+            /** Format: uuid */
+            readonly equipoId: string;
+            readonly marca: string;
+            readonly modelo: string;
+            readonly nombre: null | string;
+            /** Format: double */
+            readonly porcentajeUtilizacion: number;
+            readonly ubicacion: null | string;
         };
         readonly FinalizacionDeCompra: {
             readonly equipos: readonly components["schemas"]["RegistroDeEquipo"][];
@@ -2359,24 +3515,64 @@ export interface components {
         };
         /** Format: binary */
         readonly IFormFile: string;
+        readonly InvitacionEmitida: {
+            readonly liga: string;
+            readonly usuario: components["schemas"]["UsuarioEmpresaDto"];
+        };
         readonly InvitacionVigente: {
             readonly correo?: string;
             readonly empresa?: string;
             readonly nombre?: string;
         };
-        readonly LugarRenta: {
-            readonly calle?: null | string;
-            readonly codigoPostal?: null | string;
-            readonly colonia?: null | string;
-            readonly contacto?: null | string;
-            readonly descripcion?: string;
-            readonly estadoProv?: null | string;
+        readonly LimiteDeEmpresa: {
+            readonly clave: string;
+            readonly descripcion: string;
+            readonly esExcepcion: boolean;
+            readonly nombre: string;
+            /** Format: int32 */
+            readonly orden: number;
+            readonly unidad: string;
+            /** Format: int32 */
+            readonly valor: number;
+            /** Format: int32 */
+            readonly valorDefecto: number;
+        };
+        readonly MantenimientoDto: {
+            readonly codigoInterno: string;
             /** Format: double */
-            readonly latitud?: null | number;
+            readonly costo: null | number;
+            readonly descripcion: null | string;
+            /** Format: uuid */
+            readonly equipoId: string;
+            readonly estado: components["schemas"]["EstadoMantenimiento"];
+            /** Format: date-time */
+            readonly fechaFin: null | string;
+            /** Format: date-time */
+            readonly fechaInicio: string;
+            readonly folio: string;
             /** Format: double */
-            readonly longitud?: null | number;
-            readonly municipio?: null | string;
-            readonly telefono?: null | string;
+            readonly horometroFin: null | number;
+            /** Format: double */
+            readonly horometroInicio: null | number;
+            /** Format: uuid */
+            readonly id: string;
+            readonly marca: string;
+            readonly modelo: string;
+            readonly motivo: string;
+            /** Format: uuid */
+            readonly motivoId: string;
+            readonly nombre: null | string;
+            readonly observaciones: null | string;
+            readonly proveedor: null | string;
+            /** Format: uuid */
+            readonly proveedorId: null | string;
+            readonly taller: null | string;
+            /** Format: uuid */
+            readonly tallerId: null | string;
+            readonly tipo: components["schemas"]["TipoMantenimiento"];
+            readonly trabajador: string;
+            /** Format: uuid */
+            readonly trabajadorId: string;
         };
         readonly MarcaDto: {
             readonly activo: boolean;
@@ -2386,8 +3582,14 @@ export interface components {
             readonly modelos: number;
             readonly nombre: string;
         };
+        readonly MatrizDePermisos: {
+            readonly claves?: readonly string[];
+        };
         readonly ModeloEquipoDto: {
             readonly activo: boolean;
+            readonly categoria: null | string;
+            /** Format: uuid */
+            readonly categoriaEquipoId: null | string;
             readonly descripcion: null | string;
             /** Format: int32 */
             readonly equipos: number;
@@ -2399,15 +3601,62 @@ export interface components {
             /** Format: uuid */
             readonly marcaId: string;
             readonly nombre: string;
-            readonly tipoEquipo: null | string;
+        };
+        readonly ModuloConPermisos: {
+            readonly modulo: string;
+            readonly permisos: readonly components["schemas"]["PermisoDto"][];
+        };
+        readonly MotivoMovimientoDto: {
+            readonly activo: boolean;
+            readonly codigo: string;
+            readonly descripcion: null | string;
             /** Format: uuid */
-            readonly tipoEquipoId: null | string;
+            readonly id: string;
+            readonly nombre: string;
         };
         /**
          * @description 1 = Renta · 2 = Reserva · 3 = Mantenimiento · 4 = Reparacion · 5 = Traslado · 6 = Bloqueo
          * @enum {integer}
          */
         readonly MotivoOcupacion: 1 | 2 | 3 | 4 | 5 | 6;
+        readonly MovimientoDto: {
+            readonly cliente: null | string;
+            /** Format: uuid */
+            readonly clienteId: null | string;
+            readonly codigoInterno: string;
+            readonly destino: null | string;
+            /** Format: uuid */
+            readonly equipoId: string;
+            /** Format: uuid */
+            readonly evidenciaArchivoId: null | string;
+            readonly evidenciaNombre: null | string;
+            /** Format: date-time */
+            readonly fecha: string;
+            /** Format: double */
+            readonly horometro: null | number;
+            /** Format: uuid */
+            readonly id: string;
+            readonly motivo: string;
+            /** Format: uuid */
+            readonly motivoId: string;
+            readonly nombre: null | string;
+            readonly observaciones: null | string;
+            readonly origen: null | string;
+            readonly proyecto: null | string;
+            /** Format: uuid */
+            readonly proyectoId: null | string;
+            readonly referenciaFolio: null | string;
+            /** Format: uuid */
+            readonly referenciaId: null | string;
+            readonly tipo: components["schemas"]["TipoMovimiento"];
+            readonly trabajador: string;
+            /** Format: uuid */
+            readonly trabajadorId: string;
+            /** Format: uuid */
+            readonly ubicacionDestinoId: null | string;
+            /** Format: uuid */
+            readonly ubicacionOrigenId: null | string;
+        };
         readonly OcupacionDto: {
             readonly activo: boolean;
             readonly codigoInterno: string;
@@ -2420,6 +3669,7 @@ export interface components {
             /** Format: date-time */
             readonly inicio: string;
             readonly motivo: components["schemas"]["MotivoOcupacion"];
+            readonly nombre: null | string;
             readonly nota: null | string;
             /** Format: uuid */
             readonly referenciaId: null | string;
@@ -2481,17 +3731,20 @@ export interface components {
             /** Format: double */
             readonly importe: number;
             readonly modelo: string;
+            readonly nombre: null | string;
             /** Format: int32 */
             readonly orden: number;
             /** Format: double */
             readonly precioUnitario: number;
         };
         readonly OrdenVentaDto: {
+            readonly archivos: readonly components["schemas"]["DocumentoVentaDto"][];
             /** Format: date-time */
             readonly autorizadaEn: null | string;
             readonly cliente: string;
             /** Format: uuid */
             readonly clienteId: string;
+            readonly condicionesPago: null | string;
             /** Format: double */
             readonly descuento: number;
             readonly detalles: readonly components["schemas"]["OrdenVentaDetalleDto"][];
@@ -2514,11 +3767,17 @@ export interface components {
             /** Format: uuid */
             readonly trabajadorId: string;
         };
-        /**
-         * @description 1 = Compra · 2 = CargaInicial
-         * @enum {integer}
-         */
-        readonly OrigenEquipo: 1 | 2;
+        readonly PaginaOfAuditoriaDto: {
+            readonly filas: readonly components["schemas"]["AuditoriaDto"][];
+            /** Format: int32 */
+            readonly numero: number;
+            /** Format: int32 */
+            readonly paginas?: number;
+            /** Format: int32 */
+            readonly tamano: number;
+            /** Format: int64 */
+            readonly total: number;
+        };
         readonly PaginaOfCategoriaEquipoDto: {
             readonly filas: readonly components["schemas"]["CategoriaEquipoDto"][];
             /** Format: int32 */
@@ -2596,6 +3855,17 @@ export interface components {
             /** Format: int64 */
             readonly total: number;
         };
+        readonly PaginaOfMantenimientoDto: {
+            readonly filas: readonly components["schemas"]["MantenimientoDto"][];
+            /** Format: int32 */
+            readonly numero: number;
+            /** Format: int32 */
+            readonly paginas?: number;
+            /** Format: int32 */
+            readonly tamano: number;
+            /** Format: int64 */
+            readonly total: number;
+        };
         readonly PaginaOfMarcaDto: {
             readonly filas: readonly components["schemas"]["MarcaDto"][];
             /** Format: int32 */
@@ -2609,6 +3879,28 @@ export interface components {
         };
         readonly PaginaOfModeloEquipoDto: {
             readonly filas: readonly components["schemas"]["ModeloEquipoDto"][];
+            /** Format: int32 */
+            readonly numero: number;
+            /** Format: int32 */
+            readonly paginas?: number;
+            /** Format: int32 */
+            readonly tamano: number;
+            /** Format: int64 */
+            readonly total: number;
+        };
+        readonly PaginaOfMotivoMovimientoDto: {
+            readonly filas: readonly components["schemas"]["MotivoMovimientoDto"][];
+            /** Format: int32 */
+            readonly numero: number;
+            /** Format: int32 */
+            readonly paginas?: number;
+            /** Format: int32 */
+            readonly tamano: number;
+            /** Format: int64 */
+            readonly total: number;
+        };
+        readonly PaginaOfMovimientoDto: {
+            readonly filas: readonly components["schemas"]["MovimientoDto"][];
             /** Format: int32 */
             readonly numero: number;
             /** Format: int32 */
@@ -2651,6 +3943,17 @@ export interface components {
             /** Format: int64 */
             readonly total: number;
         };
+        readonly PaginaOfProyectoDto: {
+            readonly filas: readonly components["schemas"]["ProyectoDto"][];
+            /** Format: int32 */
+            readonly numero: number;
+            /** Format: int32 */
+            readonly paginas?: number;
+            /** Format: int32 */
+            readonly tamano: number;
+            /** Format: int64 */
+            readonly total: number;
+        };
         readonly PaginaOfPuestoDto: {
             readonly filas: readonly components["schemas"]["PuestoDto"][];
             /** Format: int32 */
@@ -2684,8 +3987,8 @@ export interface components {
             /** Format: int64 */
             readonly total: number;
         };
-        readonly PaginaOfTipoEquipoDto: {
-            readonly filas: readonly components["schemas"]["TipoEquipoDto"][];
+        readonly PaginaOfTipoTarifaDto: {
+            readonly filas: readonly components["schemas"]["TipoTarifaDto"][];
             /** Format: int32 */
             readonly numero: number;
             /** Format: int32 */
@@ -2706,17 +4009,6 @@ export interface components {
             /** Format: int64 */
             readonly total: number;
         };
-        readonly PaginaOfTransferenciaDto: {
-            readonly filas: readonly components["schemas"]["TransferenciaDto"][];
-            /** Format: int32 */
-            readonly numero: number;
-            /** Format: int32 */
-            readonly paginas?: number;
-            /** Format: int32 */
-            readonly tamano: number;
-            /** Format: int64 */
-            readonly total: number;
-        };
         readonly PaginaOfUbicacionDto: {
             readonly filas: readonly components["schemas"]["UbicacionDto"][];
             /** Format: int32 */
@@ -2727,6 +4019,24 @@ export interface components {
             readonly tamano: number;
             /** Format: int64 */
             readonly total: number;
+        };
+        readonly PaginaOfUsuarioEmpresaDto: {
+            readonly filas: readonly components["schemas"]["UsuarioEmpresaDto"][];
+            /** Format: int32 */
+            readonly numero: number;
+            /** Format: int32 */
+            readonly paginas?: number;
+            /** Format: int32 */
+            readonly tamano: number;
+            /** Format: int64 */
+            readonly total: number;
+        };
+        readonly PermisoDto: {
+            readonly accion: string;
+            readonly clave: string;
+            readonly descripcion: string;
+            /** Format: uuid */
+            readonly id: string;
         };
         readonly PeticionInicioSesion: {
             readonly contrasena?: string;
@@ -2742,6 +4052,16 @@ export interface components {
             readonly contrasena?: string;
             readonly correo?: string;
         };
+        readonly PrecioVigenteDto: {
+            readonly codigo: string;
+            readonly moneda: string;
+            /** Format: double */
+            readonly precio: number;
+            readonly tarifa: string;
+            /** Format: uuid */
+            readonly tarifaId: string;
+            readonly unidad: string;
+        };
         readonly ProblemDetails: {
             readonly detail?: null | string;
             readonly instance?: null | string;
@@ -2750,11 +4070,6 @@ export interface components {
             readonly title?: null | string;
             readonly type?: null | string;
         };
-        /**
-         * @description 1 = Renta · 2 = Venta · 3 = RentaYVenta
-         * @enum {integer}
-         */
-        readonly PropositoEquipo: 1 | 2 | 3;
         readonly ProveedorDto: {
             readonly activo: boolean;
             readonly codigo: string;
@@ -2764,11 +4079,34 @@ export interface components {
             /** Format: uuid */
             readonly id: string;
             readonly nombreComercial: null | string;
+            readonly observaciones: null | string;
             /** Format: int32 */
             readonly ordenesCompra: number;
             readonly razonSocial: string;
             readonly rfc: null | string;
             readonly telefono: null | string;
+        };
+        readonly ProyectoDto: {
+            readonly cliente: string;
+            /** Format: uuid */
+            readonly clienteId: string;
+            readonly codigo: string;
+            readonly contactoNombre: null | string;
+            readonly contactoTelefono: null | string;
+            readonly estado: components["schemas"]["EstadoProyecto"];
+            /** Format: date */
+            readonly fechaFin: null | string;
+            /** Format: date */
+            readonly fechaInicio: null | string;
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: int32 */
+            readonly maquinas: number;
+            readonly nombre: string;
+            readonly observaciones: null | string;
+            readonly ubicacion: string;
+            /** Format: uuid */
+            readonly ubicacionId: string;
         };
         readonly PuestoDto: {
             readonly activo: boolean;
@@ -2781,11 +4119,11 @@ export interface components {
             readonly trabajadores: number;
         };
         readonly RegistroDeEquipo: {
+            /** Format: uuid */
+            readonly categoriaEquipoId?: string;
             readonly codigoInterno?: string;
             /** Format: uuid */
             readonly detalleId?: string;
-            /** Format: uuid */
-            readonly tipoEquipoId?: string;
             /** Format: uuid */
             readonly ubicacionId?: null | string;
         };
@@ -2811,6 +4149,7 @@ export interface components {
             readonly trabajador: null | string;
             /** Format: uuid */
             readonly trabajadorId: null | string;
+            readonly unidad: string;
         };
         readonly RentaDto: {
             /** Format: double */
@@ -2819,6 +4158,7 @@ export interface components {
             /** Format: uuid */
             readonly clienteId: string;
             readonly conceptos: readonly components["schemas"]["RentaConceptoDto"][];
+            readonly condiciones: null | string;
             readonly cotizacionFolio: null | string;
             /** Format: uuid */
             readonly cotizacionId: null | string;
@@ -2837,7 +4177,6 @@ export interface components {
             /** Format: date-time */
             readonly inicio: string;
             readonly lineas: readonly components["schemas"]["RentaLineaDto"][];
-            readonly lugar: components["schemas"]["LugarRenta"];
             readonly notas: null | string;
             readonly porVencer?: boolean;
             /** Format: double */
@@ -2846,15 +4185,20 @@ export interface components {
             readonly subtotal: number;
             /** Format: double */
             readonly total: number;
-            readonly trabajador: string;
+            readonly trabajador: null | string;
             /** Format: uuid */
-            readonly trabajadorId: string;
+            readonly trabajadorId: null | string;
+            readonly unidad: components["schemas"]["UnidadTarifa"];
+            /** Format: double */
+            readonly unidadesDelPeriodo?: number;
             readonly vencida?: boolean;
         };
         readonly RentaLineaDto: {
             /** Format: double */
             readonly cantidad: number;
             readonly codigoInterno: string;
+            /** Format: double */
+            readonly costoDeLaMaquina?: number;
             /** Format: uuid */
             readonly equipoId: string;
             /** Format: double */
@@ -2868,6 +4212,29 @@ export interface components {
             /** Format: double */
             readonly importe: number;
             readonly modelo: string;
+            readonly nombre: null | string;
+            /** Format: int32 */
+            readonly orden: number;
+            /** Format: double */
+            readonly precioUnitario: number;
+            readonly proyecto: null | string;
+            /** Format: uuid */
+            readonly proyectoId: null | string;
+            readonly tarifas: readonly components["schemas"]["RentaLineaTarifaDto"][];
+            readonly ubicacionDestino: null | string;
+            /** Format: uuid */
+            readonly ubicacionDestinoId: null | string;
+        };
+        readonly RentaLineaTarifaDto: {
+            /** Format: double */
+            readonly cantidad: number;
+            /** Format: double */
+            readonly costo: null | number;
+            readonly descripcion: null | string;
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: double */
+            readonly importe: number;
             /** Format: int32 */
             readonly orden: number;
             /** Format: double */
@@ -2875,6 +4242,10 @@ export interface components {
             readonly tarifa: string;
             /** Format: uuid */
             readonly tarifaId: string;
+            readonly trabajador: null | string;
+            /** Format: uuid */
+            readonly trabajadorId: null | string;
+            readonly unidad: string;
         };
         readonly ReporteSaludEsquemas: {
             /** Format: int32 */
@@ -2887,6 +4258,11 @@ export interface components {
         readonly RestablecimientoSolicitado: {
             readonly mensaje?: string;
         };
+        /**
+         * @description 1 = Exito · 2 = Error
+         * @enum {integer}
+         */
+        readonly ResultadoAuditoria: 1 | 2;
         readonly ResultadoReenvio: {
             readonly correcto?: boolean;
             readonly correo?: null | string;
@@ -2935,6 +4311,34 @@ export interface components {
             /** Format: int32 */
             readonly suscripciones: number;
         };
+        readonly ResumenTipoLimite: {
+            readonly activo: boolean;
+            readonly clave: string;
+            readonly descripcion: string;
+            /** Format: int32 */
+            readonly excepciones: number;
+            /** Format: uuid */
+            readonly id: string;
+            readonly nombre: string;
+            /** Format: int32 */
+            readonly orden: number;
+            readonly reconocida: boolean;
+            readonly unidad: string;
+            /** Format: int32 */
+            readonly valorDefecto: number;
+        };
+        readonly RolDto: {
+            readonly accesoTotal: boolean;
+            readonly codigo: string;
+            readonly descripcion: null | string;
+            readonly esSistema: boolean;
+            /** Format: uuid */
+            readonly id: string;
+            readonly nombre: string;
+            readonly permisos: readonly string[];
+            /** Format: int32 */
+            readonly usuarios: number;
+        };
         readonly SesionEmpresa: {
             readonly accesoTotal?: boolean;
             readonly correo?: string;
@@ -2953,6 +4357,13 @@ export interface components {
             readonly nombre?: string;
             readonly token?: string;
         };
+        readonly TableroDto: {
+            readonly cotizaciones: components["schemas"]["BloqueCotizaciones"];
+            readonly mantenimiento: components["schemas"]["BloqueMantenimiento"];
+            readonly movimientos: components["schemas"]["BloqueMovimientos"];
+            readonly parque: components["schemas"]["BloqueParque"];
+            readonly rentas: components["schemas"]["BloqueRentas"];
+        };
         readonly TarifaDto: {
             readonly activo: boolean;
             readonly aplicaRenta: boolean;
@@ -2962,6 +4373,9 @@ export interface components {
             /** Format: uuid */
             readonly id: string;
             readonly nombre: string;
+            readonly tipo: string;
+            /** Format: uuid */
+            readonly tipoTarifaId: string;
             readonly unidad: components["schemas"]["UnidadTarifa"];
         };
         /**
@@ -2969,23 +4383,41 @@ export interface components {
          * @enum {integer}
          */
         readonly TipoArchivoEquipo: 1 | 2 | 3 | 4 | 5 | 6;
-        readonly TipoEquipoDto: {
+        /**
+         * @description 1 = Contrato · 2 = Factura · 3 = Pago · 4 = Propiedad · 5 = Otro
+         * @enum {integer}
+         */
+        readonly TipoArchivoVenta: 1 | 2 | 3 | 4 | 5;
+        /**
+         * @description 1 = Renta · 2 = Venta
+         * @enum {integer}
+         */
+        readonly TipoCotizacion: 1 | 2;
+        /**
+         * @description 1 = Preventivo · 2 = Correctivo · 3 = Servicio
+         * @enum {integer}
+         */
+        readonly TipoMantenimiento: 1 | 2 | 3;
+        /**
+         * @description 1 = EntradaInventario · 2 = Salida · 3 = Traspaso · 4 = AsignacionProyecto · 5 = EntregaRenta · 6 = DevolucionRenta · 7 = EnvioMantenimiento · 8 = RegresoMantenimiento · 9 = SalidaDefinitiva
+         * @enum {integer}
+         */
+        readonly TipoMovimiento: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+        readonly TipoTarifaDto: {
             readonly activo: boolean;
-            readonly categoria: string;
-            /** Format: uuid */
-            readonly categoriaEquipoId: string;
             readonly codigo: string;
-            /** Format: int32 */
-            readonly equipos: number;
+            readonly descripcion: null | string;
             /** Format: uuid */
             readonly id: string;
             readonly nombre: string;
+            /** Format: int32 */
+            readonly tarifas: number;
         };
         /**
-         * @description 1 = Bodega · 2 = Sucursal · 3 = Patio
+         * @description 1 = Patio · 2 = Proyecto · 3 = Taller · 4 = Cliente · 5 = Otra
          * @enum {integer}
          */
-        readonly TipoUbicacion: 1 | 2 | 3;
+        readonly TipoUbicacion: 1 | 2 | 3 | 4 | 5;
         readonly TrabajadorDto: {
             readonly apellidos: null | string;
             readonly correo: null | string;
@@ -3009,28 +4441,9 @@ export interface components {
             /** Format: uuid */
             readonly usuarioId: null | string;
         };
-        readonly TransferenciaDto: {
-            readonly codigoInterno: string;
-            readonly destino: string;
-            /** Format: uuid */
-            readonly destinoId: string;
-            /** Format: uuid */
-            readonly equipoId: string;
-            /** Format: date-time */
-            readonly fecha: string;
-            /** Format: uuid */
-            readonly id: string;
-            readonly motivo: null | string;
-            readonly origen: string;
-            /** Format: uuid */
-            readonly origenId: string;
-            readonly trabajador: string;
-            /** Format: uuid */
-            readonly trabajadorId: string;
-        };
         readonly UbicacionDto: {
             readonly activo: boolean;
-            readonly almacenaEquipo?: boolean;
+            readonly administrativaManual: boolean;
             readonly codigo: string;
             readonly domicilio: null | string;
             /** Format: int32 */
@@ -3043,14 +4456,36 @@ export interface components {
             /** Format: double */
             readonly longitud: null | number;
             readonly nombre: string;
+            readonly observaciones: null | string;
             readonly telefono: null | string;
             readonly tipo: components["schemas"]["TipoUbicacion"];
+            readonly trabajador: null | string;
+            /** Format: uuid */
+            readonly trabajadorId: null | string;
         };
         /**
          * @description 1 = Hora · 2 = Dia · 3 = Semana · 4 = Mes · 5 = Evento · 6 = Kilometro
          * @enum {integer}
          */
         readonly UnidadTarifa: 1 | 2 | 3 | 4 | 5 | 6;
+        readonly UsuarioEmpresaDto: {
+            readonly accesoTotal: boolean;
+            readonly apellidos: null | string;
+            readonly correo: string;
+            /** Format: date-time */
+            readonly creadoEn: string;
+            readonly debeCambiarContrasena: boolean;
+            readonly estado: components["schemas"]["EstadoUsuario"];
+            /** Format: uuid */
+            readonly id: string;
+            readonly invitacionPendiente: boolean;
+            readonly nombre: string;
+            readonly roles: readonly string[];
+            readonly rolesIds: readonly string[];
+            readonly telefono: null | string;
+            /** Format: date-time */
+            readonly ultimoAccesoEn: null | string;
+        };
     };
     responses: never;
     parameters: never;
@@ -3060,6 +4495,68 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    readonly ListarBitacora: {
+        readonly parameters: {
+            readonly query?: {
+                readonly Accion?: components["schemas"]["AccionAuditoria"];
+                readonly Activo?: boolean;
+                readonly CorrelacionId?: string;
+                readonly Descendente?: boolean;
+                readonly Desde?: string;
+                readonly Entidad?: string;
+                readonly Hasta?: string;
+                readonly IncluirEliminados?: boolean;
+                readonly Modulo?: string;
+                readonly Numero?: number;
+                readonly Orden?: string;
+                readonly Resultado?: components["schemas"]["ResultadoAuditoria"];
+                readonly Saltar?: number;
+                readonly Tamano?: number;
+                readonly TamanoEfectivo?: number;
+                readonly Texto?: string;
+                readonly UsuarioId?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["PaginaOfAuditoriaDto"];
+                    readonly "text/json": components["schemas"]["PaginaOfAuditoriaDto"];
+                    readonly "text/plain": components["schemas"]["PaginaOfAuditoriaDto"];
+                };
+            };
+        };
+    };
+    readonly ModulosDeLaBitacora: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly string[];
+                    readonly "text/json": readonly string[];
+                    readonly "text/plain": readonly string[];
+                };
+            };
+        };
+    };
     readonly ListarCategoriasEquipo: {
         readonly parameters: {
             readonly query?: {
@@ -3728,6 +5225,7 @@ export interface operations {
         readonly parameters: {
             readonly query?: {
                 readonly Activo?: boolean;
+                readonly CategoriaEquipoId?: string;
                 readonly Descendente?: boolean;
                 readonly IncluirEliminados?: boolean;
                 readonly MarcaId?: string;
@@ -3737,7 +5235,6 @@ export interface operations {
                 readonly Tamano?: number;
                 readonly TamanoEfectivo?: number;
                 readonly Texto?: string;
-                readonly TipoEquipoId?: string;
             };
             readonly header?: never;
             readonly path?: never;
@@ -3932,6 +5429,260 @@ export interface operations {
                     readonly "application/json": components["schemas"]["ModeloEquipoDto"];
                     readonly "text/json": components["schemas"]["ModeloEquipoDto"];
                     readonly "text/plain": components["schemas"]["ModeloEquipoDto"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ListarMotivosMovimiento: {
+        readonly parameters: {
+            readonly query?: {
+                readonly Activo?: boolean;
+                readonly Descendente?: boolean;
+                readonly IncluirEliminados?: boolean;
+                readonly Numero?: number;
+                readonly Orden?: string;
+                readonly Saltar?: number;
+                readonly Tamano?: number;
+                readonly TamanoEfectivo?: number;
+                readonly Texto?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["PaginaOfMotivoMovimientoDto"];
+                    readonly "text/json": components["schemas"]["PaginaOfMotivoMovimientoDto"];
+                    readonly "text/plain": components["schemas"]["PaginaOfMotivoMovimientoDto"];
+                };
+            };
+        };
+    };
+    readonly CrearMotivoMovimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaMotivoMovimiento"];
+                readonly "application/json": components["schemas"]["AltaMotivoMovimiento"];
+                readonly "text/json": components["schemas"]["AltaMotivoMovimiento"];
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MotivoMovimientoDto"];
+                    readonly "text/json": components["schemas"]["MotivoMovimientoDto"];
+                    readonly "text/plain": components["schemas"]["MotivoMovimientoDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ObtenerMotivoMovimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MotivoMovimientoDto"];
+                    readonly "text/json": components["schemas"]["MotivoMovimientoDto"];
+                    readonly "text/plain": components["schemas"]["MotivoMovimientoDto"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly EditarMotivoMovimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaMotivoMovimiento"];
+                readonly "application/json": components["schemas"]["AltaMotivoMovimiento"];
+                readonly "text/json": components["schemas"]["AltaMotivoMovimiento"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MotivoMovimientoDto"];
+                    readonly "text/json": components["schemas"]["MotivoMovimientoDto"];
+                    readonly "text/plain": components["schemas"]["MotivoMovimientoDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly CambiarActivoMotivoMovimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["CambioDeActivoCatalogo"];
+                readonly "application/json": components["schemas"]["CambioDeActivoCatalogo"];
+                readonly "text/json": components["schemas"]["CambioDeActivoCatalogo"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MotivoMovimientoDto"];
+                    readonly "text/json": components["schemas"]["MotivoMovimientoDto"];
+                    readonly "text/plain": components["schemas"]["MotivoMovimientoDto"];
+                };
+            };
+            /** @description Forbidden */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Not Found */
@@ -4392,11 +6143,10 @@ export interface operations {
             };
         };
     };
-    readonly ListarTiposEquipo: {
+    readonly ListarTiposTarifa: {
         readonly parameters: {
             readonly query?: {
                 readonly Activo?: boolean;
-                readonly CategoriaEquipoId?: string;
                 readonly Descendente?: boolean;
                 readonly IncluirEliminados?: boolean;
                 readonly Numero?: number;
@@ -4418,14 +6168,14 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["PaginaOfTipoEquipoDto"];
-                    readonly "text/json": components["schemas"]["PaginaOfTipoEquipoDto"];
-                    readonly "text/plain": components["schemas"]["PaginaOfTipoEquipoDto"];
+                    readonly "application/json": components["schemas"]["PaginaOfTipoTarifaDto"];
+                    readonly "text/json": components["schemas"]["PaginaOfTipoTarifaDto"];
+                    readonly "text/plain": components["schemas"]["PaginaOfTipoTarifaDto"];
                 };
             };
         };
     };
-    readonly CrearTipoEquipo: {
+    readonly CrearTipoTarifa: {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
@@ -4434,9 +6184,9 @@ export interface operations {
         };
         readonly requestBody: {
             readonly content: {
-                readonly "application/*+json": components["schemas"]["AltaTipoEquipo"];
-                readonly "application/json": components["schemas"]["AltaTipoEquipo"];
-                readonly "text/json": components["schemas"]["AltaTipoEquipo"];
+                readonly "application/*+json": components["schemas"]["AltaTipoTarifa"];
+                readonly "application/json": components["schemas"]["AltaTipoTarifa"];
+                readonly "text/json": components["schemas"]["AltaTipoTarifa"];
             };
         };
         readonly responses: {
@@ -4446,9 +6196,9 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["TipoEquipoDto"];
-                    readonly "text/json": components["schemas"]["TipoEquipoDto"];
-                    readonly "text/plain": components["schemas"]["TipoEquipoDto"];
+                    readonly "application/json": components["schemas"]["TipoTarifaDto"];
+                    readonly "text/json": components["schemas"]["TipoTarifaDto"];
+                    readonly "text/plain": components["schemas"]["TipoTarifaDto"];
                 };
             };
             /** @description Bad Request */
@@ -4475,7 +6225,7 @@ export interface operations {
             };
         };
     };
-    readonly ObtenerTipoEquipo: {
+    readonly ObtenerTipoTarifa: {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
@@ -4492,9 +6242,9 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["TipoEquipoDto"];
-                    readonly "text/json": components["schemas"]["TipoEquipoDto"];
-                    readonly "text/plain": components["schemas"]["TipoEquipoDto"];
+                    readonly "application/json": components["schemas"]["TipoTarifaDto"];
+                    readonly "text/json": components["schemas"]["TipoTarifaDto"];
+                    readonly "text/plain": components["schemas"]["TipoTarifaDto"];
                 };
             };
             /** @description Not Found */
@@ -4510,7 +6260,7 @@ export interface operations {
             };
         };
     };
-    readonly EditarTipoEquipo: {
+    readonly EditarTipoTarifa: {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
@@ -4521,9 +6271,9 @@ export interface operations {
         };
         readonly requestBody: {
             readonly content: {
-                readonly "application/*+json": components["schemas"]["AltaTipoEquipo"];
-                readonly "application/json": components["schemas"]["AltaTipoEquipo"];
-                readonly "text/json": components["schemas"]["AltaTipoEquipo"];
+                readonly "application/*+json": components["schemas"]["AltaTipoTarifa"];
+                readonly "application/json": components["schemas"]["AltaTipoTarifa"];
+                readonly "text/json": components["schemas"]["AltaTipoTarifa"];
             };
         };
         readonly responses: {
@@ -4533,9 +6283,9 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["TipoEquipoDto"];
-                    readonly "text/json": components["schemas"]["TipoEquipoDto"];
-                    readonly "text/plain": components["schemas"]["TipoEquipoDto"];
+                    readonly "application/json": components["schemas"]["TipoTarifaDto"];
+                    readonly "text/json": components["schemas"]["TipoTarifaDto"];
+                    readonly "text/plain": components["schemas"]["TipoTarifaDto"];
                 };
             };
             /** @description Bad Request */
@@ -4573,7 +6323,7 @@ export interface operations {
             };
         };
     };
-    readonly CambiarActivoTipoEquipo: {
+    readonly CambiarActivoTipoTarifa: {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
@@ -4596,9 +6346,9 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["TipoEquipoDto"];
-                    readonly "text/json": components["schemas"]["TipoEquipoDto"];
-                    readonly "text/plain": components["schemas"]["TipoEquipoDto"];
+                    readonly "application/json": components["schemas"]["TipoTarifaDto"];
+                    readonly "text/json": components["schemas"]["TipoTarifaDto"];
+                    readonly "text/plain": components["schemas"]["TipoTarifaDto"];
                 };
             };
             /** @description Not Found */
@@ -5185,7 +6935,6 @@ export interface operations {
         readonly parameters: {
             readonly query?: {
                 readonly Activo?: boolean;
-                readonly ClienteId?: string;
                 readonly Descendente?: boolean;
                 readonly Desde?: string;
                 readonly Estado?: components["schemas"]["EstadoCotizacion"];
@@ -5523,11 +7272,119 @@ export interface operations {
             };
         };
     };
+    readonly AgregarTarifaALineaDeCotizacion: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+                readonly lineaId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaCotizacionLineaTarifa"];
+                readonly "application/json": components["schemas"]["AltaCotizacionLineaTarifa"];
+                readonly "text/json": components["schemas"]["AltaCotizacionLineaTarifa"];
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["CotizacionLineaTarifaDto"];
+                    readonly "text/json": components["schemas"]["CotizacionLineaTarifaDto"];
+                    readonly "text/plain": components["schemas"]["CotizacionLineaTarifaDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly QuitarTarifaDeLineaDeCotizacion: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+                readonly lineaId: string;
+                readonly tarifaLineaId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description No Content */
+            readonly 204: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     readonly ConsultarDisponibilidad: {
         readonly parameters: {
             readonly query?: {
                 readonly Activo?: boolean;
-                readonly ClienteId?: string;
+                readonly CategoriaEquipoId?: string;
                 readonly Descendente?: boolean;
                 readonly Desde?: string;
                 readonly Hasta?: string;
@@ -5538,7 +7395,6 @@ export interface operations {
                 readonly Tamano?: number;
                 readonly TamanoEfectivo?: number;
                 readonly Texto?: string;
-                readonly TipoEquipoId?: string;
                 readonly UbicacionId?: string;
             };
             readonly header?: never;
@@ -5933,6 +7789,17 @@ export interface operations {
                     readonly "text/plain": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Forbidden */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     readonly RefrescarSesionEmpresa: {
@@ -5980,18 +7847,18 @@ export interface operations {
         readonly parameters: {
             readonly query?: {
                 readonly Activo?: boolean;
+                readonly CategoriaEquipoId?: string;
                 readonly Descendente?: boolean;
                 readonly Estado?: components["schemas"]["EstadoEquipo"];
                 readonly IncluirEliminados?: boolean;
+                readonly MarcaId?: string;
                 readonly ModeloEquipoId?: string;
                 readonly Numero?: number;
                 readonly Orden?: string;
-                readonly Proposito?: components["schemas"]["PropositoEquipo"];
                 readonly Saltar?: number;
                 readonly Tamano?: number;
                 readonly TamanoEfectivo?: number;
                 readonly Texto?: string;
-                readonly TipoEquipoId?: string;
                 readonly UbicacionId?: string;
             };
             readonly header?: never;
@@ -6209,9 +8076,7 @@ export interface operations {
     };
     readonly ListarPreciosDeEquipo: {
         readonly parameters: {
-            readonly query?: {
-                readonly soloVigentes?: boolean;
-            };
+            readonly query?: never;
             readonly header?: never;
             readonly path: {
                 readonly equipoId: string;
@@ -6296,7 +8161,7 @@ export interface operations {
             };
         };
     };
-    readonly CerrarPrecioDeEquipo: {
+    readonly EditarPrecioDeEquipo: {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
@@ -6308,9 +8173,9 @@ export interface operations {
         };
         readonly requestBody: {
             readonly content: {
-                readonly "application/*+json": components["schemas"]["CierreDePrecio"];
-                readonly "application/json": components["schemas"]["CierreDePrecio"];
-                readonly "text/json": components["schemas"]["CierreDePrecio"];
+                readonly "application/*+json": components["schemas"]["CambioDePrecio"];
+                readonly "application/json": components["schemas"]["CambioDePrecio"];
+                readonly "text/json": components["schemas"]["CambioDePrecio"];
             };
         };
         readonly responses: {
@@ -6347,8 +8212,29 @@ export interface operations {
                     readonly "text/plain": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Conflict */
-            readonly 409: {
+        };
+    };
+    readonly QuitarPrecioDeEquipo: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly equipoId: string;
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description No Content */
+            readonly 204: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            readonly 404: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -6356,6 +8242,30 @@ export interface operations {
                     readonly "application/json": components["schemas"]["ProblemDetails"];
                     readonly "text/json": components["schemas"]["ProblemDetails"];
                     readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly PreciosVigentesDeEquipo: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly equipoId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["PrecioVigenteDto"][];
+                    readonly "text/json": readonly components["schemas"]["PrecioVigenteDto"][];
+                    readonly "text/plain": readonly components["schemas"]["PrecioVigenteDto"][];
                 };
             };
         };
@@ -6563,6 +8473,405 @@ export interface operations {
             };
         };
     };
+    readonly ListarAniosDeEquipos: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly number[];
+                    readonly "text/json": readonly number[];
+                    readonly "text/plain": readonly number[];
+                };
+            };
+        };
+    };
+    readonly ListarMantenimientos: {
+        readonly parameters: {
+            readonly query?: {
+                readonly Activo?: boolean;
+                readonly Descendente?: boolean;
+                readonly Desde?: string;
+                readonly EquipoId?: string;
+                readonly Estado?: components["schemas"]["EstadoMantenimiento"];
+                readonly Hasta?: string;
+                readonly IncluirEliminados?: boolean;
+                readonly Numero?: number;
+                readonly Orden?: string;
+                readonly ProveedorId?: string;
+                readonly Saltar?: number;
+                readonly TallerId?: string;
+                readonly Tamano?: number;
+                readonly TamanoEfectivo?: number;
+                readonly Texto?: string;
+                readonly Tipo?: components["schemas"]["TipoMantenimiento"];
+                readonly Vigentes?: boolean;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["PaginaOfMantenimientoDto"];
+                    readonly "text/json": components["schemas"]["PaginaOfMantenimientoDto"];
+                    readonly "text/plain": components["schemas"]["PaginaOfMantenimientoDto"];
+                };
+            };
+        };
+    };
+    readonly AbrirMantenimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaMantenimiento"];
+                readonly "application/json": components["schemas"]["AltaMantenimiento"];
+                readonly "text/json": components["schemas"]["AltaMantenimiento"];
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/plain": components["schemas"]["MantenimientoDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ObtenerMantenimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/plain": components["schemas"]["MantenimientoDto"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly EditarMantenimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["CambioMantenimiento"];
+                readonly "application/json": components["schemas"]["CambioMantenimiento"];
+                readonly "text/json": components["schemas"]["CambioMantenimiento"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/plain": components["schemas"]["MantenimientoDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly CancelarMantenimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["CancelacionMantenimiento"];
+                readonly "application/json": components["schemas"]["CancelacionMantenimiento"];
+                readonly "text/json": components["schemas"]["CancelacionMantenimiento"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/plain": components["schemas"]["MantenimientoDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly MarcarMantenimientoEnProceso: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["CambioEnProceso"];
+                readonly "application/json": components["schemas"]["CambioEnProceso"];
+                readonly "text/json": components["schemas"]["CambioEnProceso"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/plain": components["schemas"]["MantenimientoDto"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly FinalizarMantenimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["CierreMantenimiento"];
+                readonly "application/json": components["schemas"]["CierreMantenimiento"];
+                readonly "text/json": components["schemas"]["CierreMantenimiento"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/json": components["schemas"]["MantenimientoDto"];
+                    readonly "text/plain": components["schemas"]["MantenimientoDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     readonly ObtenerSesionEmpresa: {
         readonly parameters: {
             readonly query?: never;
@@ -6581,6 +8890,211 @@ export interface operations {
                     readonly "application/json": components["schemas"]["IdentidadEmpresa"];
                     readonly "text/json": components["schemas"]["IdentidadEmpresa"];
                     readonly "text/plain": components["schemas"]["IdentidadEmpresa"];
+                };
+            };
+        };
+    };
+    readonly ListarMovimientos: {
+        readonly parameters: {
+            readonly query?: {
+                readonly Activo?: boolean;
+                readonly Descendente?: boolean;
+                readonly Desde?: string;
+                readonly EquipoId?: string;
+                readonly Hasta?: string;
+                readonly IncluirEliminados?: boolean;
+                readonly MotivoId?: string;
+                readonly Numero?: number;
+                readonly Orden?: string;
+                readonly ProyectoId?: string;
+                readonly Saltar?: number;
+                readonly Tamano?: number;
+                readonly TamanoEfectivo?: number;
+                readonly Texto?: string;
+                readonly Tipo?: components["schemas"]["TipoMovimiento"];
+                readonly UbicacionId?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["PaginaOfMovimientoDto"];
+                    readonly "text/json": components["schemas"]["PaginaOfMovimientoDto"];
+                    readonly "text/plain": components["schemas"]["PaginaOfMovimientoDto"];
+                };
+            };
+        };
+    };
+    readonly RegistrarMovimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaMovimiento"];
+                readonly "application/json": components["schemas"]["AltaMovimiento"];
+                readonly "text/json": components["schemas"]["AltaMovimiento"];
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MovimientoDto"];
+                    readonly "text/json": components["schemas"]["MovimientoDto"];
+                    readonly "text/plain": components["schemas"]["MovimientoDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ObtenerMovimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MovimientoDto"];
+                    readonly "text/json": components["schemas"]["MovimientoDto"];
+                    readonly "text/plain": components["schemas"]["MovimientoDto"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly DescargarEvidenciaDeMovimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly SubirEvidenciaDeMovimiento: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "multipart/form-data": {
+                    readonly archivo?: components["schemas"]["IFormFile"];
+                };
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["EvidenciaSubidaDto"];
+                    readonly "text/json": components["schemas"]["EvidenciaSubidaDto"];
+                    readonly "text/plain": components["schemas"]["EvidenciaSubidaDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
                 };
             };
         };
@@ -7248,6 +9762,150 @@ export interface operations {
             };
         };
     };
+    readonly ListarDocumentosDeVenta: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly ordenId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["DocumentoVentaDto"][];
+                    readonly "text/json": readonly components["schemas"]["DocumentoVentaDto"][];
+                    readonly "text/plain": readonly components["schemas"]["DocumentoVentaDto"][];
+                };
+            };
+        };
+    };
+    readonly SubirDocumentoDeVenta: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly ordenId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "multipart/form-data": {
+                    readonly archivo?: components["schemas"]["IFormFile"];
+                } & {
+                    readonly tipo?: components["schemas"]["TipoArchivoVenta"];
+                } & {
+                    readonly descripcion?: string;
+                };
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["DocumentoVentaDto"];
+                    readonly "text/json": components["schemas"]["DocumentoVentaDto"];
+                    readonly "text/plain": components["schemas"]["DocumentoVentaDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly BorrarDocumentoDeVenta: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+                readonly ordenId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description No Content */
+            readonly 204: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly DescargarDocumentoDeVenta: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+                readonly ordenId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     readonly ListarEmpresas: {
         readonly parameters: {
             readonly query?: never;
@@ -7320,6 +9978,58 @@ export interface operations {
             };
         };
     };
+    readonly CambiarEstadoEmpresa: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly slug: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["CambioDeEstadoEmpresa"];
+                readonly "application/json": components["schemas"]["CambioDeEstadoEmpresa"];
+                readonly "text/json": components["schemas"]["CambioDeEstadoEmpresa"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ResumenEmpresa"];
+                    readonly "text/json": components["schemas"]["ResumenEmpresa"];
+                    readonly "text/plain": components["schemas"]["ResumenEmpresa"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     readonly ReenviarInvitacionEmpresa: {
         readonly parameters: {
             readonly query?: never;
@@ -7344,6 +10054,130 @@ export interface operations {
             };
             /** @description Bad Request */
             readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ListarLimitesEmpresa: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly slug: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["LimiteDeEmpresa"][];
+                    readonly "text/json": readonly components["schemas"]["LimiteDeEmpresa"][];
+                    readonly "text/plain": readonly components["schemas"]["LimiteDeEmpresa"][];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly FijarLimiteEmpresa: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly clave: string;
+                readonly slug: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["FijarLimite"];
+                readonly "application/json": components["schemas"]["FijarLimite"];
+                readonly "text/json": components["schemas"]["FijarLimite"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["LimiteDeEmpresa"][];
+                    readonly "text/json": readonly components["schemas"]["LimiteDeEmpresa"][];
+                    readonly "text/plain": readonly components["schemas"]["LimiteDeEmpresa"][];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly QuitarLimiteEmpresa: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly clave: string;
+                readonly slug: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["LimiteDeEmpresa"][];
+                    readonly "text/json": readonly components["schemas"]["LimiteDeEmpresa"][];
+                    readonly "text/plain": readonly components["schemas"]["LimiteDeEmpresa"][];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -7396,6 +10230,108 @@ export interface operations {
             };
             /** @description Internal Server Error */
             readonly 500: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ListarTiposLimite: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["ResumenTipoLimite"][];
+                    readonly "text/json": readonly components["schemas"]["ResumenTipoLimite"][];
+                    readonly "text/plain": readonly components["schemas"]["ResumenTipoLimite"][];
+                };
+            };
+        };
+    };
+    readonly CrearTipoLimite: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaTipoLimite"];
+                readonly "application/json": components["schemas"]["AltaTipoLimite"];
+                readonly "text/json": components["schemas"]["AltaTipoLimite"];
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ResumenTipoLimite"];
+                    readonly "text/json": components["schemas"]["ResumenTipoLimite"];
+                    readonly "text/plain": components["schemas"]["ResumenTipoLimite"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly EditarTipoLimite: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly clave: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["CambioTipoLimite"];
+                readonly "application/json": components["schemas"]["CambioTipoLimite"];
+                readonly "text/json": components["schemas"]["CambioTipoLimite"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ResumenTipoLimite"];
+                    readonly "text/json": components["schemas"]["ResumenTipoLimite"];
+                    readonly "text/plain": components["schemas"]["ResumenTipoLimite"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -7846,6 +10782,240 @@ export interface operations {
             };
             /** @description Not Found */
             readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ListarProyectos: {
+        readonly parameters: {
+            readonly query?: {
+                readonly Activo?: boolean;
+                readonly ClienteId?: string;
+                readonly Descendente?: boolean;
+                readonly Estado?: components["schemas"]["EstadoProyecto"];
+                readonly IncluirEliminados?: boolean;
+                readonly Numero?: number;
+                readonly Orden?: string;
+                readonly Saltar?: number;
+                readonly Tamano?: number;
+                readonly TamanoEfectivo?: number;
+                readonly Texto?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["PaginaOfProyectoDto"];
+                    readonly "text/json": components["schemas"]["PaginaOfProyectoDto"];
+                    readonly "text/plain": components["schemas"]["PaginaOfProyectoDto"];
+                };
+            };
+        };
+    };
+    readonly AbrirProyecto: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaProyecto"];
+                readonly "application/json": components["schemas"]["AltaProyecto"];
+                readonly "text/json": components["schemas"]["AltaProyecto"];
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProyectoDto"];
+                    readonly "text/json": components["schemas"]["ProyectoDto"];
+                    readonly "text/plain": components["schemas"]["ProyectoDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ObtenerProyecto: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProyectoDto"];
+                    readonly "text/json": components["schemas"]["ProyectoDto"];
+                    readonly "text/plain": components["schemas"]["ProyectoDto"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly EditarProyecto: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaProyecto"];
+                readonly "application/json": components["schemas"]["AltaProyecto"];
+                readonly "text/json": components["schemas"]["AltaProyecto"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProyectoDto"];
+                    readonly "text/json": components["schemas"]["ProyectoDto"];
+                    readonly "text/plain": components["schemas"]["ProyectoDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly CambiarEstadoProyecto: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["CambioDeEstadoProyecto"];
+                readonly "application/json": components["schemas"]["CambioDeEstadoProyecto"];
+                readonly "text/json": components["schemas"]["CambioDeEstadoProyecto"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProyectoDto"];
+                    readonly "text/json": components["schemas"]["ProyectoDto"];
+                    readonly "text/plain": components["schemas"]["ProyectoDto"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -8548,6 +11718,178 @@ export interface operations {
             };
         };
     };
+    readonly AsignarDestinoDeLineaDeRenta: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+                readonly lineaId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["DestinoDeLinea"];
+                readonly "application/json": components["schemas"]["DestinoDeLinea"];
+                readonly "text/json": components["schemas"]["DestinoDeLinea"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RentaLineaDto"];
+                    readonly "text/json": components["schemas"]["RentaLineaDto"];
+                    readonly "text/plain": components["schemas"]["RentaLineaDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly AgregarCargoALineaDeRenta: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+                readonly lineaId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaRentaLineaTarifa"];
+                readonly "application/json": components["schemas"]["AltaRentaLineaTarifa"];
+                readonly "text/json": components["schemas"]["AltaRentaLineaTarifa"];
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RentaLineaTarifaDto"];
+                    readonly "text/json": components["schemas"]["RentaLineaTarifaDto"];
+                    readonly "text/plain": components["schemas"]["RentaLineaTarifaDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly QuitarCargoDeLineaDeRenta: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+                readonly lineaId: string;
+                readonly tarifaLineaId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description No Content */
+            readonly 204: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     readonly CrearRentaDesdeCotizacion: {
         readonly parameters: {
             readonly query?: never;
@@ -8607,6 +11949,543 @@ export interface operations {
                     readonly "application/json": components["schemas"]["ProblemDetails"];
                     readonly "text/json": components["schemas"]["ProblemDetails"];
                     readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ReporteClientes: {
+        readonly parameters: {
+            readonly query?: {
+                readonly CategoriaEquipoId?: string;
+                readonly ClienteId?: string;
+                readonly Desde?: string;
+                readonly EquipoId?: string;
+                readonly Hasta?: string;
+                readonly UbicacionId?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["FilaClientes"][];
+                    readonly "text/json": readonly components["schemas"]["FilaClientes"][];
+                    readonly "text/plain": readonly components["schemas"]["FilaClientes"][];
+                };
+            };
+        };
+    };
+    readonly ReporteMantenimiento: {
+        readonly parameters: {
+            readonly query?: {
+                readonly CategoriaEquipoId?: string;
+                readonly ClienteId?: string;
+                readonly Desde?: string;
+                readonly EquipoId?: string;
+                readonly Hasta?: string;
+                readonly UbicacionId?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["FilaMantenimiento"][];
+                    readonly "text/json": readonly components["schemas"]["FilaMantenimiento"][];
+                    readonly "text/plain": readonly components["schemas"]["FilaMantenimiento"][];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ReporteMovimientos: {
+        readonly parameters: {
+            readonly query?: {
+                readonly CategoriaEquipoId?: string;
+                readonly ClienteId?: string;
+                readonly Desde?: string;
+                readonly EquipoId?: string;
+                readonly Hasta?: string;
+                readonly UbicacionId?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["FilaMovimientos"][];
+                    readonly "text/json": readonly components["schemas"]["FilaMovimientos"][];
+                    readonly "text/plain": readonly components["schemas"]["FilaMovimientos"][];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ReporteParque: {
+        readonly parameters: {
+            readonly query?: {
+                readonly CategoriaEquipoId?: string;
+                readonly ClienteId?: string;
+                readonly Desde?: string;
+                readonly EquipoId?: string;
+                readonly Hasta?: string;
+                readonly UbicacionId?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["FilaParque"][];
+                    readonly "text/json": readonly components["schemas"]["FilaParque"][];
+                    readonly "text/plain": readonly components["schemas"]["FilaParque"][];
+                };
+            };
+        };
+    };
+    readonly ReporteRentas: {
+        readonly parameters: {
+            readonly query?: {
+                readonly CategoriaEquipoId?: string;
+                readonly ClienteId?: string;
+                readonly Desde?: string;
+                readonly EquipoId?: string;
+                readonly Hasta?: string;
+                readonly UbicacionId?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["FilaRentas"][];
+                    readonly "text/json": readonly components["schemas"]["FilaRentas"][];
+                    readonly "text/plain": readonly components["schemas"]["FilaRentas"][];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ReporteUtilizacion: {
+        readonly parameters: {
+            readonly query?: {
+                readonly CategoriaEquipoId?: string;
+                readonly ClienteId?: string;
+                readonly Desde?: string;
+                readonly EquipoId?: string;
+                readonly Hasta?: string;
+                readonly UbicacionId?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["FilaUtilizacion"][];
+                    readonly "text/json": readonly components["schemas"]["FilaUtilizacion"][];
+                    readonly "text/plain": readonly components["schemas"]["FilaUtilizacion"][];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ListarRoles: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["RolDto"][];
+                    readonly "text/json": readonly components["schemas"]["RolDto"][];
+                    readonly "text/plain": readonly components["schemas"]["RolDto"][];
+                };
+            };
+        };
+    };
+    readonly CrearRol: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaRol"];
+                readonly "application/json": components["schemas"]["AltaRol"];
+                readonly "text/json": components["schemas"]["AltaRol"];
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RolDto"];
+                    readonly "text/json": components["schemas"]["RolDto"];
+                    readonly "text/plain": components["schemas"]["RolDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ObtenerRol: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RolDto"];
+                    readonly "text/json": components["schemas"]["RolDto"];
+                    readonly "text/plain": components["schemas"]["RolDto"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly EditarRol: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaRol"];
+                readonly "application/json": components["schemas"]["AltaRol"];
+                readonly "text/json": components["schemas"]["AltaRol"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RolDto"];
+                    readonly "text/json": components["schemas"]["RolDto"];
+                    readonly "text/plain": components["schemas"]["RolDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly EliminarRol: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description No Content */
+            readonly 204: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ActualizarPermisosRol: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["MatrizDePermisos"];
+                readonly "application/json": components["schemas"]["MatrizDePermisos"];
+                readonly "text/json": components["schemas"]["MatrizDePermisos"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RolDto"];
+                    readonly "text/json": components["schemas"]["RolDto"];
+                    readonly "text/plain": components["schemas"]["RolDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly CatalogoDePermisos: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": readonly components["schemas"]["ModuloConPermisos"][];
+                    readonly "text/json": readonly components["schemas"]["ModuloConPermisos"][];
+                    readonly "text/plain": readonly components["schemas"]["ModuloConPermisos"][];
+                };
+            };
+        };
+    };
+    readonly ObtenerTablero: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["TableroDto"];
+                    readonly "text/json": components["schemas"]["TableroDto"];
+                    readonly "text/plain": components["schemas"]["TableroDto"];
                 };
             };
         };
@@ -8846,106 +12725,10 @@ export interface operations {
             };
         };
     };
-    readonly ListarTransferencias: {
-        readonly parameters: {
-            readonly query?: {
-                readonly Activo?: boolean;
-                readonly Descendente?: boolean;
-                readonly EquipoId?: string;
-                readonly IncluirEliminados?: boolean;
-                readonly Numero?: number;
-                readonly Orden?: string;
-                readonly Saltar?: number;
-                readonly Tamano?: number;
-                readonly TamanoEfectivo?: number;
-                readonly Texto?: string;
-                readonly UbicacionId?: string;
-            };
-            readonly header?: never;
-            readonly path?: never;
-            readonly cookie?: never;
-        };
-        readonly requestBody?: never;
-        readonly responses: {
-            /** @description OK */
-            readonly 200: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": components["schemas"]["PaginaOfTransferenciaDto"];
-                    readonly "text/json": components["schemas"]["PaginaOfTransferenciaDto"];
-                    readonly "text/plain": components["schemas"]["PaginaOfTransferenciaDto"];
-                };
-            };
-        };
-    };
-    readonly TraspasarEquipo: {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path?: never;
-            readonly cookie?: never;
-        };
-        readonly requestBody: {
-            readonly content: {
-                readonly "application/*+json": components["schemas"]["AltaTransferencia"];
-                readonly "application/json": components["schemas"]["AltaTransferencia"];
-                readonly "text/json": components["schemas"]["AltaTransferencia"];
-            };
-        };
-        readonly responses: {
-            /** @description Created */
-            readonly 201: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": components["schemas"]["TransferenciaDto"];
-                    readonly "text/json": components["schemas"]["TransferenciaDto"];
-                    readonly "text/plain": components["schemas"]["TransferenciaDto"];
-                };
-            };
-            /** @description Bad Request */
-            readonly 400: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": components["schemas"]["ProblemDetails"];
-                    readonly "text/json": components["schemas"]["ProblemDetails"];
-                    readonly "text/plain": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Not Found */
-            readonly 404: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": components["schemas"]["ProblemDetails"];
-                    readonly "text/json": components["schemas"]["ProblemDetails"];
-                    readonly "text/plain": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Conflict */
-            readonly 409: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": components["schemas"]["ProblemDetails"];
-                    readonly "text/json": components["schemas"]["ProblemDetails"];
-                    readonly "text/plain": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
     readonly ListarUbicaciones: {
         readonly parameters: {
             readonly query?: {
                 readonly Activo?: boolean;
-                readonly AlmacenaEquipo?: boolean;
                 readonly Descendente?: boolean;
                 readonly EsAdministrativa?: boolean;
                 readonly IncluirEliminados?: boolean;
@@ -9154,6 +12937,349 @@ export interface operations {
             };
             /** @description Not Found */
             readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ListarUsuariosEmpresa: {
+        readonly parameters: {
+            readonly query?: {
+                readonly Activo?: boolean;
+                readonly Descendente?: boolean;
+                readonly Estado?: components["schemas"]["EstadoUsuario"];
+                readonly IncluirEliminados?: boolean;
+                readonly Numero?: number;
+                readonly Orden?: string;
+                readonly RolId?: string;
+                readonly Saltar?: number;
+                readonly Tamano?: number;
+                readonly TamanoEfectivo?: number;
+                readonly Texto?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["PaginaOfUsuarioEmpresaDto"];
+                    readonly "text/json": components["schemas"]["PaginaOfUsuarioEmpresaDto"];
+                    readonly "text/plain": components["schemas"]["PaginaOfUsuarioEmpresaDto"];
+                };
+            };
+        };
+    };
+    readonly InvitarUsuarioEmpresa: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AltaUsuarioEmpresa"];
+                readonly "application/json": components["schemas"]["AltaUsuarioEmpresa"];
+                readonly "text/json": components["schemas"]["AltaUsuarioEmpresa"];
+            };
+        };
+        readonly responses: {
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["InvitacionEmitida"];
+                    readonly "text/json": components["schemas"]["InvitacionEmitida"];
+                    readonly "text/plain": components["schemas"]["InvitacionEmitida"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ObtenerUsuarioEmpresa: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["UsuarioEmpresaDto"];
+                    readonly "text/json": components["schemas"]["UsuarioEmpresaDto"];
+                    readonly "text/plain": components["schemas"]["UsuarioEmpresaDto"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly EditarUsuarioEmpresa: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["CambioUsuarioEmpresa"];
+                readonly "application/json": components["schemas"]["CambioUsuarioEmpresa"];
+                readonly "text/json": components["schemas"]["CambioUsuarioEmpresa"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["UsuarioEmpresaDto"];
+                    readonly "text/json": components["schemas"]["UsuarioEmpresaDto"];
+                    readonly "text/plain": components["schemas"]["UsuarioEmpresaDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly CambiarEstadoUsuarioEmpresa: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["CambioEstadoUsuario"];
+                readonly "application/json": components["schemas"]["CambioEstadoUsuario"];
+                readonly "text/json": components["schemas"]["CambioEstadoUsuario"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["UsuarioEmpresaDto"];
+                    readonly "text/json": components["schemas"]["UsuarioEmpresaDto"];
+                    readonly "text/plain": components["schemas"]["UsuarioEmpresaDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly ReenviarInvitacionUsuarioEmpresa: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["InvitacionEmitida"];
+                    readonly "text/json": components["schemas"]["InvitacionEmitida"];
+                    readonly "text/plain": components["schemas"]["InvitacionEmitida"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly AsignarRolesUsuarioEmpresa: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["AsignacionDeRoles"];
+                readonly "application/json": components["schemas"]["AsignacionDeRoles"];
+                readonly "text/json": components["schemas"]["AsignacionDeRoles"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["UsuarioEmpresaDto"];
+                    readonly "text/json": components["schemas"]["UsuarioEmpresaDto"];
+                    readonly "text/plain": components["schemas"]["UsuarioEmpresaDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

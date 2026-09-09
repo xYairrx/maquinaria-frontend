@@ -15,35 +15,29 @@ import { Confirmacion } from '../../../disposicion/confirmacion';
 import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
 import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiCatalogos } from '../../../nucleo/api/api-catalogos';
-import type { FiltroTiposEquipo, TipoEquipo } from '../../../nucleo/api/contratos';
+import type { TipoTarifa, FiltroListado } from '../../../nucleo/api/contratos';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { t } from '../../../nucleo/i18n/i18n';
-import { TiposEsqueleto } from './esqueleto';
+import { TiposTarifaEsqueleto } from './esqueleto';
 
 const TAMANO_PAGINA = 50;
 
 /**
- * Tipos de equipo: excavadora, retroexcavadora, compactador.
+ * Tipos de concepto cobrable: Operacion, Fletes, Maniobras.
  *
- * MISMA FORMA QUE MARCAS —el razonamiento de la búsqueda diferida, el esqueleto solo en la
- * primera carga y el vacío que explica por qué lo está viven en `marcas.ts`—.
+ * De un tipo cuelgan las TARIFAS, y la columna de conteo lo enseña.
  *
- * **LO QUE ESTA PANTALLA AÑADE ES UNA DEPENDENCIA:** un tipo cuelga de una CATEGORÍA, y la
- * categoría es obligatoria. De ahí el desplegable, que se llena de
- * `ApiCatalogos.selectorCategorias()` — un recurso compartido que trae solo las **activas**:
- * una categoría retirada sigue en el catálogo y en los tipos que ya la usan, pero no debe
- * poder elegirse para uno nuevo.
- *
- * **Sin categorías activas no se puede crear un tipo**, y la pantalla lo dice en lugar de
- * ofrecer un desplegable vacío que rechaza el servidor después de un viaje.
+ * MISMA FORMA QUE MARCAS —el razonamiento completo de la búsqueda diferida, el esqueleto
+ * solo en la primera carga, los tres estados del filtro y el vacío que dice por qué está
+ * vacío está en `marcas.ts`, y no se repite aquí—.
  */
 @Component({
-  selector: 'app-tipos',
-  imports: [BarraHerramientas, PanelLateral, ReactiveFormsModule, TiposEsqueleto],
+  selector: 'app-tipos-tarifa',
+  imports: [BarraHerramientas, PanelLateral, TiposTarifaEsqueleto, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './tipos.html',
+  templateUrl: './tipos-tarifa.html',
 })
-export class Tipos {
+export class TiposTarifa {
   private readonly api = inject(ApiCatalogos);
   private readonly barra = inject(Barra);
   private readonly confirmacion = inject(Confirmacion);
@@ -51,41 +45,32 @@ export class Tipos {
 
   protected readonly t = t;
 
-  /** Las categorías activas, para el desplegable. Compartido con quien más las pida. */
-  protected readonly categorias = this.api.selectorCategorias();
-
-  /** Sin ninguna activa no hay de dónde colgar un tipo. */
-  protected readonly sinCategorias = computed(() => this.categorias().length === 0);
-
   protected readonly busqueda = signal('');
 
+  /** Con retardo, para no pedir por tecla. El porqué, en `marcas.ts`. */
   private readonly busquedaDiferida = toSignal(
     toObservable(this.busqueda).pipe(debounceTime(300), distinctUntilChanged()),
     { initialValue: '' },
   );
 
-  protected readonly soloActivos = signal<boolean | undefined>(undefined);
-
-  /** Vacío = todas. Filtra en el SERVIDOR con `CategoriaEquipoId`, no en memoria. */
-  protected readonly categoriaFiltrada = signal('');
-
+  protected readonly soloActivas = signal<boolean | undefined>(undefined);
   protected readonly pagina = signal(1);
 
-  private readonly filtro = computed<FiltroTiposEquipo>(() => ({
+  private readonly filtro = computed<FiltroListado>(() => ({
     Texto: this.busquedaDiferida().trim() || undefined,
-    Activo: this.soloActivos(),
-    CategoriaEquipoId: this.categoriaFiltrada() || undefined,
+    Activo: this.soloActivas(),
     Numero: this.pagina(),
     Tamano: TAMANO_PAGINA,
     Orden: 'nombre',
   }));
 
-  private readonly listado = this.api.tipos.listado(this.filtro);
+  private readonly listado = this.api.tiposTarifa.listado(this.filtro);
 
   protected readonly tipos = this.listado.filas;
   protected readonly total = this.listado.total;
   protected readonly paginas = this.listado.paginas;
 
+  /** Solo la PRIMERA carga: recargar no tapa la tabla. Ver `marcas.ts`. */
   protected readonly cargando = computed(
     () => this.listado.cargando() && this.tipos().length === 0,
   );
@@ -99,58 +84,50 @@ export class Tipos {
 
   protected readonly error = computed(() => this.errorMutacion() ?? this.listado.error());
 
-  protected readonly editando = signal<TipoEquipo | null>(null);
+  protected readonly editando = signal<TipoTarifa | null>(null);
 
   protected readonly formulario = this.fb.group({
-    categoriaEquipoId: ['', Validators.required],
     codigo: ['', [Validators.required, Validators.maxLength(30)]],
     nombre: ['', [Validators.required, Validators.maxLength(80)]],
+    descripcion: [''],
   });
 
+  /** El vacío dice POR QUÉ está vacío. Los cuatro casos, en `marcas.ts`. */
   protected readonly mensajeVacio = computed(() => {
     const texto = this.busquedaDiferida().trim();
 
     if (texto !== '') {
-      return t().tipos.sinResultados(texto);
+      return t().tiposTarifa.sinResultados(texto);
     }
 
-    if (this.categoriaFiltrada() !== '') {
-      return t().tipos.sinDeEsaCategoria;
+    if (this.soloActivas() === true) {
+      return t().tiposTarifa.sinActivas;
     }
 
-    if (this.soloActivos() === true) {
-      return t().tipos.sinActivos;
+    if (this.soloActivas() === false) {
+      return t().tiposTarifa.sinRetiradas;
     }
 
-    if (this.soloActivos() === false) {
-      return t().tipos.sinRetirados;
-    }
-
-    return t().tipos.sinTipos;
+    return t().tiposTarifa.sinFilas;
   });
 
+  /** El contexto de la barra cuenta lo mismo que la lista, no «el catálogo». */
   protected readonly contexto = computed(() => {
     const n = this.total();
 
     if (this.busquedaDiferida().trim() !== '') {
-      return t().tipos.contextoResultados(n);
+      return t().tiposTarifa.contextoResultados(n);
     }
 
-    // «0 tipos» con una categoria elegida se lee como «el catalogo esta vacio». Se nombra
-    // lo que se esta contando, igual que con el filtro de activos.
-    if (this.categoriaFiltrada() !== '') {
-      return t().tipos.contextoDeCategoria(n);
+    if (this.soloActivas() === true) {
+      return t().tiposTarifa.contextoActivas(n);
     }
 
-    if (this.soloActivos() === true) {
-      return t().tipos.contextoActivos(n);
+    if (this.soloActivas() === false) {
+      return t().tiposTarifa.contextoRetiradas(n);
     }
 
-    if (this.soloActivos() === false) {
-      return t().tipos.contextoRetirados(n);
-    }
-
-    return t().tipos.contexto(n);
+    return t().tiposTarifa.contexto(n);
   });
 
   protected readonly desde = computed(() =>
@@ -162,7 +139,7 @@ export class Tipos {
   constructor() {
     effect(() =>
       this.barra.configurar({
-        titulo: t().tipos.titulo,
+        titulo: t().tiposTarifa.titulo,
         contexto: this.contexto(),
         // NI BUSQUEDA NI ACCION AQUI: bajaron a `app-barra-herramientas`, encima de la tabla.
         // Ver el porque en `marcas.ts`, la pantalla canonica.
@@ -173,8 +150,7 @@ export class Tipos {
 
     effect(() => {
       this.busquedaDiferida();
-      this.soloActivos();
-      this.categoriaFiltrada();
+      this.soloActivas();
       this.pagina.set(1);
     });
   }
@@ -182,27 +158,23 @@ export class Tipos {
   protected abrirAlta(): void {
     this.editando.set(null);
     this.errorMutacion.set(null);
-    this.formulario.reset({ categoriaEquipoId: '', codigo: '', nombre: '' });
+    this.formulario.reset({ codigo: '', nombre: '', descripcion: '' });
     this.panelAbierto.set(true);
   }
 
-  protected abrirEdicion(tipo: TipoEquipo): void {
+  protected abrirEdicion(tipo: TipoTarifa): void {
     this.editando.set(tipo);
     this.errorMutacion.set(null);
     this.formulario.reset({
-      categoriaEquipoId: tipo.categoriaEquipoId,
       codigo: tipo.codigo,
       nombre: tipo.nombre,
+      descripcion: tipo.descripcion ?? '',
     });
     this.panelAbierto.set(true);
   }
 
   protected cerrarPanel(): void {
     this.panelAbierto.set(false);
-  }
-
-  protected filtrarPorCategoria(categoriaId: string): void {
-    this.categoriaFiltrada.set(categoriaId);
   }
 
   protected irA(numero: number): void {
@@ -225,16 +197,18 @@ export class Tipos {
     const v = this.formulario.getRawValue();
 
     const alta = {
-      categoriaEquipoId: v.categoriaEquipoId,
       codigo: v.codigo.trim(),
       nombre: v.nombre.trim(),
+      // Cadena vacía va como null: la columna es nullable, y guardar '' significaría
+      // «capturado y vacío», que es otra cosa. Mismo criterio que en planes.
+      descripcion: v.descripcion.trim() === '' ? null : v.descripcion.trim(),
     };
 
     const enEdicion = this.editando();
 
     const peticion = enEdicion
-      ? this.api.tipos.editar(enEdicion.id, alta)
-      : this.api.tipos.crear(alta);
+      ? this.api.tiposTarifa.editar(enEdicion.id, alta)
+      : this.api.tiposTarifa.crear(alta);
 
     peticion.subscribe({
       next: () => {
@@ -248,12 +222,12 @@ export class Tipos {
     });
   }
 
-  protected async alternarActivo(tipo: TipoEquipo): Promise<void> {
+  protected async alternarActivo(tipo: TipoTarifa): Promise<void> {
     if (tipo.activo) {
       const sigue = await this.confirmacion.pedir({
-        titulo: t().tipos.retirar,
-        mensaje: t().tipos.confirmarRetiro(tipo.nombre),
-        confirmar: t().tipos.retirar,
+        titulo: t().tiposTarifa.retirar,
+        mensaje: t().tiposTarifa.confirmarRetiro(tipo.nombre),
+        confirmar: t().tiposTarifa.retirar,
         peligro: true,
       });
 
@@ -264,7 +238,7 @@ export class Tipos {
 
     this.errorMutacion.set(null);
 
-    this.api.tipos.cambiarActivo(tipo.id, !tipo.activo).subscribe({
+    this.api.tiposTarifa.cambiarActivo(tipo.id, !tipo.activo).subscribe({
       error: (e: unknown) => this.errorMutacion.set(mensajeDeError(e)),
     });
   }

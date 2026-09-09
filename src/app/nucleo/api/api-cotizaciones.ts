@@ -6,8 +6,10 @@ import { configuracion } from '../ambiente/configuracion';
 import type {
   AltaCotizacion,
   AltaCotizacionLinea,
+  AltaCotizacionLineaTarifa,
   Cotizacion,
   CotizacionLinea,
+  CotizacionLineaTarifa,
   EstadoCotizacion,
 } from './contratos';
 import { mensajeDeErrorDeRecurso } from './mensaje-error';
@@ -30,6 +32,10 @@ export interface DetalleDeCotizacion {
  *
  * Las líneas se agregan y se quitan **una por una**, con su propio endpoint. No hay «guardar la
  * cotización con sus líneas»: cada línea es una operación, y el servidor recalcula el subtotal.
+ *
+ * **DESDE EL 2026-09-08 HAY DOS NIVELES.** Una línea lleva N conceptos cobrables, y cada uno se
+ * añade y se quita por separado — pero la línea NACE con los suyos, en una sola petición: una
+ * línea sin ningún concepto no cobra nada y el servidor la rechaza.
  */
 @Injectable({ providedIn: 'root' })
 export class ApiCotizaciones {
@@ -92,6 +98,40 @@ export class ApiCotizaciones {
   quitarLinea(id: string, lineaId: string): Observable<void> {
     return this.fabrica.borrar(
       `cotizaciones/${encodeURIComponent(id)}/lineas/${encodeURIComponent(lineaId)}`,
+      { recargar: 'cotizaciones' },
+    );
+  }
+
+  /**
+   * Añade un concepto a una línea que YA existe.
+   *
+   * **El mismo concepto dos veces en la misma línea responde 409**: sumaría dos veces y nadie lo
+   * vería al revisar el total. Para corregir la cantidad o el precio hay que quitarlo y volver a
+   * ponerlo — no hay endpoint de edición, y no es un olvido: un concepto es un renglón de la
+   * propuesta, no un campo.
+   */
+  agregarTarifa(
+    id: string,
+    lineaId: string,
+    alta: AltaCotizacionLineaTarifa,
+  ): Observable<CotizacionLineaTarifa> {
+    return this.fabrica.publicar<CotizacionLineaTarifa>(
+      `cotizaciones/${encodeURIComponent(id)}/lineas/${encodeURIComponent(lineaId)}/tarifas`,
+      alta,
+      { recargar: 'cotizaciones' },
+    );
+  }
+
+  /**
+   * Quita un concepto de una línea.
+   *
+   * **Sacar el último responde 409** y dice que lo que se quiere es quitar la línea: un renglón
+   * de importe cero que no dice qué se cobra no le sirve a nadie.
+   */
+  quitarTarifa(id: string, lineaId: string, tarifaLineaId: string): Observable<void> {
+    return this.fabrica.borrar(
+      `cotizaciones/${encodeURIComponent(id)}/lineas/${encodeURIComponent(lineaId)}` +
+        `/tarifas/${encodeURIComponent(tarifaLineaId)}`,
       { recargar: 'cotizaciones' },
     );
   }

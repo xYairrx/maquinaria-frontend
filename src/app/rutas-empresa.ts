@@ -73,14 +73,29 @@ export const rutasEmpresa: Routes = [
           import('./paginas/empresa/categorias/categorias').then((m) => m.Categorias),
       },
       {
+        path: 'proyectos',
+        title: () => t().titulos.proyectos,
+        loadComponent: () =>
+          import('./paginas/empresa/proyectos/proyectos').then((m) => m.Proyectos),
+      },
+      {
+        path: 'tipos-tarifa',
+        title: () => t().titulos.tiposTarifa,
+        loadComponent: () =>
+          import('./paginas/empresa/tipos-tarifa/tipos-tarifa').then((m) => m.TiposTarifa),
+      },
+      {
+        path: 'motivos-movimiento',
+        title: () => t().titulos.motivosMovimiento,
+        loadComponent: () =>
+          import('./paginas/empresa/motivos-movimiento/motivos-movimiento').then(
+            (m) => m.MotivosMovimiento,
+          ),
+      },
+      {
         path: 'puestos',
         title: () => t().titulos.puestos,
         loadComponent: () => import('./paginas/empresa/puestos/puestos').then((m) => m.Puestos),
-      },
-      {
-        path: 'tipos',
-        title: () => t().titulos.tipos,
-        loadComponent: () => import('./paginas/empresa/tipos/tipos').then((m) => m.Tipos),
       },
       {
         path: 'tarifas',
@@ -135,10 +150,49 @@ export const rutasEmpresa: Routes = [
           import('./paginas/empresa/expediente/expediente').then((m) => m.Expediente),
       },
       {
-        path: 'traspasos',
-        title: () => t().titulos.traspasos,
+        path: 'usuarios',
+        title: () => t().titulos.usuarios,
+        loadComponent: () => import('./paginas/empresa/usuarios/usuarios').then((m) => m.Usuarios),
+      },
+      {
+        path: 'roles',
+        title: () => t().titulos.roles,
+        loadComponent: () => import('./paginas/empresa/roles/roles').then((m) => m.Roles),
+      },
+      {
+        path: 'mantenimiento',
+        title: () => t().titulos.mantenimiento,
         loadComponent: () =>
-          import('./paginas/empresa/traspasos/traspasos').then((m) => m.Traspasos),
+          import('./paginas/empresa/mantenimiento/mantenimiento').then((m) => m.Mantenimiento),
+      },
+      {
+        // El detalle va DESPUES del listado: el enrutador escoge la primera que casa, y
+        // `mantenimiento` sin id no casa con `mantenimiento/:id`, pero leerlas en este orden
+        // evita la duda.
+        path: 'mantenimiento/:id',
+        title: () => t().titulos.trabajo,
+        loadComponent: () => import('./paginas/empresa/trabajo/trabajo').then((m) => m.Trabajo),
+      },
+      {
+        path: 'reportes',
+        title: () => t().titulos.reportes,
+        loadComponent: () => import('./paginas/empresa/reportes/reportes').then((m) => m.Reportes),
+      },
+      {
+        path: 'tablero',
+        title: () => t().titulos.tablero,
+        loadComponent: () => import('./paginas/empresa/tablero/tablero').then((m) => m.Tablero),
+      },
+      {
+        path: 'bitacora',
+        title: () => t().titulos.bitacora,
+        loadComponent: () => import('./paginas/empresa/bitacora/bitacora').then((m) => m.Bitacora),
+      },
+      {
+        path: 'movimientos',
+        title: () => t().titulos.movimientos,
+        loadComponent: () =>
+          import('./paginas/empresa/movimientos/movimientos').then((m) => m.Movimientos),
       },
       {
         path: 'disponibilidad',

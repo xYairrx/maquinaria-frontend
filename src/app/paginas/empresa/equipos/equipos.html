@@ -1,5 +1,5 @@
 <!--
-  El parque. Tres filtros propios —estado, ubicacion y proposito— y TRES acciones por fila:
+  El parque. Dos filtros propios —estado y ubicacion— y TRES acciones por fila:
   editar, cambiar estado y eliminar. Es la primera pantalla con borrado de verdad.
 -->
 <div class="mx-auto flex flex-col gap-4">
@@ -24,6 +24,51 @@
       </select>
     </div>
 
+    <!--
+      MARCA Y CATEGORÍA COMO FILTROS DE LA LISTA. Es lo que las columnas nuevas de `equipo`
+      hacen barato: el servidor las resuelve con su propio índice, sin unir con el catálogo de
+      modelos ni con el de tipos.
+
+      La preselección va en `[selected]` de cada `<option>`, NUNCA en `[value]` del `<select>`:
+      el binding del padre se aplica antes de que el `@for` haya creado una sola opción y el
+      navegador cae en la primera. Ver `convenciones.md`.
+    -->
+    <div filtros>
+      <label for="filtro-marca" class="sr-only">{{ t().equipos.marca }}</label>
+      <select
+        id="filtro-marca"
+        (change)="filtrarPorMarca($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="marcaFiltrada() === ''">
+          {{ t().equipos.cualquierMarca }}
+        </option>
+        @for (marca of marcas(); track marca.id) {
+          <option [value]="marca.id" [selected]="marcaFiltrada() === marca.id">
+            {{ marca.nombre }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-categoria" class="sr-only">{{ t().equipos.categoria }}</label>
+      <select
+        id="filtro-categoria"
+        (change)="filtrarPorCategoria($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="categoriaFiltrada() === ''">
+          {{ t().equipos.cualquierCategoria }}
+        </option>
+        @for (categoria of categorias(); track categoria.id) {
+          <option [value]="categoria.id" [selected]="categoriaFiltrada() === categoria.id">
+            {{ categoria.nombre }}
+          </option>
+        }
+      </select>
+    </div>
+
     <div filtros>
       <label for="filtro-ubicacion" class="sr-only">{{ t().equipos.ubicacion }}</label>
       <select
@@ -35,21 +80,6 @@
         <option value="">{{ t().equipos.cualquierUbicacion }}</option>
         @for (ubicacion of ubicaciones(); track ubicacion.id) {
           <option [value]="ubicacion.id">{{ ubicacion.nombre }}</option>
-        }
-      </select>
-    </div>
-
-    <div filtros>
-      <label for="filtro-proposito" class="sr-only">{{ t().equipos.proposito }}</label>
-      <select
-        id="filtro-proposito"
-        [value]="propositoFiltrado() ?? ''"
-        (change)="elegirProposito($any($event.target).value)"
-        class="campo-formulario filtro-barra"
-      >
-        <option value="">{{ t().equipos.cualquierProposito }}</option>
-        @for (proposito of propositos; track proposito) {
-          <option [value]="proposito">{{ nombreProposito(proposito) }}</option>
         }
       </select>
     </div>
@@ -88,7 +118,7 @@
                   {{ t().equipos.colCodigo }}
                 </th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().equipos.colEquipo }}</th>
-                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().equipos.colTipo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().equipos.colCategoria }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().equipos.colSerie }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">
                   {{ t().equipos.colUbicacion }}
@@ -115,6 +145,15 @@
                     >
                       {{ equipo.codigoInterno }}
                     </a>
+
+                    <!--
+                      EL NOMBRE VA DEBAJO DEL CODIGO, que es «despues de Codigo Interno» sin
+                      meter una columna mas en una tabla que ya se desplaza. Es lo que hace que
+                      la primera columna —la fija— se explique sola.
+                    -->
+                    <p class="text-xs text-texto-apagado">
+                      {{ equipo.descripcion ?? t().equipos.sinNombre }}
+                    </p>
                   </td>
 
                   <!-- Marca y modelo llegan RESUELTOS del servidor, no como ids. -->
@@ -125,7 +164,7 @@
                     }
                   </td>
 
-                  <td class="px-4 py-3 text-texto-secundario">{{ equipo.tipoEquipo }}</td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ equipo.categoria }}</td>
 
                   <td class="whitespace-nowrap px-4 py-3 text-texto-secundario">
                     {{ equipo.numeroSerie ?? t().equipos.sinDato }}
@@ -308,6 +347,29 @@
             />
           </div>
 
+          <!--
+            EL NOMBRE, JUSTO DESPUES DEL CODIGO. Era `descripcion` y un `<textarea>` de dos
+            renglones al final del formulario; desde el 2026-09-09 es el NOMBRE de la maquina y
+            va aqui, porque es la otra mitad de como se la identifica. De ahi que sea un
+            `<input>`: un nombre es un renglon.
+          -->
+          <div class="flex flex-col gap-1">
+            <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.descripcion }}
+            </label>
+            <input
+              id="descripcion"
+              formControlName="descripcion"
+              maxlength="200"
+              autocomplete="off"
+              aria-describedby="ayuda-descripcion"
+              class="campo-formulario"
+            />
+            <p id="ayuda-descripcion" class="text-xs text-texto-apagado">
+              {{ t().equipos.ayudaDescripcion }}
+            </p>
+          </div>
+
           <div class="flex flex-col gap-1">
             <label for="numeroSerie" class="text-sm font-medium text-texto-secundario">
               {{ t().equipos.numeroSerie }}
@@ -322,59 +384,122 @@
             />
           </div>
 
+          <!--
+            MARCA, MODELO Y CATEGORÍA: los tres se ESCRIBEN. El `datalist` filtra mientras se
+            teclea y, si lo escrito no está en el catálogo, se crea al guardar y queda para el
+            siguiente equipo.
+
+            La marca no se guarda en `equipo` como texto: se resuelve a un id —o se crea uno— al
+            enviar. La columna `equipo.marca_id` la sigue derivando el servidor del modelo, y una
+            clave foránea compuesta impide que discrepen.
+          -->
           <div class="flex flex-col gap-1">
-            <label for="modeloEquipoId" class="text-sm font-medium text-texto-secundario">
-              {{ t().equipos.modelo }}
+            <label for="marcaTexto" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.marca }}
             </label>
-            <select
-              id="modeloEquipoId"
-              formControlName="modeloEquipoId"
-              [attr.aria-invalid]="mal(formulario.controls.modeloEquipoId) ? 'true' : null"
+            <input
+              id="marcaTexto"
+              formControlName="marcaTexto"
+              list="lista-marcas"
+              autocomplete="off"
+              [attr.aria-invalid]="mal(formulario.controls.marcaTexto) ? 'true' : null"
               [attr.aria-describedby]="
-                mal(formulario.controls.modeloEquipoId)
-                  ? 'ayuda-modelo error-modelo'
-                  : 'ayuda-modelo'
+                mal(formulario.controls.marcaTexto) ? 'ayuda-marca error-marca' : 'ayuda-marca'
               "
               class="campo-formulario"
-            >
-              <option value=""></option>
-              @for (modelo of modelos(); track modelo.id) {
-                <option [value]="modelo.id">{{ modelo.nombre }}</option>
+            />
+            <datalist id="lista-marcas">
+              @for (marca of marcas(); track marca.id) {
+                <option [value]="marca.nombre"></option>
               }
-            </select>
-            <p id="ayuda-modelo" class="text-xs text-texto-apagado">
-              {{ modelos().length === 0 ? t().equipos.sinModelos : t().equipos.ayudaModelo }}
+            </datalist>
+            <p id="ayuda-marca" class="text-xs text-texto-apagado">
+              {{ t().equipos.ayudaMarca }}
             </p>
             <app-error-campo
-              id="error-modelo"
-              [visible]="mal(formulario.controls.modeloEquipoId)"
-              [mensaje]="t().equipos.errorModelo"
+              id="error-marca"
+              [visible]="mal(formulario.controls.marcaTexto)"
+              [mensaje]="t().equipos.errorMarca"
             />
           </div>
 
           <div class="flex flex-col gap-1">
-            <label for="tipoEquipoId" class="text-sm font-medium text-texto-secundario">
-              {{ t().equipos.tipo }}
+            <label for="modeloTexto" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.modelo }}
             </label>
-            <select
-              id="tipoEquipoId"
-              formControlName="tipoEquipoId"
-              [attr.aria-invalid]="mal(formulario.controls.tipoEquipoId) ? 'true' : null"
+            <!--
+              INPUT CON `datalist`, NO UN `<select>`. El navegador filtra mientras se teclea y
+              deja escribir algo que no está en la lista; si no está, se crea al guardar.
+
+              Nativo y no un combobox propio: `role="combobox"` obliga a implementar flechas,
+              Home y End, y anunciar el rol sin su contrato de teclado es peor que no anunciarlo.
+            -->
+            <input
+              id="modeloTexto"
+              formControlName="modeloTexto"
+              list="lista-modelos"
+              autocomplete="off"
+              (change)="alElegirModelo()"
+              [attr.aria-invalid]="mal(formulario.controls.modeloTexto) ? 'true' : null"
               [attr.aria-describedby]="
-                mal(formulario.controls.tipoEquipoId) ? 'ayuda-tipo error-tipo' : 'ayuda-tipo'
+                mal(formulario.controls.modeloTexto) ? 'ayuda-modelo error-modelo' : 'ayuda-modelo'
               "
               class="campo-formulario"
-            >
-              <option value=""></option>
-              @for (tipo of tipos(); track tipo.id) {
-                <option [value]="tipo.id">{{ tipo.nombre }}</option>
+            />
+            <datalist id="lista-modelos">
+              @for (modelo of modelos(); track modelo.id) {
+                <!--
+                  El VALOR es el nombre, porque es lo que el campo guarda. La marca va en el
+                  texto de apoyo del `<option>`, que el navegador muestra al lado: sin ella, dos
+                  «320D» de marcas distintas serían indistinguibles.
+                -->
+                <option [value]="modelo.nombre">{{ modelo.marca }}</option>
               }
-            </select>
-            <p id="ayuda-tipo" class="text-xs text-texto-apagado">{{ t().equipos.ayudaTipo }}</p>
+            </datalist>
+            <p id="ayuda-modelo" class="text-xs text-texto-apagado">
+              {{ t().equipos.ayudaModelo }}
+            </p>
             <app-error-campo
-              id="error-tipo"
-              [visible]="mal(formulario.controls.tipoEquipoId)"
-              [mensaje]="t().equipos.errorTipo"
+              id="error-modelo"
+              [visible]="mal(formulario.controls.modeloTexto)"
+              [mensaje]="t().equipos.errorModelo"
+            />
+          </div>
+
+          <!--
+            LA CATEGORÍA SE GUARDA EN EL EQUIPO. Hasta el 2026-09-07 salía del tipo, que era el
+            nivel intermedio; con `tipo_equipo` retirado ocupa su sitio, y se escribe igual que
+            el modelo: si no existe, se crea al guardar.
+          -->
+          <div class="flex flex-col gap-1">
+            <label for="categoriaTexto" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.categoria }}
+            </label>
+            <input
+              id="categoriaTexto"
+              formControlName="categoriaTexto"
+              list="lista-categorias"
+              autocomplete="off"
+              [attr.aria-invalid]="mal(formulario.controls.categoriaTexto) ? 'true' : null"
+              [attr.aria-describedby]="
+                mal(formulario.controls.categoriaTexto)
+                  ? 'ayuda-categoria error-categoria'
+                  : 'ayuda-categoria'
+              "
+              class="campo-formulario"
+            />
+            <datalist id="lista-categorias">
+              @for (categoria of categorias(); track categoria.id) {
+                <option [value]="categoria.nombre"></option>
+              }
+            </datalist>
+            <p id="ayuda-categoria" class="text-xs text-texto-apagado">
+              {{ t().equipos.ayudaCategoria }}
+            </p>
+            <app-error-campo
+              id="error-categoria"
+              [visible]="mal(formulario.controls.categoriaTexto)"
+              [mensaje]="t().equipos.errorCategoria"
             />
           </div>
         </div>
@@ -390,9 +515,16 @@
             <label for="ubicacionId" class="text-sm font-medium text-texto-secundario">
               {{ t().equipos.ubicacion }}
             </label>
+            <!--
+              DESHABILITADO EN LA EDICION, no oculto: quien abre el expediente tiene que poder
+              ver donde esta la maquina. Y `disabled` en el marcado y no en el control: un
+              control deshabilitado por codigo sale de `formulario.value`, y el PUT mandaria
+              `ubicacionId` nulo -- que el servidor leeria como un intento de moverla.
+            -->
             <select
               id="ubicacionId"
               formControlName="ubicacionId"
+              [attr.disabled]="editandoExpediente ? '' : null"
               aria-describedby="ayuda-ubicacion"
               class="campo-formulario"
             >
@@ -402,45 +534,34 @@
               }
             </select>
             <p id="ayuda-ubicacion" class="text-xs text-texto-apagado">
-              {{ t().equipos.ayudaUbicacion }}
+              {{
+                editandoExpediente
+                  ? t().equipos.ubicacionSeMueveConMovimiento
+                  : t().equipos.ayudaUbicacion
+              }}
             </p>
           </div>
 
-          <div class="flex flex-col gap-1">
-            <label for="proposito" class="text-sm font-medium text-texto-secundario">
-              {{ t().equipos.proposito }}
-            </label>
-            <select
-              id="proposito"
-              formControlName="proposito"
-              aria-describedby="ayuda-proposito"
-              class="campo-formulario"
-            >
-              @for (proposito of propositos; track proposito) {
-                <!-- `ngValue`: enum numerico. -->
-                <option [ngValue]="proposito">{{ nombreProposito(proposito) }}</option>
-              }
-            </select>
-            <p id="ayuda-proposito" class="text-xs text-texto-apagado">
-              {{ t().equipos.ayudaProposito }}
-            </p>
-          </div>
+          <!--
+            SIN «QUIEN RECIBE», SIN PROPÓSITO Y SIN ORIGEN, retirados el 2026-09-09.
 
-          <div class="flex flex-col gap-1">
-            <label for="origen" class="text-sm font-medium text-texto-secundario">
-              {{ t().equipos.origen }}
-            </label>
-            <select id="origen" formControlName="origen" class="campo-formulario">
-              @for (origen of origenes; track origen) {
-                <option [ngValue]="origen">{{ nombreOrigen(origen) }}</option>
-              }
-            </select>
-          </div>
+            Quien recibe se preguntaba aquí y se guardaba en el movimiento de entrada; ahora lo
+            pone el servidor: **el responsable de la ubicación de destino**, que es un dato que
+            ya existe y que no se puede contradecir desde esta pantalla. El propósito decidía si
+            una máquina se podía rentar o solo vender —ahora cualquiera puede las dos cosas, y
+            lo único que lo impide es su estado—, y el origen no lo leía ninguna pantalla.
+          -->
 
           <div class="flex flex-col gap-1">
             <label for="anio" class="text-sm font-medium text-texto-secundario">
               {{ t().equipos.anio }}
             </label>
+            <!--
+              CON `datalist` TAMBIÉN, y aquí no hay catálogo que crear: la lista son los años
+              que ya usa el parque. El que se teclee entra con el equipo y aparecerá en esta
+              lista para el siguiente, que es «guardar el valor para que después sea selección»
+              sin más maquinaria.
+            -->
             <input
               id="anio"
               formControlName="anio"
@@ -448,8 +569,16 @@
               step="1"
               inputmode="numeric"
               autocomplete="off"
+              list="lista-anios"
+              aria-describedby="ayuda-anio"
               class="campo-formulario"
             />
+            <datalist id="lista-anios">
+              @for (anio of anios(); track anio) {
+                <option [value]="anio"></option>
+              }
+            </datalist>
+            <p id="ayuda-anio" class="text-xs text-texto-apagado">{{ t().equipos.ayudaAnio }}</p>
           </div>
 
           <div class="flex flex-col gap-1">
@@ -488,21 +617,84 @@
             />
           </div>
 
+          <!--
+            LOS CUATRO COSTOS DE LA MAQUINA, §5.1. **Dejaron de ser «tarifas de referencia» el
+            2026-09-09**: ya no son un precio sugerido que ahorra buscarlo, son de donde sale el
+            COSTO DE LA MAQUINA que la cotizacion calcula sola con la unidad del documento y el
+            rango de fechas. Lo que se cobra encima —fletes, operador, maniobras— sigue siendo
+            una tarifa aparte en la linea.
+          -->
           <div class="flex flex-col gap-1">
-            <label for="valorActual" class="text-sm font-medium text-texto-secundario">
-              {{ t().equipos.valorActual }}
+            <label for="tarifaHora" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.tarifaHora }}
             </label>
             <input
-              id="valorActual"
-              formControlName="valorActual"
+              id="tarifaHora"
+              formControlName="tarifaHora"
               type="number"
               min="0"
               step="0.01"
               inputmode="decimal"
               autocomplete="off"
+              aria-describedby="ayuda-tarifas"
               class="campo-formulario"
             />
           </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="tarifaDia" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.tarifaDia }}
+            </label>
+            <input
+              id="tarifaDia"
+              formControlName="tarifaDia"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              aria-describedby="ayuda-tarifas"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="tarifaSemana" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.tarifaSemana }}
+            </label>
+            <input
+              id="tarifaSemana"
+              formControlName="tarifaSemana"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              aria-describedby="ayuda-tarifas"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="tarifaMes" class="text-sm font-medium text-texto-secundario">
+              {{ t().equipos.tarifaMes }}
+            </label>
+            <input
+              id="tarifaMes"
+              formControlName="tarifaMes"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
+              aria-describedby="ayuda-tarifas"
+              class="campo-formulario"
+            />
+          </div>
+
+          <p id="ayuda-tarifas" class="text-xs text-texto-apagado sm:col-span-2">
+            {{ t().equipos.ayudaTarifas }}
+          </p>
 
           <div class="flex flex-col gap-1">
             <label for="horometro" class="text-sm font-medium text-texto-secundario">
@@ -536,6 +728,12 @@
             />
           </div>
 
+          <!--
+            EL NOMBRE SE MUDO ARRIBA, junto al codigo. Aqui quedan solo las NOTAS, que son otra
+            cosa: el nombre identifica la maquina y sale en los formatos que ve el cliente; las
+            notas se quedan dentro. Con un solo campo, o se imprime lo interno o no se imprime
+            nada.
+          -->
           <div class="flex flex-col gap-1 sm:col-span-2">
             <label for="notas" class="text-sm font-medium text-texto-secundario">
               {{ t().equipos.notas }}
@@ -544,8 +742,12 @@
               id="notas"
               formControlName="notas"
               rows="2"
+              aria-describedby="ayuda-notas"
               class="campo-formulario"
             ></textarea>
+            <p id="ayuda-notas" class="text-xs text-texto-apagado">
+              {{ t().equipos.ayudaNotas }}
+            </p>
           </div>
         </div>
       </fieldset>

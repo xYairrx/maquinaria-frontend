@@ -199,6 +199,13 @@
                     class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium md:px-5"
                   >
                     {{ linea.codigoInterno }}
+
+                    <!-- El nombre debajo, como en el parque y en el contrato de renta. -->
+                    @if (linea.nombre) {
+                      <span class="block text-[11px] font-normal text-texto-secundario">
+                        {{ linea.nombre }}
+                      </span>
+                    }
                   </td>
                   <td class="px-4 py-3 text-texto-secundario">{{ linea.modelo }}</td>
                   <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
@@ -243,6 +250,69 @@
         </div>
       }
     </section>
+
+    <!--
+      EL PAPEL DE LA VENTA. §13 del documento funcional, que faltaba entero.
+
+      **Se adjunta en CUALQUIER estado, incluida una venta ya cerrada**, y por eso esta sección
+      no se esconde fuera de Borrador como la de líneas: la factura y el último comprobante de
+      pago llegan después, y pedir que la orden siguiera abierta obligaría a reabrirla para
+      archivar su propio respaldo.
+    -->
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div class="flex flex-wrap items-center gap-3 border-b border-borde px-4 py-3 md:px-5">
+        <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().ventas.seccionDocumentos }}
+        </h2>
+
+        <button
+          type="button"
+          (click)="abrirDocumento()"
+          class="ms-auto rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+        >
+          {{ t().ventas.adjuntar }}
+        </button>
+      </div>
+
+      @if (documentos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">
+          {{ t().ventas.sinDocumentos }}
+        </p>
+      } @else {
+        <ul class="divide-y divide-borde-fila">
+          @for (doc of documentos(); track doc.id) {
+            <li class="flex flex-wrap items-center gap-3 px-4 py-3 md:px-5">
+              <span
+                class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+              >
+                {{ t().ventas.tiposArchivo[doc.tipo] }}
+              </span>
+
+              <a
+                [href]="urlDocumento(doc.id)"
+                target="_blank"
+                rel="noopener"
+                class="min-w-0 flex-1 truncate text-sm text-texto underline underline-offset-2 hover:text-texto-secundario focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+              >
+                {{ doc.nombreOriginal }}
+              </a>
+
+              @if (doc.descripcion) {
+                <span class="text-xs text-texto-apagado">{{ doc.descripcion }}</span>
+              }
+
+              <button
+                type="button"
+                (click)="borrarDocumento(doc)"
+                class="text-xs text-texto-secundario underline underline-offset-2 hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+              >
+                {{ t().ventas.borrarDocumento }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
   } @else {
     <p class="rounded-xl border border-borde bg-superficie px-4 py-6 text-sm text-texto-secundario">
       {{ t().ventas.noEncontrada }}
@@ -283,7 +353,13 @@
           <option value="">{{ t().ordenes.sinDato }}</option>
           @for (equipo of equiposDisponibles(); track equipo.id) {
             <option [value]="equipo.id">
-              {{ equipo.codigoInterno }} — {{ equipo.marca }} {{ equipo.modelo }}
+              {{
+                t().comun.equipoEnLista(
+                  equipo.codigoInterno,
+                  equipo.descripcion,
+                  equipo.marca + ' ' + equipo.modelo
+                )
+              }}
             </option>
           }
         </select>
@@ -341,6 +417,88 @@
       class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
     >
       {{ enviando() ? t().ordenes.guardando : t().ordenes.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<app-panel-lateral
+  [abierto]="panelDocumento()"
+  [titulo]="t().ventas.adjuntarTitulo"
+  [apoyo]="t().ventas.adjuntarApoyo"
+  (cerrar)="cerrarDocumento()"
+>
+  <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+    <div class="flex flex-col gap-1">
+      <label for="doc-tipo" class="text-sm font-medium text-texto-secundario">
+        {{ t().ventas.colTipoArchivo }}
+      </label>
+      <!--
+        `<select>` FUERA de un formulario reactivo: se preselecciona con `[selected]` en cada
+        `<option>`, nunca con `[value]` en el `<select>` — el binding del padre se aplica antes
+        de que el `@for` haya creado una sola opción y el navegador cae en la primera.
+      -->
+      <select
+        id="doc-tipo"
+        (change)="elegirTipoDocumento($any($event.target).value)"
+        class="campo-formulario"
+      >
+        @for (opcion of tiposArchivo; track opcion) {
+          <option [value]="opcion" [selected]="tipoDocumento() === opcion">
+            {{ t().ventas.tiposArchivo[opcion] }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label for="doc-descripcion" class="text-sm font-medium text-texto-secundario">
+        {{ t().ventas.descripcionArchivo }}
+        <span class="font-normal text-texto-apagado">{{ t().ventas.opcionalArchivo }}</span>
+      </label>
+      <input
+        id="doc-descripcion"
+        type="text"
+        maxlength="120"
+        [value]="descripcionDocumento()"
+        (input)="descripcionDocumento.set($any($event.target).value)"
+        class="campo-formulario"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label for="doc-archivo" class="text-sm font-medium text-texto-secundario">
+        {{ t().ventas.archivo }}
+      </label>
+      <input
+        id="doc-archivo"
+        type="file"
+        accept="image/*,application/pdf"
+        (change)="elegirArchivo($event.target)"
+        class="campo-formulario file:me-3 file:rounded-md file:border-0 file:bg-superficie-sutil file:px-3 file:py-1 file:text-sm file:text-texto-secundario"
+      />
+      @if (archivo(); as elegido) {
+        <p class="text-xs text-texto-secundario">
+          <span class="font-medium text-texto">{{ elegido.name }}</span>
+        </p>
+      }
+    </div>
+  </div>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarDocumento()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().comun.cancelar }}
+    </button>
+    <button
+      type="button"
+      (click)="subirDocumento()"
+      [disabled]="archivo() === null || enviando()"
+      class="boton-principal"
+    >
+      {{ enviando() ? t().ventas.adjuntando : t().ventas.adjuntar }}
     </button>
   </div>
 </app-panel-lateral>

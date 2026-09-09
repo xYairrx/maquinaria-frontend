@@ -3,22 +3,25 @@ import { Injectable, Injector, inject, type Signal } from '@angular/core';
 
 import { configuracion } from '../ambiente/configuracion';
 import type {
+  AltaMotivoMovimiento,
+  FiltroListado,
   AltaCategoria,
   AltaClausula,
   AltaMarca,
   AltaModeloEquipo,
   AltaPuesto,
   AltaTarifa,
-  AltaTipoEquipo,
+  AltaTipoTarifa,
   Categoria,
   Clausula,
   Marca,
   ModeloEquipo,
+  MotivoMovimiento,
   Puesto,
   Tarifa,
-  TipoEquipo,
+  TipoTarifa,
 } from './contratos';
-import { FabricaDeRecursos } from './recursos-rest';
+import { FabricaDeRecursos, type Listado } from './recursos-rest';
 
 export type { Listado, RecursoRest } from './recursos-rest';
 export { aParametros } from './recursos-rest';
@@ -31,9 +34,12 @@ export { aParametros } from './recursos-rest';
  * forma pero cuelgan de otra base. Aquí solo queda QUÉ recursos hay y cuáles alimentan un
  * desplegable de otra pantalla.
  *
- * Tres de ellos hacen eso último: un tipo cuelga de una categoría, y un modelo de una marca
- * y de un tipo. Para eso están `selectorMarcas()`, `selectorCategorias()` y `selectorTipos()`,
- * que son recursos compartidos y perezosos.
+ * Dos de ellos hacen eso último: un modelo cuelga de una marca y sugiere una categoría. Para
+ * eso están `selectorMarcas()` y `selectorCategorias()`, recursos compartidos y perezosos.
+ *
+ * **Hubo un tercero, `selectorTipos()`, y se retiró el 2026-09-07 con la tabla `tipo_equipo`.**
+ * El tipo era un nivel entre categoría y equipo que dejó de aportar cuando la categoría pasó a
+ * ser columna del equipo; todo lo que lo usaba pasó a usar la categoría.
  */
 @Injectable({ providedIn: 'root' })
 export class ApiCatalogos {
@@ -45,11 +51,29 @@ export class ApiCatalogos {
 
   readonly marcas = this.fabrica.recurso<Marca, AltaMarca>('marcas');
   readonly categorias = this.fabrica.recurso<Categoria, AltaCategoria>('categorias-equipo');
-  readonly tipos = this.fabrica.recurso<TipoEquipo, AltaTipoEquipo>('tipos-equipo');
   readonly modelos = this.fabrica.recurso<ModeloEquipo, AltaModeloEquipo>('modelos-equipo');
   readonly tarifas = this.fabrica.recurso<Tarifa, AltaTarifa>('tarifas');
   readonly clausulas = this.fabrica.recurso<Clausula, AltaClausula>('clausulas');
   readonly puestos = this.fabrica.recurso<Puesto, AltaPuesto>('puestos');
+
+  readonly tiposTarifa = this.fabrica.recurso<TipoTarifa, AltaTipoTarifa>('tipos-tarifa');
+
+  /**
+   * Los motivos de movimiento. Recurso completo, **pero las tres escrituras solo las acepta el
+   * servidor si el token trae `acceso_total`**: son `[SoloAdministrador]`.
+   *
+   * Este servicio NO comprueba nada — la autorización es de la API. Quien decide si se dibuja
+   * el botón es la pantalla, leyendo `identidad().accesoTotal`, y por el motivo de siempre: no
+   * ofrecer acciones que el servidor va a rechazar.
+   *
+   * **Y hay una regla que la base impone y este recurso no puede evitar**: el `codigo` de los
+   * nueve motivos de la semilla no se cambia y esas filas no se borran, porque es lo que
+   * resuelven los movimientos automáticos. El nombre y la descripción sí. Un intento llega
+   * como 409 con el motivo escrito.
+   */
+  readonly motivosMovimiento = this.fabrica.recurso<MotivoMovimiento, AltaMotivoMovimiento>(
+    'motivos-movimiento',
+  );
 
   /**
    * Los tres que alimentan desplegables de otras pantallas.
@@ -64,10 +88,6 @@ export class ApiCatalogos {
 
   selectorCategorias(): Signal<readonly Categoria[]> {
     return this.fabrica.selector<Categoria>('categorias-equipo');
-  }
-
-  selectorTipos(): Signal<readonly TipoEquipo[]> {
-    return this.fabrica.selector<TipoEquipo>('tipos-equipo');
   }
 
   /**
@@ -93,6 +113,29 @@ export class ApiCatalogos {
    */
   selectorPuestos(): Signal<readonly Puesto[]> {
     return this.fabrica.selector<Puesto>('puestos');
+  }
+
+  /**
+   * Los tres tipos activos que alimentan un desplegable de otra pantalla: el tipo de una
+   * tarifa, de un cliente y de un proveedor.
+   *
+   * Son metodos por lo mismo que los demas selectores: la peticion sale cuando alguien los
+   * pide, no al inyectar el servicio.
+   */
+  selectorTiposTarifa(): Signal<readonly TipoTarifa[]> {
+    return this.fabrica.selector<TipoTarifa>('tipos-tarifa');
+  }
+
+  /**
+   * Los motivos ACTIVOS, para el formulario de un movimiento — donde el motivo es
+   * obligatorio.
+   *
+   * Solo activos: un motivo retirado sigue existiendo porque los movimientos viejos lo
+   * referencian para siempre —la tabla es *append-only*—, pero ofrecerlo en un movimiento
+   * nuevo sería ofrecer justo lo que se decidió dejar de usar.
+   */
+  selectorMotivosMovimiento(): Signal<readonly MotivoMovimiento[]> {
+    return this.fabrica.selector<MotivoMovimiento>('motivos-movimiento');
   }
 
   /**

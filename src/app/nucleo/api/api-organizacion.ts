@@ -76,30 +76,32 @@ export class ApiOrganizacion {
   }
 
   /**
-   * Solo las ubicaciones que ALMACENAN equipo: bodegas y patios.
+   * Las ubicaciones ACTIVAS, para el destino de un traspaso y para el alta de equipo.
    *
-   * Es el desplegable correcto para el destino de un traspaso y para el alta de equipo. Una
-   * sucursal administra y cotiza; no guarda maquinas, y un TRIGGER de la base rechaza el
-   * traspaso hacia ella. Ofrecerla en la lista seria invitar a un error garantizado.
+   * ANTES ERA `selectorAlmacenes()` Y FILTRABA por «almacena equipo». Ese filtro murió con el
+   * MVP: con cinco tipos —patio, proyecto, taller, sitio de cliente, otra— una máquina puede
+   * estar en cualquiera de ellos, así que la lista completa ES la lista correcta.
    *
-   * `almacenaEquipo` es una COLUMNA GENERADA del tipo de ubicacion, no un campo que alguien
-   * capture, asi que el servidor siempre sabe la respuesta.
+   * Lo que sustituye a aquella regla es la matriz de tipos de movimiento de la rebanada 3, que
+   * es más precisa: dirá que un envío a mantenimiento va a un Taller y que una entrega de renta
+   * va a un Proyecto o a un sitio de Cliente. Cuando exista, este selector se parte por tipo de
+   * movimiento en lugar de por capacidad.
    */
-  selectorAlmacenes(): Signal<readonly Ubicacion[]> {
-    return this.fabrica.selectorFiltrado<Ubicacion>('ubicaciones', { AlmacenaEquipo: true });
+  selectorUbicacionesActivas(): Signal<readonly Ubicacion[]> {
+    return this.fabrica.selectorFiltrado<Ubicacion>('ubicaciones', { Activo: true });
   }
 
   /**
-   * El complemento de `selectorAlmacenes`: solo las ubicaciones ADMINISTRATIVAS —sucursal y
-   * patio—, que son las únicas desde las que sale una cotización.
+   * Solo las ubicaciones ADMINISTRATIVAS: un patio, o una «Otra» marcada. Son las únicas desde
+   * las que sale una cotización.
    *
-   * Un patio está en las DOS listas a propósito: guarda máquinas *y* administra. Lo que no
-   * puede aparecer aquí es la bodega, y no por gusto: el trigger
-   * `cotizacion_exigir_administrativa` rechaza el alta, así que ofrecerla sería ofrecer un
-   * error garantizado.
+   * Lo que NO puede aparecer aquí es un taller o la obra de un cliente, y no por gusto: el
+   * trigger `cotizacion_exigir_administrativa` rechaza el alta, así que ofrecerlos sería
+   * ofrecer un error garantizado.
    *
-   * `EsAdministrativa` ya existía en `FiltroUbicaciones` del servidor esperando a esta
-   * pantalla, igual que `AlmacenaEquipo` esperaba a la de traspasos.
+   * `es_administrativa` sigue siendo una COLUMNA GENERADA del tipo —redefinida por el MVP como
+   * «patio, u otra marcada»—, no un campo que alguien capture, así que el servidor siempre sabe
+   * la respuesta.
    */
   selectorAdministrativas(): Signal<readonly Ubicacion[]> {
     return this.fabrica.selectorFiltrado<Ubicacion>('ubicaciones', { EsAdministrativa: true });

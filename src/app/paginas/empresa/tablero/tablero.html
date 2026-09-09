@@ -1,0 +1,84 @@
+<!--
+  El tablero. CINCO BLOQUES, cada uno una rejilla de tarjetas, y cada cifra un enlace al
+  listado que la explica: un indicador que no se puede abrir es un numero que nadie puede
+  verificar.
+-->
+<div class="mx-auto flex flex-col gap-6">
+  @if (cargando() && datos() === undefined) {
+    <app-tablero-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    @for (bloque of bloques(); track bloque.clave) {
+      <section class="flex flex-col gap-3">
+        <div>
+          <h2 class="text-[15px] font-semibold text-texto">{{ bloque.titulo }}</h2>
+          <p class="mt-0.5 text-xs text-texto-apagado">{{ bloque.apoyo }}</p>
+        </div>
+
+        <!--
+          Una columna en telefono, dos en tableta y cuatro desde `xl`: a `lg`, con el menu
+          al lado, cuatro cifras de 30 px se quedan sin sitio para el pie.
+        -->
+        <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          @for (i of bloque.indicadores; track i.clave) {
+            <li>
+              <!--
+                ENLACE cuando lleva a algun sitio, y un <div> cuando no. No un <a> sin href:
+                un enlace sin destino sale en el orden de tabulacion y no hace nada.
+              -->
+              @if (i.ruta) {
+                <a
+                  [routerLink]="i.ruta"
+                  class="tarjeta-indicador block hover:border-negro-acento focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                  [class.tarjeta-indicador-destacada]="i.destacada"
+                >
+                  <p
+                    class="text-[11px] font-medium uppercase tracking-wide"
+                    [class.text-texto-apagado]="!i.destacada"
+                    [class.text-texto-inverso-micro]="i.destacada"
+                  >
+                    {{ i.etiqueta }}
+                  </p>
+
+                  <p
+                    class="mt-2 text-[30px] font-bold leading-none tabular-nums"
+                    [class.text-texto]="!i.destacada"
+                    [class.text-amarillo]="i.destacada"
+                  >
+                    {{ i.cifra }}
+                  </p>
+
+                  <p
+                    class="mt-2 text-xs"
+                    [class.text-texto-apagado]="!i.destacada"
+                    [class.text-texto-inverso-tenue]="i.destacada"
+                  >
+                    {{ i.pie }}
+                  </p>
+                </a>
+              } @else {
+                <div class="tarjeta-indicador">
+                  <p class="text-[11px] font-medium uppercase tracking-wide text-texto-apagado">
+                    {{ i.etiqueta }}
+                  </p>
+                  <p class="mt-2 text-[30px] font-bold leading-none tabular-nums text-texto">
+                    {{ i.cifra }}
+                  </p>
+                  <p class="mt-2 text-xs text-texto-apagado">{{ i.pie }}</p>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>

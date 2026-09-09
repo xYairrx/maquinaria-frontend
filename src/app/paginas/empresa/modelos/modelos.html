@@ -105,7 +105,7 @@
                     palabras en vez de dejar la celda en blanco.
                   -->
                   <td class="px-4 py-3 text-texto-secundario">
-                    {{ modelo.tipoEquipo ?? t().modelos.sinTipo }}
+                    {{ modelo.categoria ?? t().modelos.sinTipo }}
                   </td>
 
                   <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
@@ -279,7 +279,7 @@
           </label>
           <select
             id="tipo"
-            formControlName="tipoEquipoId"
+            formControlName="categoriaEquipoId"
             aria-describedby="ayuda-tipo"
             class="campo-formulario"
           >

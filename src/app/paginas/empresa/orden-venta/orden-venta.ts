@@ -18,9 +18,11 @@ import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiEquipos } from '../../../nucleo/api/api-equipos';
 import { ApiOrdenes } from '../../../nucleo/api/api-ordenes';
 import type {
+  DocumentoVenta,
   EstadoOrden,
   // Renombrado por lo mismo que en `orden-compra.ts`: el DTO choca con la clase.
   OrdenVentaDetalle as LineaDeVenta,
+  TipoArchivoVenta,
 } from '../../../nucleo/api/contratos';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { ErrorCampo, errorVisible } from '../../../nucleo/formularios/error-campo';
@@ -30,9 +32,6 @@ import { idioma, t } from '../../../nucleo/i18n/i18n';
 const BORRADOR: EstadoOrden = 1;
 const AUTORIZADA: EstadoOrden = 2;
 const CANCELADA: EstadoOrden = 4;
-
-/** `PropositoEquipo.Renta`. Una máquina así no se vende: el servidor la rechaza. */
-const SOLO_RENTA = 1;
 
 /** Ver `MONEDA` en `cotizaciones.ts`: la Fase 1 no lleva divisa por documento. */
 const MONEDA = 'MXN';
@@ -81,27 +80,16 @@ export class OrdenVentaDetalle {
   /** Puede llegar `undefined` pese al tipo — ver `expediente.ts`. */
   readonly id = input('');
 
-  private readonly todosLosEquipos = this.equipos.selectorEquipos();
-
   /**
-   * Solo los que se PUEDEN vender: `Venta` o `RentaYVenta`.
+   * Los que se pueden vender: **todos**.
    *
-   * Un equipo marcado `Renta` lo rechaza el servidor —«esta marcado solo para renta, cambia su
-   * proposito antes de venderlo»—, así que ofrecerlo sería ofrecer un rechazo.
-   *
-   * **SE RECORTA AQUÍ Y NO EN EL SERVIDOR, y esta vez sí es correcto.** `FiltroEquipos.Proposito`
-   * admite UN valor y aquí hacen falta dos, así que la consulta no puede expresarlo. Lo que hace
-   * seguro el recorte local es que **`proposito` viaja en cada fila**: no hay que cruzar con otra
-   * consulta ni adivinar nada.
-   *
-   * Es justo lo contrario del caso de Contratos, donde NO se recortó: allá saber qué rentas ya
-   * tienen contrato exigía una segunda lista paginada, y el cruce habría sido incompleto en
-   * silencio. La regla no es «filtrar siempre» ni «nunca», es **filtrar solo con lo que la
-   * respuesta ya trae**.
+   * **AQUÍ HABÍA UN RECORTE Y SE FUE EL 2026-09-09 con `equipo.proposito`.** Una máquina
+   * marcada `Renta` no se podía vender —el servidor la rechazaba con «cambia su propósito antes
+   * de venderla»— y ofrecerla habría sido ofrecer un rechazo. Retirada la columna, cualquier
+   * equipo se puede rentar y cualquiera se puede vender; **lo único que sigue impidiéndolo es
+   * su estado**, y de eso se encarga el servidor al agregar la línea.
    */
-  protected readonly equiposDisponibles = computed(() =>
-    this.todosLosEquipos().filter((e) => e.proposito !== SOLO_RENTA),
-  );
+  protected readonly equiposDisponibles = this.equipos.selectorEquipos();
 
   private readonly detalle = this.api.detalleDeVenta(this.id);
 
@@ -125,6 +113,27 @@ export class OrdenVentaDetalle {
 
   protected readonly enviando = signal(false);
   protected readonly panelLinea = signal(false);
+
+  // ---------------------------------------------- el papel de la venta --
+
+  /**
+   * Los adjuntos vienen DENTRO del detalle de la orden, no en un recurso propio: son pocos por
+   * venta y la pantalla ya pide la orden entera. Un segundo recurso sería una petición más y
+   * dos cosas que recordar recargar.
+   */
+  protected readonly documentos = computed(() => this.orden()?.archivos ?? []);
+
+  protected readonly tiposArchivo: readonly TipoArchivoVenta[] = [1, 2, 3, 4, 5];
+
+  protected readonly panelDocumento = signal(false);
+  protected readonly tipoDocumento = signal<TipoArchivoVenta>(1);
+  protected readonly descripcionDocumento = signal('');
+
+  /**
+   * El archivo elegido, fuera de todo formulario reactivo: un `<input type="file">` no tiene
+   * accesor de Angular y un control guardaría la ruta falsa del navegador, no el `File`.
+   */
+  protected readonly archivo = signal<File | null>(null);
 
   private readonly errorMutacion = signal<string | null>(null);
 
@@ -281,6 +290,91 @@ export class OrdenVentaDetalle {
         this.errorMutacion.set(mensajeDeError(e));
         this.enviando.set(false);
       },
+    });
+  }
+  // ---------------------------------------------- el papel de la venta --
+
+  protected urlDocumento(documentoId: string): string {
+    return this.api.urlDocumentoVenta(this.id(), documentoId);
+  }
+
+  protected abrirDocumento(): void {
+    this.errorMutacion.set(null);
+    this.tipoDocumento.set(1);
+    this.descripcionDocumento.set('');
+    this.archivo.set(null);
+    this.panelDocumento.set(true);
+  }
+
+  protected cerrarDocumento(): void {
+    this.panelDocumento.set(false);
+  }
+
+  protected elegirTipoDocumento(valor: string): void {
+    this.tipoDocumento.set(Number(valor) as TipoArchivoVenta);
+  }
+
+  protected elegirArchivo(entrada: EventTarget | null): void {
+    const archivos = (entrada as HTMLInputElement | null)?.files;
+
+    this.archivo.set(archivos && archivos.length > 0 ? archivos[0] : null);
+  }
+
+  protected subirDocumento(): void {
+    const elegido = this.archivo();
+
+    if (elegido === null || this.enviando()) {
+      return;
+    }
+
+    this.enviando.set(true);
+    this.errorMutacion.set(null);
+
+    const descripcion = this.descripcionDocumento().trim();
+
+    this.api
+      .subirDocumentoVenta(
+        this.id(),
+        elegido,
+        this.tipoDocumento(),
+        descripcion === '' ? null : descripcion,
+      )
+      .subscribe({
+        next: () => {
+          this.enviando.set(false);
+          this.cerrarDocumento();
+          // Los adjuntos viajan dentro del detalle, así que hay que volver a pedirlo: la
+          // fábrica no sabe de esta ruta y no lo recarga sola.
+          this.detalle.recargar();
+        },
+        error: (e: unknown) => {
+          this.errorMutacion.set(mensajeDeError(e));
+          this.enviando.set(false);
+        },
+      });
+  }
+
+  /**
+   * Borra un adjunto. **Pregunta antes**, y el mensaje dice lo que se pierde: en una venta
+   * cerrada el contrato es el respaldo de que la máquina cambió de dueño.
+   */
+  protected async borrarDocumento(documento: DocumentoVenta): Promise<void> {
+    const sigue = await this.confirmacion.pedir({
+      titulo: t().ventas.borrarDocumento,
+      mensaje: t().ventas.confirmarBorrarDocumento(documento.nombreOriginal),
+      confirmar: t().ventas.borrarDocumento,
+      peligro: true,
+    });
+
+    if (!sigue) {
+      return;
+    }
+
+    this.errorMutacion.set(null);
+
+    this.api.eliminarDocumentoVenta(this.id(), documento.id).subscribe({
+      next: () => this.detalle.recargar(),
+      error: (e: unknown) => this.errorMutacion.set(mensajeDeError(e)),
     });
   }
 }

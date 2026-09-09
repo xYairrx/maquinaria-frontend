@@ -1,5 +1,6 @@
 <!--
-  Molde estandar. Lo propio son DOS filtros —estado y cliente—, que la columna fijada sea el
+  Molde estandar. Lo propio es UN filtro —el estado; el de cliente se fue con la columna el
+  2026-09-09—, que la columna fijada sea el
   FOLIO en vez de un codigo capturado, y que la fila lleve un enlace al detalle: aqui no cabe
   todo, las lineas viven en /cotizaciones/:id.
 -->
@@ -14,7 +15,8 @@
       UN `[filtros]` POR FILTRO, sin envoltorio propio. La barra ya los coloca con su
       `flex flex-wrap items-center gap-2`; meter los dos dentro de un solo `<div filtros>` los
       convierte en UN elemento flex, y entonces se envuelven entre ellos y se apilan en vez de
-      alinearse con la busqueda. Es el molde de Equipos, que tiene tres.
+      alinearse con la busqueda. Es el molde de Equipos, que tiene tres. Aqui quedo UNO: el
+      de cliente se fue con la columna el 2026-09-09.
     -->
     <div filtros>
       <label for="filtro-estado" class="sr-only">{{ t().cotizacion.estado }}</label>
@@ -27,25 +29,6 @@
         <option value="">{{ t().cotizaciones.cualquierEstado }}</option>
         @for (estado of estados; track estado) {
           <option [value]="estado">{{ nombreEstado(estado) }}</option>
-        }
-      </select>
-    </div>
-
-    <!--
-      El cliente va por `value` y no por `ngValue`: su id es un GUID, que YA es una cadena.
-      `ngValue` haria falta si fuera numerico, como el estado de al lado.
-    -->
-    <div filtros>
-      <label for="filtro-cliente" class="sr-only">{{ t().cotizaciones.cliente }}</label>
-      <select
-        id="filtro-cliente"
-        [value]="clienteFiltrado()"
-        (change)="clienteFiltrado.set($any($event.target).value)"
-        class="campo-formulario filtro-barra"
-      >
-        <option value="">{{ t().cotizaciones.cualquierCliente }}</option>
-        @for (cliente of clientes(); track cliente.id) {
-          <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
         }
       </select>
     </div>
@@ -79,9 +62,6 @@
                 >
                   {{ t().cotizaciones.colFolio }}
                 </th>
-                <th scope="col" class="px-4 py-2.5 font-medium">
-                  {{ t().cotizaciones.colCliente }}
-                </th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().cotizaciones.colFecha }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">
                   {{ t().cotizaciones.colEstado }}
@@ -100,9 +80,16 @@
                     class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium tabular-nums md:px-5"
                   >
                     {{ cotizacion.folio }}
+                    <!--
+                      RENTA O VENTA, dentro de la celda del folio y no en una columna propia:
+                      son dos palabras y la tabla ya tiene siete columnas. Sin esto el campo
+                      nuevo solo se vería abriendo el formulario, y decidir de qué es una
+                      propuesta es lo primero que se mira en un listado comercial.
+                    -->
+                    <span class="block text-[11px] font-normal text-texto-apagado">
+                      {{ t().cotizaciones.tipos[cotizacion.tipo] }}
+                    </span>
                   </td>
-
-                  <td class="px-4 py-3 text-texto">{{ cotizacion.cliente }}</td>
 
                   <!--
                     En UTC a proposito: `fecha` es un `DateOnly` —una fecha sin hora—, y
@@ -240,103 +227,6 @@
         </p>
       }
 
-      <div class="flex flex-col gap-1">
-        <label for="clienteId" class="text-sm font-medium text-texto-secundario">
-          {{ t().cotizaciones.cliente }}
-        </label>
-        <select
-          id="clienteId"
-          formControlName="clienteId"
-          [attr.aria-invalid]="mal(formulario.controls.clienteId) ? 'true' : null"
-          [attr.aria-describedby]="
-            mal(formulario.controls.clienteId) ? 'ayuda-cliente error-cliente' : 'ayuda-cliente'
-          "
-          class="campo-formulario"
-        >
-          <!--
-            «Sin definir» y NO «Cualquier cliente»: esto es un formulario, no un filtro. La
-            opcion vacia aqui significa que falta elegir, no que valgan todos.
-          -->
-          <option value="">{{ t().cotizaciones.sinDato }}</option>
-          @for (cliente of clientes(); track cliente.id) {
-            <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
-          }
-        </select>
-        <p id="ayuda-cliente" class="text-xs text-texto-apagado">
-          {{ t().cotizaciones.ayudaCliente }}
-        </p>
-        @if (clientes().length === 0) {
-          <p class="aviso text-sm text-texto-secundario">{{ t().cotizaciones.sinClientes }}</p>
-        }
-        <app-error-campo
-          id="error-cliente"
-          [visible]="mal(formulario.controls.clienteId)"
-          [mensaje]="t().cotizaciones.errorCliente"
-        />
-      </div>
-
-      <div class="flex flex-col gap-1">
-        <label for="ubicacionId" class="text-sm font-medium text-texto-secundario">
-          {{ t().cotizaciones.ubicacion }}
-        </label>
-        <select
-          id="ubicacionId"
-          formControlName="ubicacionId"
-          [attr.aria-invalid]="mal(formulario.controls.ubicacionId) ? 'true' : null"
-          [attr.aria-describedby]="
-            mal(formulario.controls.ubicacionId)
-              ? 'ayuda-ubicacion error-ubicacion'
-              : 'ayuda-ubicacion'
-          "
-          class="campo-formulario"
-        >
-          <option value="">{{ t().cotizaciones.sinDato }}</option>
-          @for (ubicacion of ubicaciones(); track ubicacion.id) {
-            <option [value]="ubicacion.id">{{ ubicacion.nombre }}</option>
-          }
-        </select>
-        <p id="ayuda-ubicacion" class="text-xs text-texto-apagado">
-          {{ t().cotizaciones.ayudaUbicacion }}
-        </p>
-        <app-error-campo
-          id="error-ubicacion"
-          [visible]="mal(formulario.controls.ubicacionId)"
-          [mensaje]="t().cotizaciones.errorUbicacion"
-        />
-      </div>
-
-      <div class="flex flex-col gap-1">
-        <label for="trabajadorId" class="text-sm font-medium text-texto-secundario">
-          {{ t().cotizaciones.responsable }}
-        </label>
-        <select
-          id="trabajadorId"
-          formControlName="trabajadorId"
-          [attr.aria-invalid]="mal(formulario.controls.trabajadorId) ? 'true' : null"
-          [attr.aria-describedby]="
-            mal(formulario.controls.trabajadorId)
-              ? 'ayuda-responsable error-responsable'
-              : 'ayuda-responsable'
-          "
-          class="campo-formulario"
-        >
-          <option value="">{{ t().cotizaciones.sinDato }}</option>
-          @for (trabajador of trabajadores(); track trabajador.id) {
-            <option [value]="trabajador.id">
-              {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }} {{ trabajador.apellidos }}
-            </option>
-          }
-        </select>
-        <p id="ayuda-responsable" class="text-xs text-texto-apagado">
-          {{ t().cotizaciones.ayudaResponsable }}
-        </p>
-        <app-error-campo
-          id="error-responsable"
-          [visible]="mal(formulario.controls.trabajadorId)"
-          [mensaje]="t().cotizaciones.errorResponsable"
-        />
-      </div>
-
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div class="flex flex-col gap-1">
           <label for="fecha" class="text-sm font-medium text-texto-secundario">
@@ -353,13 +243,118 @@
             id="vigenciaHasta"
             formControlName="vigenciaHasta"
             type="date"
-            aria-describedby="ayuda-vigencia"
+            [attr.aria-invalid]="mal(formulario.controls.vigenciaHasta) ? 'true' : null"
+            [attr.aria-describedby]="
+              mal(formulario.controls.vigenciaHasta)
+                ? 'ayuda-vigencia error-vigencia'
+                : 'ayuda-vigencia'
+            "
             class="campo-formulario"
           />
           <p id="ayuda-vigencia" class="text-xs text-texto-apagado">
             {{ t().cotizaciones.ayudaVigencia }}
           </p>
+          <app-error-campo
+            id="error-vigencia"
+            [visible]="mal(formulario.controls.vigenciaHasta)"
+            [mensaje]="t().cotizaciones.errorVigencia"
+          />
         </div>
+
+        <!--
+          RENTA O VENTA. Es lo que decide a qué se convierte la propuesta cuando se acepte, y
+          no hay nada en las líneas de donde deducirlo: la misma máquina se renta y se vende.
+
+          `[ngValue]` y no `[value]`: el tipo es un número y `[value]` guardaría la cadena '1',
+          que el enum del servidor rechaza con un 400 de model binding.
+        -->
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="tipo" class="text-sm font-medium text-texto-secundario">
+            {{ t().cotizaciones.tipo }}
+          </label>
+          <select
+            id="tipo"
+            formControlName="tipo"
+            aria-describedby="ayuda-tipo"
+            class="campo-formulario"
+          >
+            @for (opcion of tiposCotizacion; track opcion) {
+              <option [ngValue]="opcion">{{ t().cotizaciones.tipos[opcion] }}</option>
+            }
+          </select>
+          <p id="ayuda-tipo" class="text-xs text-texto-apagado">
+            {{ t().cotizaciones.ayudaTipo }}
+          </p>
+        </div>
+
+        <!--
+          LA UNIDAD VA PEGADA AL TIPO porque se leen juntos: «una cotizacion de renta, por
+          dia». De ella y del periodo sale la cantidad de cada linea, y multiplicada por el
+          costo del equipo, el costo de la maquina.
+
+          `ngValue` y NO `value`: es un enum numerico. Con `value` el control guardaria "2" y
+          el cuerpo saldria con una cadena donde el servidor espera un short.
+        -->
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="unidad" class="text-sm font-medium text-texto-secundario">
+            {{ t().cotizaciones.unidad }}
+          </label>
+          <select
+            id="unidad"
+            formControlName="unidad"
+            aria-describedby="ayuda-unidad"
+            class="campo-formulario"
+          >
+            @for (opcion of unidades; track opcion) {
+              <option [ngValue]="opcion">{{ t().cotizaciones.unidades[opcion] }}</option>
+            }
+          </select>
+          <p id="ayuda-unidad" class="text-xs text-texto-apagado">
+            {{ t().cotizaciones.ayudaUnidad }}
+          </p>
+        </div>
+
+        <!--
+          EL PERIODO SOLO EN LAS DE RENTA. En una de venta no significa nada, y un CHECK de la
+          base lo rechaza: por eso los campos desaparecen en lugar de quedarse deshabilitados
+          diciendo algo que no aplica.
+        -->
+        @if (esRenta()) {
+          <div class="flex flex-col gap-1">
+            <label for="periodoInicio" class="text-sm font-medium text-texto-secundario">
+              {{ t().cotizaciones.periodoInicio }}
+              <span class="font-normal text-texto-apagado">
+                {{ t().cotizaciones.opcional }}
+              </span>
+            </label>
+            <input
+              id="periodoInicio"
+              formControlName="periodoInicio"
+              type="datetime-local"
+              class="campo-formulario"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="periodoFin" class="text-sm font-medium text-texto-secundario">
+              {{ t().cotizaciones.periodoFin }}
+              <span class="font-normal text-texto-apagado">
+                {{ t().cotizaciones.opcional }}
+              </span>
+            </label>
+            <input
+              id="periodoFin"
+              formControlName="periodoFin"
+              type="datetime-local"
+              aria-describedby="ayuda-periodo"
+              class="campo-formulario"
+            />
+          </div>
+
+          <p id="ayuda-periodo" class="text-xs text-texto-apagado sm:col-span-2">
+            {{ t().cotizaciones.ayudaPeriodo }}
+          </p>
+        }
 
         <div class="flex flex-col gap-1">
           <label for="descuento" class="text-sm font-medium text-texto-secundario">
@@ -400,11 +395,26 @@
         </p>
       </div>
 
+      <!--
+        UN SOLO CAMPO DE TEXTO. Habia dos —condiciones y notas— y las condiciones salieron el
+        2026-09-09: se capturan en la renta al convertir, que es donde se firman. Lo que queda
+        se queda dentro de la empresa.
+      -->
+
       <div class="flex flex-col gap-1">
         <label for="notas" class="text-sm font-medium text-texto-secundario">
           {{ t().cotizaciones.notas }}
         </label>
-        <textarea id="notas" formControlName="notas" rows="3" class="campo-formulario"></textarea>
+        <textarea
+          id="notas"
+          formControlName="notas"
+          rows="3"
+          aria-describedby="ayuda-notas"
+          class="campo-formulario"
+        ></textarea>
+        <p id="ayuda-notas" class="text-xs text-texto-apagado">
+          {{ t().cotizaciones.ayudaNotas }}
+        </p>
       </div>
     </div>
   </form>

@@ -97,10 +97,10 @@ export class OrdenCompraDetalle {
   readonly id = input('');
 
   protected readonly modelos = this.catalogos.selectorModelos();
-  protected readonly tipos = this.catalogos.selectorTipos();
+  protected readonly tipos = this.catalogos.selectorCategorias();
 
   /** Solo las que ALMACENAN equipo: una máquina nueva entra a una bodega o a un patio. */
-  protected readonly almacenes = this.organizacion.selectorAlmacenes();
+  protected readonly almacenes = this.organizacion.selectorUbicacionesActivas();
 
   private readonly detalle = this.api.detalleDeCompra(this.id);
 
@@ -143,13 +143,15 @@ export class OrdenCompraDetalle {
   /**
    * Lo que cada línea necesita para volverse un equipo, FUERA del `FormGroup`.
    *
-   * Es un mapa `detalleId → { codigoInterno, tipoEquipoId, ubicacionId }` de tamaño variable — una
+   * Es un mapa `detalleId → { codigoInterno, categoriaEquipoId, ubicacionId }` de tamaño variable — una
    * entrada por línea de la orden—, así que un `FormGroup` fijo no sirve. Se indexa por el id de
    * la LÍNEA porque eso es lo que `RegistroDeEquipo.DetalleId` espera; aquí sí es la línea y no el
    * equipo, al revés que los horómetros de una renta.
    */
   protected readonly registros = signal<
-    Readonly<Record<string, { codigoInterno: string; tipoEquipoId: string; ubicacionId: string }>>
+    Readonly<
+      Record<string, { codigoInterno: string; categoriaEquipoId: string; ubicacionId: string }>
+    >
   >({});
 
   /** Si ya se intentó finalizar. Los avisos no salen antes de que alguien pueda hacer algo. */
@@ -164,7 +166,9 @@ export class OrdenCompraDetalle {
       .some((l) => {
         const dato = r[l.id];
 
-        return dato === undefined || dato.codigoInterno.trim() === '' || dato.tipoEquipoId === '';
+        return (
+          dato === undefined || dato.codigoInterno.trim() === '' || dato.categoriaEquipoId === ''
+        );
       });
   });
 
@@ -185,13 +189,16 @@ export class OrdenCompraDetalle {
     return t().ordenes.estados[estado] ?? String(estado);
   }
 
-  protected registroDe(lineaId: string, campo: 'codigoInterno' | 'tipoEquipoId' | 'ubicacionId') {
+  protected registroDe(
+    lineaId: string,
+    campo: 'codigoInterno' | 'categoriaEquipoId' | 'ubicacionId',
+  ) {
     return this.registros()[lineaId]?.[campo] ?? '';
   }
 
   protected escribirRegistro(
     lineaId: string,
-    campo: 'codigoInterno' | 'tipoEquipoId' | 'ubicacionId',
+    campo: 'codigoInterno' | 'categoriaEquipoId' | 'ubicacionId',
     valor: string,
   ): void {
     this.registros.update((actual) => {
@@ -200,7 +207,7 @@ export class OrdenCompraDetalle {
       // hace que TypeScript avise de que las claves iniciales se pisan — tenía razón.
       const previo = actual[lineaId] ?? {
         codigoInterno: '',
-        tipoEquipoId: '',
+        categoriaEquipoId: '',
         ubicacionId: '',
       };
 
@@ -343,7 +350,7 @@ export class OrdenCompraDetalle {
           ({
             detalleId: l.id,
             codigoInterno: r[l.id].codigoInterno.trim().toUpperCase(),
-            tipoEquipoId: r[l.id].tipoEquipoId,
+            categoriaEquipoId: r[l.id].categoriaEquipoId,
             // Vacía va NULA: el servidor la admite sin ubicación asignada.
             ubicacionId: r[l.id].ubicacionId || null,
           }) satisfies RegistroDeEquipo,

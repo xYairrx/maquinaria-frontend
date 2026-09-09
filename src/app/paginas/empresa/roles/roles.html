@@ -1,0 +1,284 @@
+<!--
+  Roles y permisos. TARJETAS Y NO TABLA: cada rol lleva una descripción y una lista de módulos
+  concedidos que no cabe en una celda, y una tabla obligaría a truncar justo lo que se viene a
+  leer.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  @if (cargando()) {
+    <app-roles-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <ul class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      @for (rol of roles(); track rol.id) {
+        <li class="flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-4 md:p-5">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div class="min-w-0">
+              <h2 class="text-[15px] font-semibold text-texto">{{ rol.nombre }}</h2>
+              <p class="text-xs text-texto-apagado">{{ rol.codigo }}</p>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5">
+              @if (rol.accesoTotal) {
+                <span
+                  class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                >
+                  {{ t().roles.accesoTotal }}
+                </span>
+              }
+              @if (rol.esSistema) {
+                <span
+                  class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                >
+                  {{ t().roles.deSistema }}
+                </span>
+              }
+            </div>
+          </div>
+
+          @if (rol.descripcion) {
+            <p class="text-sm text-texto-secundario">{{ rol.descripcion }}</p>
+          }
+
+          <dl class="flex flex-wrap gap-x-6 gap-y-1 text-xs text-texto-apagado">
+            <div class="flex gap-1">
+              <dt>{{ t().roles.colUsuarios }}:</dt>
+              <dd class="tabular-nums text-texto">{{ rol.usuarios }}</dd>
+            </div>
+            <div class="flex gap-1">
+              <dt>{{ t().roles.colPermisos }}:</dt>
+              <dd class="tabular-nums text-texto">{{ rol.permisos.length }}</dd>
+            </div>
+          </dl>
+
+          <!--
+            LA MATRIZ VACÍA DEL ROL CON ACCESO TOTAL NO SIGNIFICA «NO PUEDE NADA», y sin este
+            aviso es exactamente lo que parece.
+          -->
+          @if (rol.accesoTotal) {
+            <p class="text-xs text-texto-apagado">{{ t().roles.avisoAccesoTotal }}</p>
+          } @else if (rol.permisos.length === 0) {
+            <p class="text-xs text-texto-apagado">{{ t().roles.avisoSinPermisos }}</p>
+          }
+
+          @if (!rol.accesoTotal) {
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                (click)="abrirMatriz(rol)"
+                class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+              >
+                {{ t().roles.editarPermisos }}
+              </button>
+
+              <button
+                type="button"
+                (click)="abrirEdicion(rol)"
+                class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+              >
+                {{ t().roles.editar }}
+              </button>
+
+              <!--
+                LOS DE SISTEMA SE RENOMBRAN PERO NO SE BORRAN: son la semilla que toda base
+                nueva trae. No se ofrece la acción en vez de dejar que descubra el 409.
+              -->
+              @if (!rol.esSistema) {
+                <button
+                  type="button"
+                  (click)="eliminar(rol)"
+                  class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                >
+                  {{ t().roles.eliminar }}
+                </button>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="editando() ? t().roles.editarTitulo : t().roles.crear"
+  [apoyo]="editando() ? t().roles.editarApoyo : t().roles.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-rol">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="codigo" class="text-sm font-medium text-texto-secundario">
+          {{ t().roles.codigo }}
+        </label>
+        <input
+          id="codigo"
+          formControlName="codigo"
+          autocomplete="off"
+          [attr.aria-invalid]="mal(formulario.controls.codigo) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.codigo) ? 'ayuda-codigo error-codigo' : 'ayuda-codigo'
+          "
+          class="campo-formulario"
+        />
+        <p id="ayuda-codigo" class="text-xs text-texto-apagado">{{ t().roles.ayudaCodigo }}</p>
+        <app-error-campo
+          id="error-codigo"
+          [visible]="mal(formulario.controls.codigo)"
+          [mensaje]="t().roles.errorCodigo"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="nombre" class="text-sm font-medium text-texto-secundario">
+          {{ t().roles.nombre }}
+        </label>
+        <input
+          id="nombre"
+          formControlName="nombre"
+          autocomplete="off"
+          [attr.aria-invalid]="mal(formulario.controls.nombre) ? 'true' : null"
+          [attr.aria-describedby]="mal(formulario.controls.nombre) ? 'error-nombre' : null"
+          class="campo-formulario"
+        />
+        <app-error-campo
+          id="error-nombre"
+          [visible]="mal(formulario.controls.nombre)"
+          [mensaje]="t().roles.errorNombre"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+          {{ t().roles.descripcion }}
+          <span class="font-normal text-texto-apagado">{{ t().roles.opcional }}</span>
+        </label>
+        <textarea
+          id="descripcion"
+          formControlName="descripcion"
+          rows="3"
+          aria-describedby="ayuda-descripcion"
+          class="campo-formulario"
+        ></textarea>
+        <p id="ayuda-descripcion" class="text-xs text-texto-apagado">
+          {{ t().roles.ayudaDescripcion }}
+        </p>
+      </div>
+
+      @if (!editando()) {
+        <p class="text-xs text-texto-apagado">{{ t().roles.naceSinPermisos }}</p>
+      }
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().roles.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-rol"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().roles.guardando : t().roles.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<app-panel-lateral
+  [abierto]="matrizDe() !== null"
+  [titulo]="t().roles.permisosTitulo"
+  [apoyo]="t().roles.permisosApoyo"
+  (cerrar)="cerrarMatriz()"
+>
+  @if (matrizDe(); as rol) {
+    <div class="flex flex-col gap-4 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <p class="text-sm text-texto-secundario">{{ rol.nombre }}</p>
+
+      <!--
+        UN BLOQUE POR MÓDULO con su casilla de «todo el módulo». Con 29 módulos por 6 acciones,
+        marcar 174 casillas a mano vuelve la pantalla inusable.
+      -->
+      @for (modulo of bloques(); track modulo.modulo) {
+        <fieldset class="flex flex-col gap-2 rounded-lg border border-borde p-3">
+          <legend class="px-1 text-sm font-medium text-texto">
+            {{ nombreModulo(modulo.modulo) }}
+          </legend>
+
+          <label class="flex items-center gap-2 text-xs text-texto-secundario">
+            <input
+              type="checkbox"
+              [checked]="moduloCompleto(modulo.claves)"
+              (change)="alternarModulo(modulo.claves)"
+            />
+            {{ t().roles.todoElModulo }}
+          </label>
+
+          <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+            @for (permiso of modulo.permisos; track permiso.id) {
+              <label class="flex items-center gap-2 text-sm text-texto">
+                <input
+                  type="checkbox"
+                  [checked]="estaMarcada(permiso.clave)"
+                  (change)="alternar(permiso.clave)"
+                />
+                {{ t().roles.acciones[permiso.accion] ?? permiso.accion }}
+              </label>
+            }
+          </div>
+        </fieldset>
+      }
+    </div>
+  }
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarMatriz()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().roles.cerrar }}
+    </button>
+
+    <button
+      type="button"
+      (click)="guardarMatriz()"
+      [disabled]="enviando()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().roles.guardando : t().roles.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

@@ -27,8 +27,18 @@ import { UbicacionesEsqueleto } from './esqueleto';
 
 const TAMANO_PAGINA = 50;
 
-/** Los tres tipos de `TipoUbicacion`, en el orden del enum del backend. */
-const TIPOS: readonly TipoUbicacion[] = [1, 2, 3];
+/**
+ * Los cinco tipos de `TipoUbicacion`, en el orden del enum del backend.
+ *
+ * CINCO DESDE EL MVP —patio, proyecto, taller, sitio de cliente, otra— y la consecuencia que
+ * se ve aquí es que **en los cinco se puede guardar equipo**: la capacidad que antes distinguía
+ * a la bodega de la sucursal desapareció. Lo único que sigue dependiendo del tipo es si desde
+ * aquí se cotiza.
+ */
+const TIPOS: readonly TipoUbicacion[] = [1, 2, 3, 4, 5];
+
+/** El único tipo donde la marca de administrativa tiene efecto. Lo impone un CHECK. */
+const TIPO_OTRA = 5;
 
 /**
  * Ubicaciones: bodegas, sucursales y patios.
@@ -63,6 +73,12 @@ export class Ubicaciones {
 
   protected readonly t = t;
   protected readonly tipos = TIPOS;
+
+  /** Para decidir si se pinta la casilla de administrativa. */
+  protected readonly tipoOtra = TIPO_OTRA;
+
+  /** Los trabajadores activos, para el desplegable de responsable. */
+  protected readonly trabajadores = this.api.selectorTrabajadores();
 
   protected readonly busqueda = signal('');
 
@@ -114,6 +130,11 @@ export class Ubicaciones {
     // Tipado como TipoUbicacion y no como number: el contrato admite 1|2|3 y el compilador
     // rechaza un 4. Por defecto Bodega, que es el caso más común al empezar.
     tipo: [1 as TipoUbicacion, Validators.required],
+    // La marca solo cuenta en «Otra»; el servidor la descarta en los otros cuatro y un CHECK
+    // de la base lo impone. La plantilla esconde la casilla cuando no aplica.
+    administrativaManual: [false],
+    trabajadorId: [''],
+    observaciones: [''],
     domicilio: [''],
     telefono: [''],
     // NÚMEROS y anulables: un `<input type="number">` escribe un number en el control, y
@@ -243,6 +264,9 @@ export class Ubicaciones {
       codigo: '',
       nombre: '',
       tipo: 1,
+      administrativaManual: false,
+      trabajadorId: '',
+      observaciones: '',
       domicilio: '',
       telefono: '',
       latitud: null,
@@ -258,6 +282,9 @@ export class Ubicaciones {
       codigo: ubicacion.codigo,
       nombre: ubicacion.nombre,
       tipo: ubicacion.tipo,
+      administrativaManual: ubicacion.administrativaManual,
+      trabajadorId: ubicacion.trabajadorId ?? '',
+      observaciones: ubicacion.observaciones ?? '',
       domicilio: ubicacion.domicilio ?? '',
       telefono: ubicacion.telefono ?? '',
       latitud: ubicacion.latitud ?? null,
@@ -297,6 +324,11 @@ export class Ubicaciones {
       codigo: v.codigo.trim(),
       nombre: v.nombre.trim(),
       tipo: v.tipo,
+      // Se manda solo cuando aplica: enviarla en un patio seria pedirle al servidor que la
+      // descarte, y el formulario ya sabe que no aplica.
+      administrativaManual: v.tipo === TIPO_OTRA && v.administrativaManual,
+      trabajadorId: v.trabajadorId === '' ? null : v.trabajadorId,
+      observaciones: v.observaciones.trim() === '' ? null : v.observaciones.trim(),
       domicilio: v.domicilio.trim() === '' ? null : v.domicilio.trim(),
       telefono: v.telefono.trim() === '' ? null : v.telefono.trim(),
       latitud: v.latitud,

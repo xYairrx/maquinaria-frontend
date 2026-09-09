@@ -203,100 +203,132 @@ export function menuEmpresa(): readonly GrupoMenu[] {
       opciones: [{ titulo: m.inicio, ruta: '/inicio', icono: ICONOS.inicio }],
     },
     {
-      // CATÁLOGOS: lo que la empresa RENTA o FACTURA, descrito una vez y reutilizado.
+      // CATÁLOGOS: lo que se describe UNA vez y se reutiliza en todos los documentos.
       //
-      // La clave del modulo es `equipos` y NO `catalogos`: no existe un modulo llamado asi en
-      // la base central. Los seis se reparten entre `equipos`, `rentas` y `contratos`, que son
-      // los modulos cuyos permisos exigen sus endpoints —MarcasController pide
-      // `equipos.consultar`—. Una clave inventada esconde la opcion para siempre, porque nunca
-      // coincide con `modulo.clave`. El mapa completo esta en `docs/plan-fase1-front.md` §4.
+      // Aquí viven también CLIENTES y PROVEEDORES, y es una decisión: los dos son maestros
+      // que usan por igual Rentas y Ventas, así que meterlos en uno de esos dos grupos
+      // sesgaría al otro. Si el negocio prefiere el cliente dentro de Rentas, es mover una
+      // línea de este archivo.
+      //
+      // La clave del módulo NUNCA es `catalogos` —no existe ese módulo en la base central—:
+      // cada opción declara el módulo cuyo permiso exige SU controlador. Una clave inventada
+      // esconde la opción para siempre, porque nunca coincide con `modulo.clave`.
       titulo: m.catalogos,
       icono: ICONOS.carpeta,
       opciones: [
         { titulo: m.marcas, ruta: '/marcas', modulo: 'equipos' },
         { titulo: m.categorias, ruta: '/categorias', modulo: 'equipos' },
-        { titulo: m.tipos, ruta: '/tipos', modulo: 'equipos' },
         { titulo: m.modelos, ruta: '/modelos', modulo: 'equipos' },
-        // Tarifas exige `rentas.consultar`, no `equipos`.
+        // Tarifas y su tipo exigen `rentas.consultar`, no `equipos`.
         { titulo: m.tarifas, ruta: '/tarifas', modulo: 'rentas' },
+        { titulo: m.tiposTarifa, ruta: '/tipos-tarifa', modulo: 'rentas' },
         // Clausulas exige `contratos.consultar`.
         { titulo: m.clausulas, ruta: '/clausulas', modulo: 'contratos' },
-      ],
-    },
-    {
-      // ORGANIZACIÓN: la empresa MISMA —dónde está y quién trabaja en ella—, que es otra
-      // pregunta. Es el mismo corte que el repo ya hizo en la capa de datos al separar
-      // `ApiOrganizacion` de `ApiCatalogos`; el menu era la unica capa donde no se veia.
-      titulo: m.organizacion,
-      icono: ICONOS.edificios,
-      opciones: [
-        // Puestos NO va bajo `equipos`: PuestosController exige `usuarios.consultar`.
+        // Puestos exige `usuarios.consultar`: es el catálogo de la gente, no del parque.
         { titulo: m.puestos, ruta: '/puestos', modulo: 'usuarios' },
-        // Ubicaciones exige `sucursales.consultar`: asi se llama el modulo en el backend.
-        { titulo: m.ubicaciones, ruta: '/ubicaciones', modulo: 'sucursales' },
-        // Trabajadores exige `usuarios.consultar`, el mismo modulo que Puestos: son las dos
-        // caras de la misma pregunta, quien trabaja aqui y en que.
-        { titulo: m.trabajadores, ruta: '/trabajadores', modulo: 'usuarios' },
+        // Los maestros y sus tipos, cada uno junto al suyo.
+        { titulo: m.clientes, ruta: '/clientes', modulo: 'clientes' },
+        { titulo: m.proveedores, ruta: '/proveedores', modulo: 'proveedores' },
+        // Motivos de movimiento exige `movimientos`, un módulo NUEVO del MVP. Mientras el
+        // plan de la empresa no lo incluya, esta opción no se dibuja: el menú filtra por la
+        // intersección de permisos del rol con módulos del plan.
+        { titulo: m.motivosMovimiento, ruta: '/motivos-movimiento', modulo: 'movimientos' },
       ],
     },
     {
-      // OPERACION: el parque y lo que se hace con el. Nace con Equipos, que es la entidad
-      // central de la fase. Transferencias y Disponibilidad entran aqui cuando existan.
-      titulo: m.operacion,
+      // EQUIPOS: el parque y DÓNDE ESTÁ. Es la entidad central del MVP, y las cuatro
+      // pantallas responden la misma pregunta desde ángulos distintos: qué máquinas hay,
+      // en qué sitios, qué se movió y qué está libre.
+      //
+      // Ubicaciones exige `sucursales.consultar` —así se llama el módulo en el backend,
+      // aunque el MVP le diga Ubicaciones— y Movimientos exige `movimientos.*`, que es
+      // módulo propio desde el MVP: mover una máquina dejó de ser una operación del parque
+      // y pasó a ser un historial con sus propios permisos.
+      //
+      // Movimientos SUSTITUYE a Traspasos. Un traspaso es un movimiento de tipo 3, y tener
+      // las dos pantallas daría dos formas de mover una máquina con distinto rastro.
+      titulo: m.equipos,
       icono: ICONOS.maquina,
       opciones: [
         { titulo: m.equipos, ruta: '/equipos', modulo: 'equipos' },
-        // Traspasos exige `equipos.*`: mover una maquina es operar sobre el parque.
-        { titulo: m.traspasos, ruta: '/traspasos', modulo: 'equipos' },
+        { titulo: m.ubicaciones, ruta: '/ubicaciones', modulo: 'sucursales' },
+        { titulo: m.movimientos, ruta: '/movimientos', modulo: 'movimientos' },
         { titulo: m.disponibilidad, ruta: '/disponibilidad', modulo: 'disponibilidad' },
+        // Mantenimiento va con Equipos y no en un grupo propio: es lo que le pasa a
+        // una maquina, y quien lo abre viene de mirar el parque.
+        { titulo: m.mantenimiento, ruta: '/mantenimiento', modulo: 'mantenimiento' },
       ],
     },
     {
-      // COMERCIAL: con quien se opera desde FUERA. Nace con Proveedores, que es su primera
-      // pantalla —la regla es que un grupo y su primera ruta se agregan JUNTOS—. Clientes,
-      // Cotizaciones, Rentas y Contratos entran aqui conforme existan.
-      titulo: m.comercial,
-      icono: ICONOS.carrito,
+      // RENTAS: el ciclo comercial completo, en el orden en que se trabaja —se cotiza, se
+      // acepta, se renta, se formaliza—.
+      //
+      // La cotización vive aquí y no en Ventas aunque pueda ser de venta: es la misma
+      // pantalla y el mismo documento, y duplicar la entrada en dos grupos haría creer que
+      // son dos cosas.
+      titulo: m.rentas,
+      icono: ICONOS.documento,
       opciones: [
-        // Clientes va primero: es a quien se le RENTA, que es el negocio. El proveedor
-        // aparece despues porque su relacion real vive en la orden de compra.
-        { titulo: m.clientes, ruta: '/clientes', modulo: 'clientes' },
-        { titulo: m.proveedores, ruta: '/proveedores', modulo: 'proveedores' },
-        // Cotizaciones exige `cotizaciones.consultar`; el cambio de estado pide ademas
-        // `cotizaciones.autorizar`, que es un permiso APARTE de `editar`. El menu solo
-        // filtra por modulo, asi que quien pueda consultar vera la pantalla aunque el
-        // boton de estado le responda 403: eso lo dice el servidor, no se adivina aqui.
+        // Las obras van con Rentas: es donde se asignan las maquinas, y su modulo es
+        // `proyectos`, nuevo del MVP.
+        { titulo: m.proyectos, ruta: '/proyectos', modulo: 'proyectos' },
         { titulo: m.cotizaciones, ruta: '/cotizaciones', modulo: 'cotizaciones' },
-        // Rentas cierra el ciclo y va al final del grupo, que es el orden en que se
-        // trabaja: se cotiza, se acepta, se renta.
         { titulo: m.rentas, ruta: '/rentas', modulo: 'rentas' },
-        // El contrato cierra el ciclo: cuelga de una renta y va despues de ella.
         { titulo: m.contratos, ruta: '/contratos', modulo: 'contratos' },
       ],
     },
     {
-      // COMPRAS: el otro lado del mostrador. La orden de compra mete maquinaria al parque y
-      // la de venta la saca, asi que no van en COMERCIAL —que es lo que se le vende al
-      // cliente como servicio— sino en su propio grupo.
+      // VENTAS Y COMPRAS: la máquina que sale del parque para no volver, y lo que entra.
       //
-      // Las dos usan el modulo `compras`, incluida la de VENTA: asi lo declara el servidor
-      // —`[RequierePermiso("compras.consultar")]` en los dos controladores— y el menu filtra
-      // por lo que el permiso exige, no por lo que el nombre sugiere.
-      titulo: m.compras,
-      // BILLETE y no el carrito, que ya es de COMERCIAL. Dos grupos con el mismo icono se
-      // leen como el mismo sitio: el icono es lo primero que se ve y lo unico que queda
-      // visible cuando el menu esta colapsado.
+      // Órdenes de venta exige `ventas.*` desde el 2026-09-02. Antes pedía `compras.*` —el
+      // controlador se escribió copiando el simétrico, cuando el módulo `ventas` no existía—,
+      // así que vender maquinaria requería permiso de comprar refacciones.
+      //
+      // **ÓRDENES DE COMPRA VOLVIÓ AL MENÚ.** Salió el 2026-09-01 con el argumento de que
+      // compras es P2 del MVP, y era un recorte del MENÚ, no del código: la pantalla, sus
+      // endpoints y su módulo llevaban meses funcionando y solo estaban inalcanzables sin
+      // teclear la URL. Esconder lo que existe no reduce el alcance, lo vuelve invisible.
+      titulo: m.ventas,
       icono: ICONOS.billete,
       opciones: [
+        { titulo: m.ordenesVenta, ruta: '/ordenes-venta', modulo: 'ventas' },
         { titulo: m.ordenesCompra, ruta: '/ordenes-compra', modulo: 'compras' },
-        { titulo: m.ordenesVenta, ruta: '/ordenes-venta', modulo: 'compras' },
       ],
     },
-    // Aqui van `Operacion` —equipos, traspasos, disponibilidad—, `Comercial` —clientes,
-    // proveedores, cotizaciones, rentas, contratos— y `Compras`. NO se agregan antes que sus
-    // pantallas: un grupo `Operacion` con rutas inexistentes ya estuvo en disco, se dibujaba,
-    // se pulsaba y caia en el comodin de ruta de vuelta a /inicio. Sus textos siguen en
-    // `textos.ts` esperando. La entrada del menu y la ruta se agregan JUNTAS.
+    {
+      // REPORTES: el tablero y los seis reportes. Dejó de estar vacío el 2026-09-02.
+      //
+      // El TABLERO va aquí y no suelto arriba junto a Inicio: son dos pantallas distintas
+      // —Inicio es el resumen de la sesión, el tablero es la operación— y ponerlas juntas
+      // haría creer que una sustituye a la otra. Su módulo es `dashboard`, el número 1 del
+      // catálogo, que existía desde la Fase 0 sin nada que lo usara.
+      titulo: m.reportes,
+      icono: ICONOS.tablero,
+      opciones: [
+        { titulo: m.tablero, ruta: '/tablero', modulo: 'dashboard' },
+        { titulo: m.reportes, ruta: '/reportes', modulo: 'reportes' },
+      ],
+    },
+    {
+      // CONFIGURACIÓN: la empresa y su gente. Completa desde el 2026-09-02.
+      //
+      // LAS CUATRO COMPARTEN EL MÓDULO `usuarios`, y no es pereza: son la misma pregunta
+      // —quién es de esta empresa y qué puede hacer— vista desde cuatro ángulos. Usuarios
+      // dice quién entra, Roles qué concede cada rol, Trabajadores quién es la persona
+      // —opere o no el sistema— y Bitácora qué hizo cada quien.
+      //
+      // La bitácora NO tiene módulo propio a propósito: darle uno habría significado un
+      // módulo más en el catálogo central y un permiso que nadie reparte. Quien administra
+      // gente es quien tiene que poder revisar lo que hizo.
+      titulo: m.configuracion,
+      icono: ICONOS.usuarios,
+      opciones: [
+        { titulo: m.usuarios, ruta: '/usuarios', modulo: 'usuarios' },
+        { titulo: m.roles, ruta: '/roles', modulo: 'usuarios' },
+        { titulo: m.trabajadores, ruta: '/trabajadores', modulo: 'usuarios' },
+        { titulo: m.bitacora, ruta: '/bitacora', modulo: 'usuarios' },
+      ],
+    },
   ];
 }
 

@@ -1,0 +1,251 @@
+<!--
+  El catálogo de motivos. La columna de acciones y el botón de la barra **solo existen para el
+  administrador**; para el resto la pantalla es una tabla de consulta.
+
+  Sin barra de herramientas: no hay buscador ni filtro que ofrecer con nueve filas.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <!--
+    LA NOTA CAMBIA SEGÚN QUIÉN MIRA, y las dos frases dicen algo útil:
+
+    - al administrador se le avisa de lo único que no puede hacer, antes de que lo intente y
+      reciba un 409;
+    - a los demás se les explica por qué no hay botón, que si no se lee como un permiso que les
+      falta y acaba en una pregunta a soporte.
+  -->
+  <p
+    class="rounded-xl border border-borde bg-superficie-sutil px-4 py-3 text-sm text-texto-secundario md:px-5"
+  >
+    {{ esAdministrador() ? t().motivosMovimiento.avisoAdmin : t().motivosMovimiento.soloLectura }}
+  </p>
+
+  @if (cargando()) {
+    <app-motivos-movimiento-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie">
+      @if (motivos().length === 0) {
+        <!--
+          Los nueve vienen de la semilla, así que una lista vacía es una base a medio migrar y
+          no un catálogo por llenar — decir «crea el primero» sería mentir.
+        -->
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">
+          {{ t().motivosMovimiento.sinSemilla }}
+        </p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-160 text-start text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().motivosMovimiento.colCodigo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().motivosMovimiento.colNombre }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().motivosMovimiento.colDescripcion }}
+                </th>
+                @if (esAdministrador()) {
+                  <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                    {{ t().motivosMovimiento.acciones }}
+                  </th>
+                }
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (motivo of motivos(); track motivo.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 whitespace-nowrap border-r border-borde bg-superficie px-4 py-3 font-medium tabular-nums text-texto md:px-5"
+                  >
+                    {{ motivo.codigo }}
+                  </td>
+                  <td class="px-4 py-3 text-texto">
+                    {{ motivo.nombre }}
+                    @if (!motivo.activo) {
+                      <!--
+                        El distintivo va AL LADO del nombre, no en su lugar: retirado no cambia
+                        cómo se llama, solo si se ofrece en la captura manual.
+                      -->
+                      <span
+                        class="ms-2 inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                      >
+                        {{ t().motivosMovimiento.retirada }}
+                      </span>
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ motivo.descripcion ?? t().motivosMovimiento.sinDescripcion }}
+                  </td>
+
+                  @if (esAdministrador()) {
+                    <td class="px-4 py-3 md:px-5">
+                      <div class="flex gap-1">
+                        <button
+                          type="button"
+                          (click)="abrirEdicion(motivo)"
+                          [attr.aria-label]="t().motivosMovimiento.editarA(motivo.nombre)"
+                          class="rounded-lg p-2 text-texto-secundario hover:bg-superficie-hover hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="size-5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                          </svg>
+                        </button>
+
+                        <button
+                          type="button"
+                          (click)="cambiarActivo(motivo)"
+                          [attr.aria-label]="
+                            motivo.activo
+                              ? t().motivosMovimiento.retirarA(motivo.nombre)
+                              : t().motivosMovimiento.reactivarA(motivo.nombre)
+                          "
+                          class="rounded-lg p-2 text-texto-secundario hover:bg-superficie-hover hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="size-5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 7h18M5 7v12h14V7M9 11v5M15 11v5" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="editando() ? t().motivosMovimiento.editarTitulo : t().motivosMovimiento.crear"
+  [apoyo]="editando() ? t().motivosMovimiento.editarApoyo : t().motivosMovimiento.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-motivo">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      <div class="flex flex-col gap-1">
+        <label for="codigo" class="text-sm font-medium text-texto-secundario">
+          {{ t().motivosMovimiento.codigo }}
+        </label>
+        <!--
+          `[attr.disabled]` y NO `control.disable()`: deshabilitar por el control lo saca de
+          `formulario.value`, y el PUT saldría con el código en nulo — que el servidor leería
+          como un intento de vaciarlo. Está escrito en `CLAUDE.md`.
+        -->
+        <input
+          id="codigo"
+          formControlName="codigo"
+          maxlength="30"
+          autocapitalize="characters"
+          autocomplete="off"
+          spellcheck="false"
+          [attr.disabled]="codigoBloqueado() ? '' : null"
+          [attr.aria-invalid]="mal(formulario.controls.codigo) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.codigo) ? 'ayuda-codigo error-codigo' : 'ayuda-codigo'
+          "
+          class="campo-formulario"
+        />
+        <p id="ayuda-codigo" class="text-xs text-texto-apagado">
+          {{
+            codigoBloqueado()
+              ? t().motivosMovimiento.codigoDelContrato
+              : t().motivosMovimiento.ayudaCodigo
+          }}
+        </p>
+        <app-error-campo
+          id="error-codigo"
+          [visible]="mal(formulario.controls.codigo)"
+          [mensaje]="t().motivosMovimiento.errorCodigo"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="nombre" class="text-sm font-medium text-texto-secundario">
+          {{ t().motivosMovimiento.nombre }}
+        </label>
+        <input
+          id="nombre"
+          formControlName="nombre"
+          autocomplete="off"
+          [attr.aria-invalid]="mal(formulario.controls.nombre) ? 'true' : null"
+          [attr.aria-describedby]="mal(formulario.controls.nombre) ? 'error-nombre' : null"
+          class="campo-formulario"
+        />
+        <app-error-campo
+          id="error-nombre"
+          [visible]="mal(formulario.controls.nombre)"
+          [mensaje]="t().motivosMovimiento.errorNombre"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+          {{ t().motivosMovimiento.descripcion }}
+          <span class="font-normal text-texto-apagado">{{ t().motivosMovimiento.opcional }}</span>
+        </label>
+        <textarea
+          id="descripcion"
+          formControlName="descripcion"
+          rows="2"
+          class="campo-formulario"
+        ></textarea>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().motivosMovimiento.cerrar }}
+    </button>
+    <button
+      type="submit"
+      form="formulario-motivo"
+      [disabled]="!puedeEnviar()"
+      class="boton-principal"
+    >
+      {{ enviando() ? t().motivosMovimiento.guardando : t().motivosMovimiento.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

@@ -5,12 +5,10 @@ import type { Observable } from 'rxjs';
 import { configuracion } from '../ambiente/configuracion';
 import type {
   AltaBloqueo,
-  AltaTransferencia,
   EquipoDisponible,
   FiltroDisponibilidad,
   Ocupacion,
   Pagina,
-  Transferencia,
 } from './contratos';
 import { mensajeDeErrorDeRecurso } from './mensaje-error';
 import { FabricaDeRecursos, aParametros } from './recursos-rest';
@@ -24,16 +22,15 @@ export interface CalendarioDeEquipo {
 }
 
 /**
- * Disponibilidad y traspasos: las dos caras de `ocupacion_equipo`.
+ * Disponibilidad y bloqueos: las dos caras de `ocupacion_equipo`.
  *
  * **La consulta de disponibilidad NO es un listado de registros**, y por eso no pasa por
  * `FabricaDeRecursos`: es una PREGUNTA con un periodo obligatorio —«qué hay libre entre estas
  * dos fechas»— que el servidor rechaza con un 400 si le falta. Un recurso paginado normal se
  * pide sin parámetros y devuelve algo; este no.
  *
- * Los traspasos sí son un listado, pero **solo de lectura y alta**: un traspaso es un hecho
- * histórico, no se edita ni se borra. Por eso se usa la fábrica para el listado y un POST
- * suelto para el alta, en vez de un `RecursoRest` entero cuyas dos operaciones sobrarían.
+ * **Los traspasos ya no están aquí**: son movimientos de tipo 3 y viven en `ApiMovimientos`.
+ * Este servicio quedó con el calendario, que es su otra mitad.
  */
 @Injectable({ providedIn: 'root' })
 export class ApiDisponibilidad {
@@ -102,18 +99,7 @@ export class ApiDisponibilidad {
     );
   }
 
-  /** El historial de traspasos. Solo lectura: la fábrica aporta el listado paginado. */
-  readonly transferencias = this.fabrica.recurso<Transferencia, AltaTransferencia>(
-    'transferencias',
-  );
-
-  /**
-   * Registra un traspaso.
-   *
-   * **Puede responder 409 o 400 del TRIGGER**: solo de almacén a almacén. Una sucursal
-   * administra y cotiza; no guarda máquinas, y esa regla la impone la base.
-   */
-  crearTransferencia(alta: AltaTransferencia): Observable<Transferencia> {
-    return this.transferencias.crear(alta);
-  }
+  // LOS TRASPASOS SE FUERON A `ApiMovimientos`. Un traspaso es un movimiento de tipo 3, y
+  // mantener las dos entradas daría dos formas de mover una máquina: una que deja rastro en
+  // el historial y otra que no. La tabla `transferencia_equipo` se borra en el backend.
 }

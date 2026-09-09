@@ -20,8 +20,8 @@
 
   @if (error(); as mensaje) {
     <!--
-      Aqui aterriza el 409 de una transicion invalida, el de «sin lineas» al enviar y el de
-      tocar lineas fuera de Borrador, con el texto del servidor.
+      Aqui aterriza el 409 de una transicion invalida, el de «sin lineas» al enviar, el de tocar
+      lineas fuera de Borrador y el del concepto repetido, con el texto del servidor.
     -->
     <p
       class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
@@ -86,18 +86,36 @@
         }
       </div>
 
+      <!--
+        SIN «Responsable»: la cotizacion dejo de llevarlo el 2026-09-08. Quien la levanto lo
+        dice la bitacora de auditoria, y quien responde de la RENTA se elige al convertirla.
+      -->
       <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+        <!--
+          SIN CLIENTE NI UBICACION: salieron el 2026-09-09. En su sitio, lo que ahora gobierna
+          los importes — la unidad y las unidades que el periodo da de si.
+        -->
         <div>
-          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.cliente }}</dt>
-          <dd class="text-texto">{{ c.cliente }}</dd>
+          <dt class="text-xs text-texto-apagado">{{ t().cotizaciones.unidad }}</dt>
+          <dd class="text-texto">{{ t().cotizaciones.unidades[c.unidad] }}</dd>
         </div>
         <div>
-          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.ubicacion }}</dt>
-          <dd class="text-texto">{{ c.ubicacion }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.responsable }}</dt>
-          <dd class="text-texto">{{ c.trabajador }}</dd>
+          <dt class="text-xs text-texto-apagado">{{ t().cotizacion.unidadesDelPeriodo }}</dt>
+          <dd class="tabular-nums text-texto">
+            <!--
+              `?? 0` porque el contrato la declara OPCIONAL: es una propiedad calculada del DTO
+              y el generador no puede saber que el servidor siempre la manda.
+            -->
+            @if ((c.unidadesDelPeriodo ?? 0) > 0) {
+              {{ c.unidadesDelPeriodo }} {{ t().cotizaciones.unidades[c.unidad] }}
+            } @else {
+              <!--
+                Cero no es un error: una cotizacion nace sin periodo. Pero SIN periodo no hay
+                costo de maquina, y callarlo dejaria las lineas en cero sin explicacion.
+              -->
+              <span class="text-texto-apagado">{{ t().cotizacion.sinPeriodo }}</span>
+            }
+          </dd>
         </div>
         <div>
           <!--
@@ -181,6 +199,14 @@
           {{ t().cotizacion.sinLineas }}
         </p>
       } @else {
+        <!--
+          DOS NIVELES EN UNA SOLA TABLA: la fila de la LINEA —lo que se ofrece, con su importe
+          en negrita— y debajo una fila por CONCEPTO, sangrada.
+
+          Se descarto una tabla anidada por linea: cada una traeria su propia cabecera y las
+          columnas no cuadrarian entre si, que es justo lo que hace ilegible una propuesta.
+          Aqui las cantidades y los precios de todos los conceptos caen en la misma columna.
+        -->
         <div class="overflow-x-auto" tabindex="0">
           <table class="tabla-columnas w-full min-w-200 text-center text-sm">
             <thead
@@ -189,11 +215,10 @@
               <tr>
                 <th
                   scope="col"
-                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 text-start font-medium md:px-5"
                 >
-                  {{ t().cotizacion.colConcepto }}
+                  {{ t().cotizacion.colLinea }}
                 </th>
-                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().cotizacion.colEquipo }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">
                   {{ t().cotizacion.descripcion }}
                 </th>
@@ -208,33 +233,50 @@
               </tr>
             </thead>
 
-            <tbody>
-              @for (linea of lineas(); track linea.id) {
-                <tr class="border-b border-borde-fila last:border-0">
-                  <td
-                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium md:px-5"
+            <!--
+              UN `tbody` POR LINEA. Es HTML valido y hace el agrupamiento explicito: la linea y
+              sus conceptos son un bloque, y el borde de abajo separa un renglon del siguiente
+              en lugar de separar cada concepto.
+            -->
+            @for (linea of lineas(); track linea.id) {
+              <tbody class="border-b border-borde last:border-0">
+                <tr>
+                  <th
+                    scope="rowgroup"
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 text-start font-semibold text-texto md:px-5"
                   >
-                    {{ linea.tarifa }}
-                  </td>
-
-                  <td class="px-4 py-3 text-texto-secundario">
-                    {{ linea.equipo ?? t().cotizacion.sinEquipo }}
-                  </td>
+                    {{
+                      linea.codigoInterno === null
+                        ? t().cotizacion.lineaSinEquipo
+                        : t().comun.equipoEnLinea(linea.codigoInterno, linea.nombre)
+                    }}
+                  </th>
 
                   <td class="px-4 py-3 text-texto-secundario">
                     {{ linea.descripcion ?? t().cotizacion.sinDato }}
                   </td>
 
-                  <!-- La unidad va junto a la cantidad: «3 Dia» dice mas que «3» solo. -->
-                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
-                    {{ linea.cantidad }} {{ linea.unidad }}
-                  </td>
+                  <!--
+                    **AQUI SI HAY CANTIDAD Y PRECIO desde el 2026-09-09**: son los de la
+                    MAQUINA. La cantidad son las unidades del periodo —en la unidad del
+                    documento— y el precio, el costo que el equipo tiene cargado para ella.
+                    Los conceptos de debajo llevan los suyos, cada uno con su propia unidad.
 
-                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
-                    {{ linea.precioUnitario | currency: moneda : 'symbol' : '1.2-2' : locale() }}
-                  </td>
+                    Una linea sin maquina los deja en cero, y entonces el guion: vive solo de
+                    sus conceptos.
+                  -->
+                  @if (linea.equipoId !== null) {
+                    <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ linea.cantidad }} {{ t().cotizaciones.unidades[cotizacion()!.unidad] }}
+                    </td>
+                    <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ linea.costoUnitario | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                    </td>
+                  } @else {
+                    <td class="px-4 py-3 text-texto-apagado" colspan="2">—</td>
+                  }
 
-                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                  <td class="whitespace-nowrap px-4 py-3 font-semibold tabular-nums text-texto">
                     {{ linea.importe | currency: moneda : 'symbol' : '1.2-2' : locale() }}
                   </td>
 
@@ -243,9 +285,31 @@
                       @if (esBorrador()) {
                         <button
                           type="button"
+                          (click)="abrirConcepto(linea)"
+                          [disabled]="enviando()"
+                          [attr.aria-label]="t().cotizacion.agregarConceptoA(rotuloDeLinea(linea))"
+                          [title]="t().cotizacion.agregarConcepto"
+                          class="boton-icono"
+                        >
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 5v14M5 12h14" />
+                          </svg>
+                        </button>
+
+                        <button
+                          type="button"
                           (click)="quitar(linea)"
                           [disabled]="enviando()"
-                          [attr.aria-label]="t().cotizacion.quitarA(linea.tarifa)"
+                          [attr.aria-label]="t().cotizacion.quitarA(rotuloDeLinea(linea))"
                           [title]="t().cotizacion.quitar"
                           class="boton-icono"
                         >
@@ -268,8 +332,77 @@
                     </div>
                   </td>
                 </tr>
-              }
-            </tbody>
+
+                @if (linea.tarifas.length === 0) {
+                  <!--
+                    El servicio no deja crear una linea sin conceptos, asi que esto solo aparece
+                    con una fila tocada por SQL a mano. Se dice en lugar de dibujar una linea
+                    con importe cero y ninguna explicacion.
+                  -->
+                  <tr>
+                    <td colspan="6" class="px-4 py-2 text-start text-xs text-texto-apagado md:px-5">
+                      {{ t().cotizacion.sinConceptos }}
+                    </td>
+                  </tr>
+                }
+
+                @for (concepto of linea.tarifas; track concepto.id) {
+                  <tr class="border-t border-borde-fila">
+                    <td
+                      class="sticky left-0 border-r border-borde bg-superficie px-4 py-2 text-start text-texto-secundario md:px-5"
+                    >
+                      <!-- La sangria dice «esto cuelga de arriba» sin necesitar una columna. -->
+                      <span class="ps-4">↳ {{ concepto.tarifa }}</span>
+                    </td>
+
+                    <td class="px-4 py-2"></td>
+
+                    <!-- La unidad va junto a la cantidad: «3 Dia» dice mas que «3» solo. -->
+                    <td class="whitespace-nowrap px-4 py-2 tabular-nums text-texto-secundario">
+                      {{ concepto.cantidad }} {{ concepto.unidad }}
+                    </td>
+
+                    <td class="whitespace-nowrap px-4 py-2 tabular-nums text-texto-secundario">
+                      {{
+                        concepto.precioUnitario | currency: moneda : 'symbol' : '1.2-2' : locale()
+                      }}
+                    </td>
+
+                    <td class="whitespace-nowrap px-4 py-2 tabular-nums text-texto-secundario">
+                      {{ concepto.importe | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                    </td>
+
+                    <td class="px-4 py-1 md:px-5">
+                      <div class="flex justify-center">
+                        @if (esBorrador()) {
+                          <button
+                            type="button"
+                            (click)="quitarConcepto(linea, concepto)"
+                            [disabled]="enviando()"
+                            [attr.aria-label]="t().cotizacion.quitarConceptoA(concepto.tarifa)"
+                            [title]="t().cotizacion.quitarConcepto"
+                            class="boton-icono"
+                          >
+                            <svg
+                              class="size-4"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.75"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M5 12h14" />
+                            </svg>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            }
           </table>
         </div>
       }
@@ -281,6 +414,7 @@
   }
 </div>
 
+<!-- ================================================================= alta de línea -->
 <app-panel-lateral
   [abierto]="panelLinea()"
   [titulo]="t().cotizacion.agregarLineaTitulo"
@@ -299,89 +433,31 @@
       }
 
       <div class="flex flex-col gap-1">
-        <label for="tarifaId" class="text-sm font-medium text-texto-secundario">
-          {{ t().cotizacion.concepto }}
-        </label>
-        <!-- El id de la tarifa es un GUID, que YA es cadena: `value` basta, no hace falta `ngValue`. -->
-        <select
-          id="tarifaId"
-          formControlName="tarifaId"
-          [attr.aria-invalid]="mal(formularioLinea.controls.tarifaId) ? 'true' : null"
-          [attr.aria-describedby]="
-            mal(formularioLinea.controls.tarifaId)
-              ? 'ayuda-concepto error-concepto'
-              : 'ayuda-concepto'
-          "
-          class="campo-formulario"
-        >
-          <option value="">{{ t().cotizacion.sinDato }}</option>
-          @for (tarifa of tarifas(); track tarifa.id) {
-            <option [value]="tarifa.id">{{ tarifa.codigo }} — {{ tarifa.nombre }}</option>
-          }
-        </select>
-        <p id="ayuda-concepto" class="text-xs text-texto-apagado">
-          {{ t().cotizacion.ayudaConcepto }}
-        </p>
-        @if (tarifas().length === 0) {
-          <p class="aviso text-sm text-texto-secundario">{{ t().cotizacion.sinTarifas }}</p>
-        }
-        <app-error-campo
-          id="error-concepto"
-          [visible]="mal(formularioLinea.controls.tarifaId)"
-          [mensaje]="t().cotizacion.errorConcepto"
-        />
-      </div>
-
-      <div class="flex flex-col gap-1">
         <label for="equipoId" class="text-sm font-medium text-texto-secundario">
           {{ t().cotizacion.equipo }}
         </label>
+        <!-- El id del equipo es un GUID, que YA es cadena: `value` basta, no hace falta `ngValue`. -->
         <select
           id="equipoId"
           formControlName="equipoId"
+          (change)="alElegirEquipo($any($event.target).value)"
           aria-describedby="ayuda-equipo"
           class="campo-formulario"
         >
           <option value="">{{ t().cotizacion.sinEquipo }}</option>
           @for (equipo of equiposDisponibles(); track equipo.id) {
             <option [value]="equipo.id">
-              {{ equipo.codigoInterno }} — {{ equipo.marca }} {{ equipo.modelo }}
+              {{
+                t().comun.equipoEnLista(
+                  equipo.codigoInterno,
+                  equipo.descripcion,
+                  equipo.marca + ' ' + equipo.modelo
+                )
+              }}
             </option>
           }
         </select>
         <p id="ayuda-equipo" class="text-xs text-texto-apagado">{{ t().cotizacion.ayudaEquipo }}</p>
-      </div>
-
-      <!--
-        COTIZAR POR TIPO: «una excavadora de 20 t», sin decir cual. Es lo normal cuando se cotiza
-        con semanas de anticipacion y todavia no se sabe que maquina va a estar libre.
-
-        Se deshabilita si ya se eligio equipo, porque entonces sobra: la conversion mira
-        `equipoId` primero y el tipo solo cuenta cuando no hay maquina.
-      -->
-      <div class="flex flex-col gap-1">
-        <label for="tipoEquipoId" class="text-sm font-medium text-texto-secundario">
-          {{ t().cotizacion.tipoEquipo }}
-        </label>
-        <select
-          id="tipoEquipoId"
-          formControlName="tipoEquipoId"
-          [disabled]="formularioLinea.controls.equipoId.value !== ''"
-          aria-describedby="ayuda-tipo"
-          class="campo-formulario"
-        >
-          <option value="">{{ t().cotizacion.sinTipo }}</option>
-          @for (tipo of tipos(); track tipo.id) {
-            <option [value]="tipo.id">{{ tipo.nombre }}</option>
-          }
-        </select>
-        <p id="ayuda-tipo" class="text-xs text-texto-apagado">
-          {{
-            formularioLinea.controls.equipoId.value !== ''
-              ? t().cotizacion.tipoSobra
-              : t().cotizacion.ayudaTipo
-          }}
-        </p>
       </div>
 
       <div class="flex flex-col gap-1">
@@ -392,65 +468,246 @@
           id="descripcion"
           formControlName="descripcion"
           rows="2"
+          aria-describedby="ayuda-descripcion"
           class="campo-formulario"
         ></textarea>
+        <p id="ayuda-descripcion" class="text-xs text-texto-apagado">
+          {{ t().cotizacion.ayudaDescripcion }}
+        </p>
       </div>
 
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div class="flex flex-col gap-1">
-          <label for="cantidad" class="text-sm font-medium text-texto-secundario">
-            {{ t().cotizacion.cantidad }}
-          </label>
-          <input
-            id="cantidad"
-            formControlName="cantidad"
-            type="number"
-            min="0.01"
-            step="0.01"
-            inputmode="decimal"
-            autocomplete="off"
-            [attr.aria-invalid]="mal(formularioLinea.controls.cantidad) ? 'true' : null"
-            [attr.aria-describedby]="
-              mal(formularioLinea.controls.cantidad) ? 'error-cantidad' : null
-            "
-            class="campo-formulario"
-          />
-          <app-error-campo
-            id="error-cantidad"
-            [visible]="mal(formularioLinea.controls.cantidad)"
-            [mensaje]="t().cotizacion.errorCantidad"
-          />
+      <!-- ─────────────────────────── los conceptos cobrables ─────────────────────── -->
+      <div class="flex flex-col gap-3 border-t border-borde pt-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <h3 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+            {{ t().cotizacion.conceptos }}
+          </h3>
+
+          <!--
+            TRAER LOS PRECIOS DE LA MAQUINA, siempre que la maquina tenga alguno. Antes solo
+            aparecia si las filas ya estaban tocadas, y eso lo escondia justo cuando se
+            necesita: despues de cambiar una cifra y querer volver atras.
+          -->
+          @if (precios().length > 0) {
+            <button
+              type="button"
+              (click)="ponerPrecios()"
+              class="ms-auto rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+            >
+              {{ t().cotizacion.traerPrecios }}
+            </button>
+          }
+
+          <button
+            type="button"
+            (click)="agregarFilaDeConcepto()"
+            class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+            [class.ms-auto]="precios().length === 0"
+          >
+            {{ t().cotizacion.agregarFila }}
+          </button>
         </div>
 
-        <div class="flex flex-col gap-1">
-          <label for="precioUnitario" class="text-sm font-medium text-texto-secundario">
-            {{ t().cotizacion.precioUnitario }}
-          </label>
-          <input
-            id="precioUnitario"
-            formControlName="precioUnitario"
-            type="number"
-            min="0"
-            step="0.01"
-            inputmode="decimal"
-            autocomplete="off"
-            [attr.aria-invalid]="mal(formularioLinea.controls.precioUnitario) ? 'true' : null"
-            [attr.aria-describedby]="
-              mal(formularioLinea.controls.precioUnitario)
-                ? 'ayuda-precio error-precio'
-                : 'ayuda-precio'
-            "
-            class="campo-formulario"
-          />
-          <p id="ayuda-precio" class="text-xs text-texto-apagado">
-            {{ t().cotizacion.ayudaPrecio }}
+        <p class="text-xs text-texto-apagado">{{ t().cotizacion.ayudaConceptos }}</p>
+
+        @if (tarifas().length === 0) {
+          <p class="aviso text-sm text-texto-secundario">{{ t().cotizacion.sinTarifas }}</p>
+        }
+
+        <!--
+          NO HAY LISTA DE SOLO LECTURA CON LOS PRECIOS DE LA MAQUINA. La hubo, al lado de los
+          campos, y era el problema: un valor que se mira en un sitio y se escribe en otro
+          invita a intentar cambiarlo donde no se puede.
+
+          Ahora el campo editable de cada fila ES el precio de la maquina, y debajo se dice cual
+          era el de por defecto y si se ha cambiado. `equipo_tarifa` no se toca: lo que se guarda
+          es la copia de la linea.
+        -->
+        <!--
+          UNA MAQUINA SIN PRECIOS CARGADOS no es un error, pero conviene decirlo: quien la
+          eligio espera que los conceptos lleguen solos, y el silencio se lee como que la
+          pantalla no funciona.
+        -->
+        @if (
+          formularioLinea.controls.equipoId.value !== '' &&
+          precios().length === 0 &&
+          !cargandoPrecios()
+        ) {
+          <p class="text-xs text-texto-apagado">{{ t().cotizacion.equipoSinPrecios }}</p>
+        }
+
+        @if (preciosEnOtraMoneda() > 0) {
+          <p class="aviso text-sm text-texto-secundario">
+            {{ t().cotizacion.preciosEnOtraMoneda(preciosEnOtraMoneda()) }}
           </p>
-          <app-error-campo
-            id="error-precio"
-            [visible]="mal(formularioLinea.controls.precioUnitario)"
-            [mensaje]="t().cotizacion.errorPrecio"
-          />
+        }
+
+        <!--
+          `formArrayName` con el indice, y las filas se leen de una SEÑAL: `FormArray.controls`
+          es el mismo arreglo mutado en el sitio, asi que sin zonas empujar una fila no
+          despertaria al detector y la fila nueva no se dibujaria. Ver `filasDeConcepto`.
+        -->
+        <!--
+          UNA LISTA Y NO UNA TARJETA POR CONCEPTO. Los rotulos de campo suben a una sola
+          cabecera y cada concepto es una fila: con tres tarifas, lo anterior se leia como tres
+          formularios en vez de como la lista de precios que es.
+
+          Las columnas se declaran una vez en `REJILLA` y se repiten en la cabecera y en cada
+          fila; si dejan de coincidir, la cabecera deja de rotular lo que hay debajo.
+        -->
+        <div formArrayName="conceptos" class="flex flex-col gap-2">
+          <div
+            class="grid grid-cols-[minmax(0,1fr)_5rem_6.5rem_1.75rem] items-end gap-2 text-[11px] font-medium uppercase tracking-wide text-texto-apagado"
+          >
+            <span>{{ t().cotizacion.tarifa }}</span>
+            <span>{{ t().cotizacion.cantidad }}</span>
+            <span>{{ t().cotizacion.precioUnitario }}</span>
+            <span class="sr-only">{{ t().cotizacion.acciones }}</span>
+          </div>
+
+          <!--
+            `track fila` Y NO `track $index`, y de esto depende que el prellenado SE VEA.
+            `ponerPrecios` vacia el arreglo y empuja grupos NUEVOS; con el indice como clave,
+            Angular reutiliza los nodos —el indice no cambio— y `formGroupName` no se vuelve a
+            enlazar: sus directivas siguen apuntando a los grupos descartados. El arreglo tenia
+            los precios buenos y los campos seguian en blanco.
+
+            Lo fija `filas-reemplazadas.spec.ts`, que mide las dos formas.
+          -->
+          @for (fila of filasDeConcepto(); track fila) {
+            <div [formGroupName]="$index" class="flex flex-col gap-1">
+              <div class="grid grid-cols-[minmax(0,1fr)_5rem_6.5rem_1.75rem] items-center gap-2">
+                <!--
+                  SIN `<label>` VISIBLE: lo pone la cabecera. Cada control lleva su `aria-label`
+                  con el numero de fila, que es lo que un lector de pantalla necesita para no
+                  anunciar tres «Tarifa» indistinguibles.
+                -->
+                <select
+                  [id]="'tarifa-' + $index"
+                  formControlName="tarifaId"
+                  [attr.aria-label]="t().cotizacion.tarifaDeFila($index + 1)"
+                  [attr.aria-invalid]="mal(fila.controls.tarifaId) ? 'true' : null"
+                  class="campo-formulario min-w-0"
+                >
+                  <option value="">{{ t().cotizacion.sinDato }}</option>
+                  @for (tarifa of tarifas(); track tarifa.id) {
+                    <option [value]="tarifa.id">{{ tarifa.codigo }} — {{ tarifa.nombre }}</option>
+                  }
+                </select>
+
+                <input
+                  [id]="'cantidad-' + $index"
+                  formControlName="cantidad"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  [attr.aria-label]="t().cotizacion.cantidadDeFila($index + 1)"
+                  [attr.aria-invalid]="mal(fila.controls.cantidad) ? 'true' : null"
+                  class="campo-formulario min-w-0"
+                />
+
+                <input
+                  [id]="'precio-' + $index"
+                  formControlName="precioUnitario"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  [attr.aria-label]="t().cotizacion.precioDeFila($index + 1)"
+                  [attr.aria-invalid]="mal(fila.controls.precioUnitario) ? 'true' : null"
+                  [attr.aria-describedby]="'defecto-' + $index"
+                  class="campo-formulario min-w-0"
+                />
+
+                <!--
+                  LA ULTIMA FILA NO SE PUEDE QUITAR: el servidor rechaza una linea sin
+                  conceptos, asi que ofrecerlo solo llevaria a un 400. Con una sola fila queda un
+                  hueco en lugar de un boton muerto — y el hueco mantiene la rejilla cuadrada
+                  con la cabecera.
+                -->
+                @if (filasDeConcepto().length > 1) {
+                  <button
+                    type="button"
+                    (click)="quitarFilaDeConcepto($index)"
+                    [attr.aria-label]="t().cotizacion.quitarFilaNumero($index + 1)"
+                    [title]="t().cotizacion.quitarFila"
+                    class="boton-icono"
+                  >
+                    <svg
+                      class="size-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h14" />
+                    </svg>
+                  </button>
+                } @else {
+                  <span aria-hidden="true"></span>
+                }
+              </div>
+
+              <!--
+                EL POR DEFECTO DE LA MAQUINA, en la misma fila que el campo que lo cambia. Se
+                queda a la vista tras editarlo: es la comparacion —«cotizado 600, por defecto
+                500»— que antes habia que hacer abriendo el expediente en otra pestana.
+              -->
+              @if (porDefectoDe(fila.controls.tarifaId.value); as defecto) {
+                <p [id]="'defecto-' + $index" class="text-xs text-texto-apagado">
+                  {{
+                    t().cotizacion.porDefecto(
+                      (defecto.precio | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? '',
+                      defecto.unidad
+                    )
+                  }}
+
+                  @if (seApartaDelPorDefecto($index)) {
+                    <button
+                      type="button"
+                      (click)="usarElPorDefecto($index)"
+                      class="ms-1 underline hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                    >
+                      {{ t().cotizacion.usarElPorDefecto }}
+                    </button>
+                  }
+                </p>
+              }
+
+              <!--
+                UN SOLO RENGLON DE ERROR POR FILA. Tres `app-error-campo` en columna
+                descuadrarian la rejilla, y de todas formas los tres mensajes dicen lo mismo:
+                falta algo en esta fila.
+              -->
+              <!--
+                SIN EL ERROR DE LA TARIFA: dejo de ser obligatoria por fila para que la fila
+                vacia del final no apague el boton de guardar. Que falte un concepto lo dice el
+                aviso de debajo de la lista, no un error dentro de una fila que puede estar en
+                blanco a proposito.
+              -->
+              <app-error-campo
+                [visible]="mal(fila.controls.cantidad) || mal(fila.controls.precioUnitario)"
+                [mensaje]="
+                  mal(fila.controls.cantidad)
+                    ? t().cotizacion.errorCantidad
+                    : t().cotizacion.errorPrecio
+                "
+              />
+            </div>
+          }
         </div>
+
+        @if (sinNingunConcepto()) {
+          <p class="text-xs text-texto-apagado">{{ t().cotizacion.eligeUnConcepto }}</p>
+        }
+
+        <p class="text-xs text-texto-apagado">{{ t().cotizacion.ayudaPrecio }}</p>
       </div>
     </div>
   </form>
@@ -468,6 +725,122 @@
       type="submit"
       form="formulario-linea"
       [disabled]="!puedeAgregar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().cotizacion.guardando : t().cotizacion.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<!-- ====================================== un concepto para una línea que ya existe -->
+<app-panel-lateral
+  [abierto]="panelConcepto()"
+  [titulo]="t().cotizacion.agregarConceptoTitulo"
+  [apoyo]="
+    lineaDestino() ? t().cotizacion.agregarConceptoApoyo(rotuloDeLinea(lineaDestino()!)) : ''
+  "
+  (cerrar)="cerrarConcepto()"
+>
+  <form [formGroup]="formularioConcepto" (ngSubmit)="agregarConcepto()" id="formulario-concepto">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <!-- Aqui aterriza el 409 del concepto repetido en la misma linea. -->
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="concepto-tarifa" class="text-sm font-medium text-texto-secundario">
+          {{ t().cotizacion.tarifa }}
+        </label>
+        <select
+          id="concepto-tarifa"
+          formControlName="tarifaId"
+          [attr.aria-invalid]="mal(formularioConcepto.controls.tarifaId) ? 'true' : null"
+          aria-describedby="ayuda-concepto-repetido"
+          class="campo-formulario"
+        >
+          <option value="">{{ t().cotizacion.sinDato }}</option>
+          @for (tarifa of tarifas(); track tarifa.id) {
+            <option [value]="tarifa.id">{{ tarifa.codigo }} — {{ tarifa.nombre }}</option>
+          }
+        </select>
+        <p id="ayuda-concepto-repetido" class="text-xs text-texto-apagado">
+          {{ t().cotizacion.ayudaConceptoNuevo }}
+        </p>
+        <app-error-campo
+          [visible]="mal(formularioConcepto.controls.tarifaId)"
+          [mensaje]="t().cotizacion.errorConcepto"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="concepto-cantidad" class="text-sm font-medium text-texto-secundario">
+            {{ t().cotizacion.cantidad }}
+          </label>
+          <input
+            id="concepto-cantidad"
+            formControlName="cantidad"
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formularioConcepto.controls.cantidad) ? 'true' : null"
+            class="campo-formulario"
+          />
+          <app-error-campo
+            [visible]="mal(formularioConcepto.controls.cantidad)"
+            [mensaje]="t().cotizacion.errorCantidad"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="concepto-precio" class="text-sm font-medium text-texto-secundario">
+            {{ t().cotizacion.precioUnitario }}
+          </label>
+          <input
+            id="concepto-precio"
+            formControlName="precioUnitario"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            autocomplete="off"
+            [attr.aria-invalid]="mal(formularioConcepto.controls.precioUnitario) ? 'true' : null"
+            aria-describedby="ayuda-concepto-precio"
+            class="campo-formulario"
+          />
+          <p id="ayuda-concepto-precio" class="text-xs text-texto-apagado">
+            {{ t().cotizacion.ayudaPrecio }}
+          </p>
+          <app-error-campo
+            [visible]="mal(formularioConcepto.controls.precioUnitario)"
+            [mensaje]="t().cotizacion.errorPrecio"
+          />
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarConcepto()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().cotizacion.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-concepto"
+      [disabled]="!puedeAgregarConcepto()"
       class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
     >
       {{ enviando() ? t().cotizacion.guardando : t().cotizacion.guardar }}
@@ -555,7 +928,7 @@
 >
   <!--
     DOS CARAS: antes de convertir, el formulario; despues, el resultado. No se navega solo a la
-    renta porque `pendientes` viene en esta respuesta y en ningun otro sitio.
+    renta porque los avisos vienen en esta respuesta y en ningun otro sitio.
   -->
   @if (conversion(); as hecho) {
     <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
@@ -574,9 +947,8 @@
           </p>
 
           <!--
-            Una linea por pendiente, con el texto TAL CUAL lo manda el servidor: ya viene
-            redactado —«2 x Excavadora 20 (Renta diaria) a 3,500.00: falta asignar el equipo»— y
-            reformatearlo aqui seria recomponer una frase que ya esta hecha.
+            Un renglon por aviso, con el texto TAL CUAL lo manda el servidor: ya viene
+            redactado y reformatearlo aqui seria recomponer una frase que ya esta hecha.
           -->
           <ul class="flex flex-col gap-1">
             @for (pendiente of hecho.pendientes; track pendiente) {
@@ -601,6 +973,48 @@
             {{ mensaje }}
           </p>
         }
+
+        <!--
+          EL RESPONSABLE SE PREGUNTA AQUI desde el 2026-09-08: la cotizacion dejo de llevarlo y
+          la renta si lo exige. No es una molestia anadida — quien firma el contrato no tiene por
+          que ser quien cotizo, y antes se heredaba suponiendo que si.
+        -->
+        <!--
+          EL CLIENTE Y LAS CONDICIONES SE PREGUNTAN AQUI desde el 2026-09-09: la cotizacion dejo
+          de llevarlos y la renta si los necesita — de ella salen el contrato y la factura. §28
+          pedia no recapturar las condiciones; se capturan una vez, aqui, en lugar de dos.
+        -->
+        <div class="flex flex-col gap-1">
+          <label for="conv-cliente" class="text-sm font-medium text-texto-secundario">
+            {{ t().cotizacion.clienteDeLaRenta }}
+          </label>
+          <select
+            id="conv-cliente"
+            formControlName="clienteId"
+            [attr.aria-invalid]="mal(formularioConversion.controls.clienteId) ? 'true' : null"
+            aria-describedby="ayuda-conv-cliente"
+            class="campo-formulario"
+          >
+            <option value="">{{ t().cotizacion.sinDato }}</option>
+            @for (cliente of clientes(); track cliente.id) {
+              <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
+            }
+          </select>
+          <p id="ayuda-conv-cliente" class="text-xs text-texto-apagado">
+            {{ t().cotizacion.ayudaClienteDeLaRenta }}
+          </p>
+          <app-error-campo
+            [visible]="mal(formularioConversion.controls.clienteId)"
+            [mensaje]="t().cotizacion.errorClienteDeLaRenta"
+          />
+        </div>
+
+        <!--
+          SIN «RESPONSABLE DE LA RENTA», retirado el 2026-09-09. Vivio un dia: entro el 08,
+          cuando la cotizacion dejo de llevarlo, y sale ahora porque la renta dejo de exigirlo —
+          lo que registraba lo guarda la auditoria, que apunta la operacion a la cuenta que la
+          hizo. Era la unica pregunta de este panel cuya respuesta el sistema ya tenia.
+        -->
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div class="flex flex-col gap-1">
@@ -647,37 +1061,34 @@
             />
           </div>
 
+          <!--
+            LA AYUDA DICE DE DONDE SALEN LAS FECHAS. Sin esto, dos campos ya llenos en un panel
+            que se acaba de abrir se leen como un valor por omision cualquiera, y nadie los
+            revisa: son las que apartan el calendario.
+          -->
           <p id="ayuda-conv-periodo" class="text-xs text-texto-apagado sm:col-span-2">
             {{ t().rentas.ayudaPeriodo }}
+            {{
+              periodoHeredado() ? t().cotizacion.periodoHeredado : t().cotizacion.periodoSinHeredar
+            }}
           </p>
         </div>
 
         <div class="flex flex-col gap-1">
-          <label for="conv-lugar" class="text-sm font-medium text-texto-secundario">
-            {{ t().rentas.lugar }}
+          <label for="conv-condiciones" class="text-sm font-medium text-texto-secundario">
+            {{ t().cotizacion.condicionesDeLaRenta }}
+            <span class="font-normal text-texto-apagado">{{ t().cotizaciones.opcional }}</span>
           </label>
-          <input
-            id="conv-lugar"
-            formControlName="lugarDescripcion"
-            autocomplete="off"
-            [attr.aria-invalid]="
-              mal(formularioConversion.controls.lugarDescripcion) ? 'true' : null
-            "
-            [attr.aria-describedby]="
-              mal(formularioConversion.controls.lugarDescripcion)
-                ? 'ayuda-conv-lugar error-conv-lugar'
-                : 'ayuda-conv-lugar'
-            "
+          <textarea
+            id="conv-condiciones"
+            formControlName="condiciones"
+            rows="2"
+            aria-describedby="ayuda-conv-condiciones"
             class="campo-formulario"
-          />
-          <p id="ayuda-conv-lugar" class="text-xs text-texto-apagado">
-            {{ t().rentas.ayudaLugar }}
+          ></textarea>
+          <p id="ayuda-conv-condiciones" class="text-xs text-texto-apagado">
+            {{ t().cotizacion.ayudaCondicionesDeLaRenta }}
           </p>
-          <app-error-campo
-            id="error-conv-lugar"
-            [visible]="mal(formularioConversion.controls.lugarDescripcion)"
-            [mensaje]="t().rentas.errorLugar"
-          />
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -693,8 +1104,17 @@
               step="0.01"
               inputmode="decimal"
               autocomplete="off"
+              aria-describedby="ayuda-conv-deposito"
               class="campo-formulario"
             />
+            <!--
+              LOS DOS SON DINERO POR ADELANTADO Y NO SON LO MISMO, y hasta el 2026-09-09 el
+              panel no lo decia: el deposito es una GARANTIA que se devuelve, y el anticipo un
+              PAGO a cuenta que baja el saldo. Confundirlos descuadra la cuenta del cliente.
+            -->
+            <p id="ayuda-conv-deposito" class="text-xs text-texto-apagado">
+              {{ t().cotizacion.ayudaDepositoRenta }}
+            </p>
           </div>
 
           <div class="flex flex-col gap-1">
@@ -709,8 +1129,12 @@
               step="0.01"
               inputmode="decimal"
               autocomplete="off"
+              aria-describedby="ayuda-conv-anticipo"
               class="campo-formulario"
             />
+            <p id="ayuda-conv-anticipo" class="text-xs text-texto-apagado">
+              {{ t().cotizacion.ayudaAnticipoRenta }}
+            </p>
           </div>
         </div>
       </div>

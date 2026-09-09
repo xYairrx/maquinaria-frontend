@@ -1,0 +1,338 @@
+<!--
+  La bitácora. SIN COLUMNA DE ACCIONES: la tabla es append-only y un trigger de la base rechaza
+  el UPDATE. Lo único que se puede hacer con una fila es leerla entera, y eso abre el panel.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas [busqueda]="busqueda" [marcadorBusqueda]="t().bitacora.buscar">
+    <div filtros>
+      <label for="filtro-modulo" class="sr-only">{{ t().bitacora.colModulo }}</label>
+      <select
+        id="filtro-modulo"
+        (change)="filtrarPorModulo($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="moduloFiltrado() === ''">
+          {{ t().bitacora.cualquierModulo }}
+        </option>
+        @for (modulo of modulos(); track modulo) {
+          <option [value]="modulo" [selected]="moduloFiltrado() === modulo">
+            {{ nombreModulo(modulo) }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-accion" class="sr-only">{{ t().bitacora.colAccion }}</label>
+      <select
+        id="filtro-accion"
+        (change)="filtrarPorAccion($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="accionFiltrada() === undefined">
+          {{ t().bitacora.cualquierAccion }}
+        </option>
+        @for (accion of acciones; track accion) {
+          <option [value]="accion" [selected]="accionFiltrada() === accion">
+            {{ nombreAccion(accion) }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-resultado" class="sr-only">{{ t().bitacora.colResultado }}</label>
+      <select
+        id="filtro-resultado"
+        (change)="filtrarPorResultado($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="resultadoFiltrado() === undefined">
+          {{ t().bitacora.cualquierResultado }}
+        </option>
+        <option value="1" [selected]="resultadoFiltrado() === 1">
+          {{ t().bitacora.resultados[1] }}
+        </option>
+        <option value="2" [selected]="resultadoFiltrado() === 2">
+          {{ t().bitacora.resultados[2] }}
+        </option>
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-desde" class="sr-only">{{ t().bitacora.desde }}</label>
+      <input
+        id="filtro-desde"
+        type="date"
+        [value]="desde()"
+        (change)="cambiarDesde($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      />
+    </div>
+
+    <div filtros>
+      <label for="filtro-hasta" class="sr-only">{{ t().bitacora.hasta }}</label>
+      <input
+        id="filtro-hasta"
+        type="date"
+        [value]="hasta()"
+        (change)="cambiarHasta($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      />
+    </div>
+
+    @if (hayFiltros()) {
+      <div filtros>
+        <button
+          type="button"
+          (click)="limpiarFiltros()"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+        >
+          {{ t().bitacora.limpiar }}
+        </button>
+      </div>
+    }
+  </app-barra-herramientas>
+
+  @if (cargando()) {
+    <app-bitacora-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (filas().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-260 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().bitacora.colFecha }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().bitacora.colUsuario }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().bitacora.colModulo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().bitacora.colAccion }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().bitacora.colEntidad }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().bitacora.colResultado }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().bitacora.colDetalle }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (fila of filas(); track fila.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 whitespace-nowrap border-r border-borde bg-superficie px-4 py-3 tabular-nums md:px-5"
+                  >
+                    {{ fila.fechaUtc }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ fila.usuarioCorreo ?? fila.origen }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    <!--
+                      SIN MÓDULO son dos cosas distintas que se ven igual: una fila de sesión,
+                      o una anterior al 2026-09-02 cuando la columna no existía. El guion no
+                      afirma cuál; el panel lo explica.
+                    -->
+                    {{ fila.modulo ? nombreModulo(fila.modulo) : t().bitacora.sinDato }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <span
+                      class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                    >
+                      {{ nombreAccion(fila.accion) }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 font-medium text-texto">{{ fila.entidad }}</td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ t().bitacora.resultados[fila.resultado] }}
+                  </td>
+                  <td class="px-4 py-3 md:px-5">
+                    <button
+                      type="button"
+                      (click)="abrirDetalle(fila)"
+                      class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                    >
+                      {{ t().bitacora.ver }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().bitacora.rango(desdeFila(), hastaFila(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav class="flex items-center gap-3" [attr.aria-label]="t().bitacora.paginacion">
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().bitacora.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().bitacora.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().bitacora.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="detalle() !== null"
+  [titulo]="t().bitacora.detalleTitulo"
+  [apoyo]="t().bitacora.detalleApoyo"
+  (cerrar)="cerrarDetalle()"
+>
+  @if (detalle(); as fila) {
+    <div class="flex flex-col gap-4 px-4 py-4 sm:px-5">
+      <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().bitacora.colFecha }}
+          </dt>
+          <dd class="mt-0.5 text-sm tabular-nums text-texto">{{ fila.fechaUtc }}</dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().bitacora.colUsuario }}
+          </dt>
+          <dd class="mt-0.5 text-sm text-texto">
+            {{ fila.usuarioCorreo ?? t().bitacora.sinUsuario }}
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().bitacora.colOrigen }}
+          </dt>
+          <dd class="mt-0.5 text-sm text-texto">{{ fila.origen }}</dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().bitacora.colIp }}
+          </dt>
+          <dd class="mt-0.5 text-sm tabular-nums text-texto">
+            {{ fila.ip ?? t().bitacora.sinDato }}
+          </dd>
+        </div>
+
+        <div class="sm:col-span-2">
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().bitacora.colRoles }}
+          </dt>
+          <dd class="mt-0.5 text-sm text-texto">
+            {{ fila.roles.length === 0 ? t().bitacora.sinRoles : fila.roles.join(', ') }}
+          </dd>
+          <!--
+            EL AVISO QUE VUELVE ÚTIL ESTA COLUMNA: `administrador` significa que la acción
+            pasó por el bypass de acceso total, no por un permiso concedido.
+          -->
+          @if (fila.roles.includes('administrador')) {
+            <p class="mt-1 text-xs text-texto-apagado">{{ t().bitacora.avisoAccesoTotal }}</p>
+          }
+        </div>
+
+        <div class="sm:col-span-2">
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().bitacora.colEntidad }}
+          </dt>
+          <dd class="mt-0.5 break-all text-sm text-texto">
+            {{ fila.entidad }} · {{ fila.entidadId }}
+          </dd>
+          @if (fila.modulo === null) {
+            <p class="mt-1 text-xs text-texto-apagado">{{ t().bitacora.avisoSinModulo }}</p>
+          }
+        </div>
+
+        <div class="sm:col-span-2">
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().bitacora.colCorrelacion }}
+          </dt>
+          <dd class="mt-0.5 break-all text-xs tabular-nums text-texto-secundario">
+            {{ fila.correlacionId }}
+          </dd>
+          <p class="mt-1 text-xs text-texto-apagado">{{ t().bitacora.ayudaCorrelacion }}</p>
+        </div>
+      </dl>
+
+      @if (fila.valoresAnteriores) {
+        <div class="flex flex-col gap-1">
+          <h3 class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().bitacora.antes }}
+          </h3>
+          <pre
+            class="overflow-x-auto rounded-lg border border-borde bg-superficie-sutil p-3 text-xs text-texto"
+            >{{ formatear(fila.valoresAnteriores) }}</pre>
+        </div>
+      }
+
+      @if (fila.valoresNuevos) {
+        <div class="flex flex-col gap-1">
+          <h3 class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().bitacora.despues }}
+          </h3>
+          <pre
+            class="overflow-x-auto rounded-lg border border-borde bg-superficie-sutil p-3 text-xs text-texto"
+            >{{ formatear(fila.valoresNuevos) }}</pre>
+        </div>
+      }
+
+      @if (!fila.valoresAnteriores && !fila.valoresNuevos) {
+        <p class="text-sm text-texto-secundario">{{ t().bitacora.sinDiferencias }}</p>
+      }
+    </div>
+  }
+
+  <div pie class="flex justify-end px-4 py-3 sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarDetalle()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().bitacora.cerrar }}
+    </button>
+  </div>
+</app-panel-lateral>

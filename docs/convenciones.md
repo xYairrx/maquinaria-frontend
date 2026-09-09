@@ -184,7 +184,7 @@ export class MiPantalla {
    constante se evalúa al cargar el módulo y se queda en el idioma de ese instante. Ver
    `menuEmpresa()` en `disposicion/opciones-menu.ts`.
 
-### Las dos trampas que ya costaron un rato
+### Las tres trampas que ya costaron un rato
 
 **El título de la pestaña.** Los `title` de las rutas son funciones
 (`title: () => t().titulos.entrar`), pero el router las invoca **una sola vez, al
@@ -199,6 +199,18 @@ para siempre.
 números y moneda se quedan con el idioma con el que se cargó la página. Hoy no se nota
 porque no hay un solo `| date` en la aplicación. Está anotado con un comentario
 `ponytail:` en `i18n.ts`, con las dos salidas.
+
+**Un texto con función cuyo único dato es una CADENA revienta la prueba del diccionario.**
+`i18n.spec.ts` recorre el diccionario llamando a cada función con un `7` en el primer
+argumento —así comprueba que el dato aparece en el resultado—, y casi todos los textos con un
+dato cuentan algo, así que el `7` encaja. El que recibe una cadena y le llama un método
+—`` `Ninguna obra está ${estado.toLowerCase()}` ``— lanza un `TypeError` que **se lleva las
+cuatro pruebas del bloque**, con un mensaje que no nombra la clave culpable. Pasó con
+`proyectos.sinDeEstado` el 2026-09-02.
+
+Dos cosas que lo evitan, y las dos están puestas: la redacción de la casa es «en estado X» /
+«with status X», que **no transforma** el nombre del estado; y `hojas()` reintenta con una
+cadena si el `7` lanza, para que el próximo caso se vea como lo que es.
 
 ## El andamiaje de una pantalla nueva
 

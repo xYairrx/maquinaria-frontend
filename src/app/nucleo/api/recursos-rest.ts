@@ -194,6 +194,30 @@ export class FabricaDeRecursos {
   }
 
   /**
+   * Un PUT que reemplaza una PARTE del recurso y por tanto tiene que recargar su listado.
+   *
+   * EXISTE POR LA MISMA RAZON QUE `parcheo`: hay escrituras que no son ninguna de las cuatro
+   * operaciones. Las dos primeras son la matriz de permisos de un rol y los roles de un
+   * usuario, y las dos son REEMPLAZOS completos —lo que no viene se quita—, que es justo lo
+   * que un PUT significa y lo que las vuelve idempotentes.
+   *
+   * @param ruta Relativa a la base, con el id ya codificado. Ej: `roles/<id>/permisos`.
+   * @param recargar Nombre del recurso cuyo listado y selector hay que recargar.
+   */
+  reemplazar<T>(
+    ruta: string,
+    cuerpo: unknown,
+    opciones: { readonly recargar: string },
+  ): Observable<T> {
+    return this.http.put<T>(`${this.base}/${ruta}`, cuerpo).pipe(
+      tap(() => {
+        this.recargarListado.get(opciones.recargar)?.();
+        this.recargarSelector.get(opciones.recargar)?.();
+      }),
+    );
+  }
+
+  /**
    * El borrado LOGICO de un recurso que si lo tiene.
    *
    * NO ESTA EN `RecursoRest` A PROPOSITO. De las entidades de esta fase solo `equipo`,
@@ -300,8 +324,16 @@ export class FabricaDeRecursos {
  *
  * `false` SÍ se manda: la comparación es contra `undefined`, `null` y cadena vacía, nunca
  * contra falsy. Un `if (valor)` habría tirado el filtro de retiradas.
+ *
+ * **Genérico y no `FiltroListado`**, porque no todo lo que se manda como query es un listado
+ * paginado: los seis reportes tienen su propio filtro sin `Numero` ni `Tamano`, y tiparlo como
+ * `FiltroListado` obligaba a inventarles esos dos campos o a duplicar esta función. Y
+ * `Record<string, unknown>` no sirve: una interfaz de TypeScript no es asignable a un tipo con
+ * índice, así que la restricción tiene que ser `extends object`.
  */
-export function aParametros(filtro: FiltroListado): Record<string, string | number | boolean> {
+export function aParametros<T extends object>(
+  filtro: T,
+): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {};
 
   for (const [clave, valor] of Object.entries(filtro)) {

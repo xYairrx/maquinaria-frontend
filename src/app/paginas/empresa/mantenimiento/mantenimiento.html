@@ -1,0 +1,461 @@
+<!--
+  Los trabajos de taller. El folio abre el detalle, que es donde se finaliza o se cancela: las
+  dos acciones liberan el calendario y devuelven la máquina, así que piden datos y no caben en
+  un botón de fila.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().mantenimiento.buscar"
+    [accion]="t().mantenimiento.abrir"
+    (alPulsarAccion)="abrirAlta()"
+  >
+    <div filtros>
+      <!--
+        Chips y no un <select>: son dos opciones excluyentes y la de arranque —vigentes— es la
+        pregunta real de la pantalla. Un desplegable la escondería tras un clic.
+      -->
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="chip"
+          [class.chip-activo]="soloVigentes() === true"
+          [attr.aria-pressed]="soloVigentes() === true"
+          (click)="filtrarVigentes(true)"
+        >
+          {{ t().mantenimiento.chipVigentes }}
+        </button>
+
+        <button
+          type="button"
+          class="chip"
+          [class.chip-activo]="soloVigentes() === false"
+          [attr.aria-pressed]="soloVigentes() === false"
+          (click)="filtrarVigentes(false)"
+        >
+          {{ t().mantenimiento.chipCerrados }}
+        </button>
+
+        <button
+          type="button"
+          class="chip"
+          [class.chip-activo]="soloVigentes() === undefined"
+          [attr.aria-pressed]="soloVigentes() === undefined"
+          (click)="filtrarVigentes(undefined)"
+        >
+          {{ t().mantenimiento.chipTodos }}
+        </button>
+      </div>
+    </div>
+
+    <div filtros>
+      <label for="filtro-tipo" class="sr-only">{{ t().mantenimiento.colTipo }}</label>
+      <select
+        id="filtro-tipo"
+        (change)="filtrarPorTipo($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="tipoFiltrado() === undefined">
+          {{ t().mantenimiento.cualquierTipo }}
+        </option>
+        @for (tipo of tipos; track tipo) {
+          <option [value]="tipo" [selected]="tipoFiltrado() === tipo">
+            {{ nombreTipo(tipo) }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-equipo" class="sr-only">{{ t().mantenimiento.equipo }}</label>
+      <select
+        id="filtro-equipo"
+        (change)="filtrarPorEquipo($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="equipoFiltrado() === ''">
+          {{ t().mantenimiento.cualquierEquipo }}
+        </option>
+        @for (equipo of equipos(); track equipo.id) {
+          <option [value]="equipo.id" [selected]="equipoFiltrado() === equipo.id">
+            {{ t().comun.equipoEnLinea(equipo.codigoInterno, equipo.descripcion) }}
+          </option>
+        }
+      </select>
+    </div>
+  </app-barra-herramientas>
+
+  @if (cargando()) {
+    <app-mantenimiento-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (trabajos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-240 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().mantenimiento.colFolio }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().mantenimiento.colEquipo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().mantenimiento.colTipo }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().mantenimiento.colTaller }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().mantenimiento.colInicio }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().mantenimiento.colCosto }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().mantenimiento.colEstado }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (trabajo of trabajos(); track trabajo.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 whitespace-nowrap border-r border-borde bg-superficie px-4 py-3 md:px-5"
+                  >
+                    <a
+                      [routerLink]="['/mantenimiento', trabajo.id]"
+                      class="font-medium text-texto underline underline-offset-2 hover:text-texto-secundario focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                    >
+                      {{ trabajo.folio }}
+                    </a>
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ trabajo.codigoInterno }}
+                    <span class="block text-xs text-texto-apagado">
+                      @if (trabajo.nombre) {
+                        {{ trabajo.nombre }} ·
+                      }
+                      {{ trabajo.marca }} {{ trabajo.modelo }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ nombreTipo(trabajo.tipo) }}</td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    <!--
+                      SIN TALLER no es un dato que falte: significa que el trabajo se hace donde
+                      está la máquina y que nunca salió.
+                    -->
+                    {{ trabajo.taller ?? t().mantenimiento.enSitio }}
+                  </td>
+                  <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ trabajo.fechaInicio }}
+                  </td>
+                  <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ trabajo.costo ?? t().mantenimiento.sinDato }}
+                  </td>
+                  <td class="px-4 py-3 md:px-5">
+                    <span
+                      class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                    >
+                      {{ nombreEstado(trabajo.estado) }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().mantenimiento.rango(desde(), hasta(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav class="flex items-center gap-3" [attr.aria-label]="t().mantenimiento.paginacion">
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().mantenimiento.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().mantenimiento.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().mantenimiento.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="t().mantenimiento.abrir"
+  [apoyo]="t().mantenimiento.abrirApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-mantenimiento">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="equipoId" class="text-sm font-medium text-texto-secundario">
+          {{ t().mantenimiento.equipo }}
+        </label>
+        <select
+          id="equipoId"
+          formControlName="equipoId"
+          [attr.aria-invalid]="mal(formulario.controls.equipoId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.equipoId) ? 'ayuda-equipo error-equipo' : 'ayuda-equipo'
+          "
+          class="campo-formulario"
+        >
+          <option value=""></option>
+          @for (equipo of equipos(); track equipo.id) {
+            <option [value]="equipo.id">
+              {{
+                t().comun.equipoEnLista(
+                  equipo.codigoInterno,
+                  equipo.descripcion,
+                  equipo.marca + ' ' + equipo.modelo
+                )
+              }}
+            </option>
+          }
+        </select>
+        <p id="ayuda-equipo" class="text-xs text-texto-apagado">
+          {{ t().mantenimiento.ayudaEquipo }}
+        </p>
+        <app-error-campo
+          id="error-equipo"
+          [visible]="mal(formulario.controls.equipoId)"
+          [mensaje]="t().mantenimiento.errorEquipo"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="tipo" class="text-sm font-medium text-texto-secundario">
+          {{ t().mantenimiento.tipo }}
+        </label>
+        <select
+          id="tipo"
+          formControlName="tipo"
+          aria-describedby="ayuda-tipo"
+          class="campo-formulario"
+        >
+          <!-- `ngValue` porque el tipo es un NÚMERO. -->
+          @for (tipo of tipos; track tipo) {
+            <option [ngValue]="tipo">{{ nombreTipo(tipo) }}</option>
+          }
+        </select>
+        <p id="ayuda-tipo" class="text-xs text-texto-apagado">{{ t().mantenimiento.ayudaTipo }}</p>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="motivoId" class="text-sm font-medium text-texto-secundario">
+          {{ t().mantenimiento.motivo }}
+        </label>
+        <select
+          id="motivoId"
+          formControlName="motivoId"
+          [attr.aria-invalid]="mal(formulario.controls.motivoId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.motivoId) ? 'ayuda-motivo error-motivo' : 'ayuda-motivo'
+          "
+          class="campo-formulario"
+        >
+          <option value=""></option>
+          @for (motivo of motivos(); track motivo.id) {
+            <option [value]="motivo.id">{{ motivo.nombre }}</option>
+          }
+        </select>
+        <p id="ayuda-motivo" class="text-xs text-texto-apagado">
+          {{ t().mantenimiento.ayudaMotivo }}
+        </p>
+        <app-error-campo
+          id="error-motivo"
+          [visible]="mal(formulario.controls.motivoId)"
+          [mensaje]="t().mantenimiento.errorMotivo"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="tallerId" class="text-sm font-medium text-texto-secundario">
+          {{ t().mantenimiento.taller }}
+          <span class="font-normal text-texto-apagado">{{ t().mantenimiento.opcional }}</span>
+        </label>
+        <select
+          id="tallerId"
+          formControlName="tallerId"
+          aria-describedby="ayuda-taller"
+          class="campo-formulario"
+        >
+          <option value="">{{ t().mantenimiento.enSitio }}</option>
+          @for (taller of talleres(); track taller.id) {
+            <option [value]="taller.id">{{ taller.nombre }}</option>
+          }
+        </select>
+        <p id="ayuda-taller" class="text-xs text-texto-apagado">
+          {{
+            talleres().length === 0 ? t().mantenimiento.sinTalleres : t().mantenimiento.ayudaTaller
+          }}
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="proveedorId" class="text-sm font-medium text-texto-secundario">
+          {{ t().mantenimiento.proveedor }}
+          <span class="font-normal text-texto-apagado">{{ t().mantenimiento.opcional }}</span>
+        </label>
+        <select
+          id="proveedorId"
+          formControlName="proveedorId"
+          aria-describedby="ayuda-proveedor"
+          class="campo-formulario"
+        >
+          <option value="">{{ t().mantenimiento.tallerPropio }}</option>
+          @for (proveedor of proveedores(); track proveedor.id) {
+            <option [value]="proveedor.id">{{ proveedor.razonSocial }}</option>
+          }
+        </select>
+        <p id="ayuda-proveedor" class="text-xs text-texto-apagado">
+          {{ t().mantenimiento.ayudaProveedor }}
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="trabajadorId" class="text-sm font-medium text-texto-secundario">
+          {{ t().mantenimiento.responsable }}
+        </label>
+        <select
+          id="trabajadorId"
+          formControlName="trabajadorId"
+          [attr.aria-invalid]="mal(formulario.controls.trabajadorId) ? 'true' : null"
+          [attr.aria-describedby]="mal(formulario.controls.trabajadorId) ? 'error-resp' : null"
+          class="campo-formulario"
+        >
+          <option value=""></option>
+          @for (trabajador of trabajadores(); track trabajador.id) {
+            <option [value]="trabajador.id">
+              {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }}
+            </option>
+          }
+        </select>
+        <app-error-campo
+          id="error-resp"
+          [visible]="mal(formulario.controls.trabajadorId)"
+          [mensaje]="t().mantenimiento.errorResponsable"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="fechaInicio" class="text-sm font-medium text-texto-secundario">
+            {{ t().mantenimiento.fechaInicio }}
+            <span class="font-normal text-texto-apagado">{{ t().mantenimiento.opcional }}</span>
+          </label>
+          <input
+            id="fechaInicio"
+            formControlName="fechaInicio"
+            type="date"
+            aria-describedby="ayuda-fecha"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="horometroInicio" class="text-sm font-medium text-texto-secundario">
+            {{ t().mantenimiento.horometro }}
+            <span class="font-normal text-texto-apagado">{{ t().mantenimiento.opcional }}</span>
+          </label>
+          <input
+            id="horometroInicio"
+            formControlName="horometroInicio"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            class="campo-formulario"
+          />
+        </div>
+
+        <p id="ayuda-fecha" class="text-xs text-texto-apagado sm:col-span-2">
+          {{ t().mantenimiento.ayudaFecha }}
+        </p>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+            {{ t().mantenimiento.descripcion }}
+            <span class="font-normal text-texto-apagado">{{ t().mantenimiento.opcional }}</span>
+          </label>
+          <textarea
+            id="descripcion"
+            formControlName="descripcion"
+            rows="3"
+            class="campo-formulario"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().mantenimiento.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-mantenimiento"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().mantenimiento.guardando : t().mantenimiento.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

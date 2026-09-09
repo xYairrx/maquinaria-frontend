@@ -71,3 +71,21 @@ describe('las acciones disponibles por estado de renta', () => {
     }
   });
 });
+
+/**
+ * **AQUÍ HABÍA CINCO PRUEBAS DE `agruparPorEquipo`, y su sujeto ya no existe.**
+ *
+ * Vivieron unas horas del 2026-09-09: `renta_linea` tenía una fila por *(equipo, concepto)* y
+ * esta pantalla las agrupaba por máquina para leer la renta como una cotización. Fijaban tres
+ * decisiones del agrupamiento —el orden de captura, el bloque sin línea de máquina, el importe
+ * como suma— y se probaron al revés: sabotear la función tumbaba tres.
+ *
+ * Esa misma tarde la tabla pasó a tener **una fila por máquina con sus cargos dentro**, así que
+ * el DTO llega agrupado y no hay función que probar. Las decisiones que fijaban las garantiza
+ * ahora el modelo: el orden es el de `orden`, una línea sin cargos es legítima porque tiene su
+ * propio costo, y el importe lo calcula el servidor en dos niveles.
+ *
+ * **Lo que verifica ese cambio es el ensayo contra la base**, no esta suite: la migración se
+ * corrió contra los datos reales de `maquinaria_prueba` y los siete subtotales salieron
+ * idénticos. Ninguna de las 547 pruebas de servidor construye un `AltaRentaLinea`.
+ */

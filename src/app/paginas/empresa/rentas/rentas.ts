@@ -18,7 +18,13 @@ import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiOrganizacion } from '../../../nucleo/api/api-organizacion';
 import { ApiRentas } from '../../../nucleo/api/api-rentas';
 import { ApiTerceros } from '../../../nucleo/api/api-terceros';
-import type { AltaRenta, EstadoRenta, FiltroRentas, Renta } from '../../../nucleo/api/contratos';
+import type {
+  AltaRenta,
+  EstadoRenta,
+  FiltroRentas,
+  Renta,
+  UnidadTarifa,
+} from '../../../nucleo/api/contratos';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { ErrorCampo, errorVisible } from '../../../nucleo/formularios/error-campo';
 import { aCampoLocal, aInstante } from '../../../nucleo/formularios/fecha-hora';
@@ -38,6 +44,13 @@ const BORRADOR: EstadoRenta = 1;
 const MONEDA = 'MXN';
 
 /**
+ * **LAS CUATRO UNIDADES DE TIEMPO**, las mismas que en cotizaciones. `UnidadTarifa` tiene seis;
+ * Evento y Kilómetro no se pueden contar a partir de un periodo, y un CHECK impide que la renta
+ * las lleve.
+ */
+const UNIDADES: readonly UnidadTarifa[] = [1, 2, 3, 4];
+
+/**
  * Rentas: la operación real, y **el criterio de salida de la Fase 1**.
  *
  * TRES COSAS QUE LA SEPARAN DE LA COTIZACIÓN:
@@ -47,8 +60,10 @@ const MONEDA = 'MXN';
  * Nada de eso pasa en esta pantalla —el listado no confirma— pero explica por qué las acciones
  * que sí lo hacen viven en el detalle y no en un menú de fila.
  *
- * **El periodo es obligatorio y el lugar también.** No hay tabla `obra`: dónde se trabaja va
- * dentro de la renta, con `lugarDescripcion` obligatoria y la dirección opcional.
+ * **El periodo es obligatorio; el lugar ya NO se captura aquí.** Las diez columnas `lugar_*`
+ * de texto libre se retiraron el 2026-09-03: el documento funcional pide «Ubicación de
+ * entrega» y eso va en cada LÍNEA, porque una renta puede llevar tres máquinas a tres sitios.
+ * Se elige al agregar la línea, en el detalle.
  *
  * **Vencida y por vencer NO son estados guardados**, son derivados de la fecha y llegan
  * calculados en el DTO. Se pintan como distintivo junto al estado, no en su lugar: una renta
@@ -80,6 +95,7 @@ export class Rentas {
   protected readonly locale = idioma;
   protected readonly moneda = MONEDA;
   protected readonly estados = ESTADOS;
+  protected readonly unidades = UNIDADES;
   protected readonly borrador = BORRADOR;
   protected readonly mal = errorVisible;
 
@@ -130,7 +146,24 @@ export class Rentas {
 
   protected readonly formulario = this.fb.group({
     clienteId: ['', validadorRequerido],
-    trabajadorId: ['', validadorRequerido],
+
+    // **OPCIONAL DESDE EL 2026-09-09.** La columna se aflojó y la conversión desde una
+    // cotización dejó de preguntarla, así que exigirla AQUÍ dejaría una renta convertida
+    // imposible de editar sin nombrar un responsable que nadie capturó. Se sigue ofreciendo
+    // porque en un alta directa es el único sitio donde se sabe.
+    trabajadorId: [''],
+
+    // **CÓMO SE COBRA EL PERIODO.** De ella y del periodo sale la cantidad de cada línea de
+    // equipo, igual que en la cotización.
+    //
+    // **NO ES OPCIONAL AUNQUE EL CONTRATO LO PAREZCA**: `AltaRenta` no marca ninguna propiedad
+    // como obligatoria —así salen los `record struct` de C# en OpenAPI— así que omitirla
+    // compila, manda cero, y el CHECK `renta_unidad` lo rechaza. El servidor lo dice ahora con
+    // una frase, pero el campo tiene que estar.
+    //
+    // Sin validador y con valor inicial: es un `<select>` numérico, y `validadorRequerido` pasa
+    // por `texto()` y lo dejaría inválido para siempre.
+    unidad: [2 as UnidadTarifa],
 
     // `datetime-local` y no `date`: `Inicio` y `Fin` son `DateTime` en el servidor, no
     // `DateOnly` como la fecha de una cotización. Una renta que arranca a las 8:00 y otra que
@@ -139,15 +172,6 @@ export class Rentas {
     inicio: ['', validadorRequerido],
     fin: ['', validadorRequerido],
 
-    lugarDescripcion: ['', validadorRequerido],
-    calle: [''],
-    colonia: [''],
-    municipio: [''],
-    estadoProv: [''],
-    codigoPostal: [''],
-    contacto: [''],
-    telefono: [''],
-
     // Numéricos, así que `number | null`. Ver la trampa en `validadores.ts`: NO llevan
     // `validadorRequerido`, que está escrito para texto y los dejaría inválidos para siempre.
     deposito: [0 as number | null],
@@ -155,6 +179,8 @@ export class Rentas {
     descuento: [0 as number | null],
     impuestos: [0 as number | null],
 
+    // Los términos del contrato, que SÍ se imprimen, separados de las notas internas.
+    condiciones: [''],
     notas: [''],
   });
 
@@ -259,20 +285,14 @@ export class Rentas {
     this.formulario.reset({
       clienteId: '',
       trabajadorId: '',
+      unidad: 2 as UnidadTarifa,
       inicio: '',
       fin: '',
-      lugarDescripcion: '',
-      calle: '',
-      colonia: '',
-      municipio: '',
-      estadoProv: '',
-      codigoPostal: '',
-      contacto: '',
-      telefono: '',
       deposito: 0,
       anticipo: 0,
       descuento: 0,
       impuestos: 0,
+      condiciones: '',
       notas: '',
     });
     this.panelAbierto.set(true);
@@ -283,21 +303,17 @@ export class Rentas {
     this.errorMutacion.set(null);
     this.formulario.reset({
       clienteId: renta.clienteId,
-      trabajadorId: renta.trabajadorId,
+      unidad: renta.unidad,
+      // `?? ''` porque el campo es un `<select>` de texto y la renta puede no tener
+      // responsable: una convertida desde cotización no lo lleva.
+      trabajadorId: renta.trabajadorId ?? '',
       inicio: aCampoLocal(renta.inicio),
       fin: aCampoLocal(renta.fin),
-      lugarDescripcion: renta.lugar.descripcion,
-      calle: renta.lugar.calle ?? '',
-      colonia: renta.lugar.colonia ?? '',
-      municipio: renta.lugar.municipio ?? '',
-      estadoProv: renta.lugar.estadoProv ?? '',
-      codigoPostal: renta.lugar.codigoPostal ?? '',
-      contacto: renta.lugar.contacto ?? '',
-      telefono: renta.lugar.telefono ?? '',
       deposito: renta.deposito,
       anticipo: renta.anticipo,
       descuento: renta.descuento,
       impuestos: renta.impuestos,
+      condiciones: renta.condiciones ?? '',
       notas: renta.notas ?? '',
     });
     this.panelAbierto.set(true);
@@ -321,33 +337,23 @@ export class Rentas {
 
     const alta = {
       clienteId: v.clienteId,
+      unidad: v.unidad,
       // La renta nace suelta desde esta pantalla. La que viene de una cotización se crea con
       // `POST rentas/desde-cotizacion/{id}`, que copia los precios congelados.
       cotizacionId: null,
-      trabajadorId: v.trabajadorId,
+      // Vacío es «no hay», no la cadena vacía: el servidor espera nulo.
+      trabajadorId: v.trabajadorId === '' ? null : v.trabajadorId,
       // A INSTANTE, no el texto tal cual. El campo entrega hora de pared local y la columna
       // es `timestamptz`: mandarlo crudo da un 500 de Npgsql, y pegarle una `Z` lo corre las
       // horas del huso. Está explicado en `fecha-hora.ts`.
       inicio: aInstante(v.inicio) ?? '',
       fin: aInstante(v.fin) ?? '',
-      lugar: {
-        descripcion: v.lugarDescripcion.trim(),
-        calle: vacioANulo(v.calle),
-        colonia: vacioANulo(v.colonia),
-        municipio: vacioANulo(v.municipio),
-        estadoProv: vacioANulo(v.estadoProv),
-        codigoPostal: vacioANulo(v.codigoPostal),
-        // No se capturan: el alta no las ofrece y el servidor las admite nulas.
-        latitud: null,
-        longitud: null,
-        contacto: vacioANulo(v.contacto),
-        telefono: vacioANulo(v.telefono),
-      },
       // `?? 0` porque un campo numérico vaciado escribe `null`, y los cuatro son obligatorios.
       deposito: v.deposito ?? 0,
       anticipo: v.anticipo ?? 0,
       descuento: v.descuento ?? 0,
       impuestos: v.impuestos ?? 0,
+      condiciones: vacioANulo(v.condiciones),
       notas: vacioANulo(v.notas),
     } satisfies AltaRenta;
 

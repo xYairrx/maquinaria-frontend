@@ -1,0 +1,351 @@
+<!--
+  El detalle de un trabajo de taller. Es una pantalla y no un panel porque cerrarlo pide datos
+  —a dónde vuelve la máquina, con qué horómetro, cuánto costó— y libera el calendario.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  @if (error(); as mensaje) {
+    <p
+      class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+      role="alert"
+    >
+      {{ mensaje }}
+    </p>
+  }
+
+  @if (cargando() && trabajo() === undefined) {
+    <div class="flex flex-col gap-4" aria-busy="true">
+      <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+      <div aria-hidden="true" class="flex flex-col gap-4">
+        <div class="esqueleto h-40 rounded-xl"></div>
+        <div class="esqueleto h-32 rounded-xl"></div>
+      </div>
+    </div>
+  } @else if (trabajo(); as trabajo) {
+    <section class="rounded-xl border border-borde bg-superficie p-4 md:p-5">
+      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().mantenimiento.colEquipo }}
+          </dt>
+          <dd class="mt-0.5 text-sm text-texto">
+            <a
+              [routerLink]="['/equipos', trabajo.equipoId]"
+              class="underline underline-offset-2 hover:text-texto-secundario focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+            >
+              {{ trabajo.codigoInterno }}
+            </a>
+            <span class="block text-xs text-texto-apagado">
+              @if (trabajo.nombre) {
+                {{ trabajo.nombre }} ·
+              }
+              {{ trabajo.marca }} {{ trabajo.modelo }}
+            </span>
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().mantenimiento.colTipo }}
+          </dt>
+          <dd class="mt-0.5 text-sm text-texto">{{ nombreTipo(trabajo.tipo) }}</dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().mantenimiento.colEstado }}
+          </dt>
+          <dd class="mt-0.5 text-sm text-texto">{{ nombreEstado(trabajo.estado) }}</dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().mantenimiento.motivo }}
+          </dt>
+          <dd class="mt-0.5 text-sm text-texto">{{ trabajo.motivo }}</dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().mantenimiento.colTaller }}
+          </dt>
+          <!--
+            SIN TALLER significa que el trabajo se hace donde está la máquina: no salió, y por
+            eso al cerrar no se pide ubicación de regreso.
+          -->
+          <dd class="mt-0.5 text-sm text-texto">
+            {{ trabajo.taller ?? t().mantenimiento.enSitio }}
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().mantenimiento.proveedor }}
+          </dt>
+          <dd class="mt-0.5 text-sm text-texto">
+            {{ trabajo.proveedor ?? t().mantenimiento.tallerPropio }}
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().mantenimiento.responsable }}
+          </dt>
+          <dd class="mt-0.5 text-sm text-texto">{{ trabajo.trabajador }}</dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().mantenimiento.colInicio }}
+          </dt>
+          <dd class="mt-0.5 text-sm tabular-nums text-texto">{{ trabajo.fechaInicio }}</dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().trabajo.fechaFin }}
+          </dt>
+          <dd class="mt-0.5 text-sm tabular-nums text-texto">
+            {{ trabajo.fechaFin ?? t().mantenimiento.sinDato }}
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().trabajo.horometros }}
+          </dt>
+          <dd class="mt-0.5 text-sm tabular-nums text-texto">
+            {{ trabajo.horometroInicio ?? t().mantenimiento.sinDato }} →
+            {{ trabajo.horometroFin ?? t().mantenimiento.sinDato }}
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().mantenimiento.colCosto }}
+          </dt>
+          <dd class="mt-0.5 text-sm tabular-nums text-texto">
+            {{ trabajo.costo ?? t().mantenimiento.sinDato }}
+          </dd>
+        </div>
+      </dl>
+
+      @if (trabajo.descripcion) {
+        <div class="mt-4">
+          <h2 class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().mantenimiento.descripcion }}
+          </h2>
+          <p class="mt-0.5 whitespace-pre-line text-sm text-texto">{{ trabajo.descripcion }}</p>
+        </div>
+      }
+
+      @if (trabajo.observaciones) {
+        <div class="mt-4">
+          <h2 class="text-[11px] uppercase tracking-wide text-texto-apagado">
+            {{ t().trabajo.observaciones }}
+          </h2>
+          <p class="mt-0.5 whitespace-pre-line text-sm text-texto">{{ trabajo.observaciones }}</p>
+        </div>
+      }
+    </section>
+
+    <section class="rounded-xl border border-borde bg-superficie p-4 md:p-5">
+      <h2 class="text-[15px] font-semibold text-texto">{{ t().trabajo.acciones }}</h2>
+
+      @if (vigente()) {
+        <p class="mt-0.5 text-xs text-texto-apagado">{{ t().trabajo.accionesApoyo }}</p>
+
+        <div class="mt-3 flex flex-wrap gap-2">
+          @if (trabajo.estado === 1) {
+            <button
+              type="button"
+              (click)="marcarEnProceso(true)"
+              class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+            >
+              {{ t().trabajo.empezar }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              (click)="marcarEnProceso(false)"
+              class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+            >
+              {{ t().trabajo.pausar }}
+            </button>
+          }
+
+          <button
+            type="button"
+            (click)="abrirCierre()"
+            class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+          >
+            {{ t().trabajo.cerrarTrabajo }}
+          </button>
+        </div>
+      } @else {
+        <!--
+          UN TRABAJO CERRADO NO SE EDITA: su costo y su descripción son lo que se reporta.
+          Se dice en lugar de dejar los botones deshabilitados sin explicación.
+        -->
+        <p class="mt-0.5 text-sm text-texto-secundario">
+          {{ t().trabajo.yaCerrado(nombreEstado(trabajo.estado)) }}
+        </p>
+      }
+    </section>
+  } @else {
+    <p
+      class="rounded-xl border border-borde bg-superficie px-4 py-6 text-sm text-texto-secundario md:px-5"
+    >
+      {{ t().trabajo.noEncontrado }}
+    </p>
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelCierre()"
+  [titulo]="t().trabajo.cerrarTrabajo"
+  [apoyo]="t().trabajo.cerrarApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" id="formulario-cierre">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <!--
+        SOLO SI LA MÁQUINA SALIÓ. Sin taller no hay nada que regresar, y pedirlo sugeriría lo
+        contrario.
+      -->
+      @if (exigeRegreso()) {
+        <div class="flex flex-col gap-1">
+          <label for="ubicacionRegresoId" class="text-sm font-medium text-texto-secundario">
+            {{ t().trabajo.regresaA }}
+          </label>
+          <select
+            id="ubicacionRegresoId"
+            formControlName="ubicacionRegresoId"
+            aria-describedby="ayuda-regreso"
+            class="campo-formulario"
+          >
+            <option value=""></option>
+            @for (ubicacion of ubicaciones(); track ubicacion.id) {
+              <option [value]="ubicacion.id">{{ ubicacion.nombre }}</option>
+            }
+          </select>
+          <p id="ayuda-regreso" class="text-xs text-texto-apagado">
+            {{ t().trabajo.ayudaRegreso }}
+          </p>
+        </div>
+      }
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="fechaFin" class="text-sm font-medium text-texto-secundario">
+            {{ t().trabajo.fechaFin }}
+            <span class="font-normal text-texto-apagado">{{ t().mantenimiento.opcional }}</span>
+          </label>
+          <input
+            id="fechaFin"
+            formControlName="fechaFin"
+            type="date"
+            aria-describedby="ayuda-fin"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="horometroFin" class="text-sm font-medium text-texto-secundario">
+            {{ t().trabajo.horometroFin }}
+            <span class="font-normal text-texto-apagado">{{ t().mantenimiento.opcional }}</span>
+          </label>
+          <input
+            id="horometroFin"
+            formControlName="horometroFin"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            aria-describedby="ayuda-horometro"
+            class="campo-formulario"
+          />
+        </div>
+
+        <p id="ayuda-fin" class="text-xs text-texto-apagado sm:col-span-2">
+          {{ t().trabajo.ayudaFechaFin }}
+        </p>
+
+        <p id="ayuda-horometro" class="text-xs text-texto-apagado sm:col-span-2">
+          {{ t().trabajo.ayudaHorometro }}
+        </p>
+
+        <div class="flex flex-col gap-1">
+          <label for="costo" class="text-sm font-medium text-texto-secundario">
+            {{ t().mantenimiento.colCosto }}
+            <span class="font-normal text-texto-apagado">{{ t().mantenimiento.opcional }}</span>
+          </label>
+          <input
+            id="costo"
+            formControlName="costo"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="observaciones" class="text-sm font-medium text-texto-secundario">
+            {{ t().trabajo.observaciones }}
+            <span class="font-normal text-texto-apagado">{{ t().mantenimiento.opcional }}</span>
+          </label>
+          <textarea
+            id="observaciones"
+            formControlName="observaciones"
+            rows="3"
+            aria-describedby="ayuda-obs"
+            class="campo-formulario"
+          ></textarea>
+          <p id="ayuda-obs" class="text-xs text-texto-apagado">{{ t().trabajo.ayudaObs }}</p>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().mantenimiento.cerrar }}
+    </button>
+
+    <!--
+      CANCELAR ES NEGRO, no amarillo: la paleta no tiene rojo, así que quitarle el amarillo es
+      lo que dice «este no es el camino feliz». Y pregunta antes.
+    -->
+    <button
+      type="button"
+      (click)="cancelar()"
+      [disabled]="enviando()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+    >
+      {{ t().trabajo.cancelar }}
+    </button>
+
+    <button
+      type="button"
+      (click)="finalizar()"
+      [disabled]="!puedeFinalizar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().mantenimiento.guardando : t().trabajo.finalizar }}
+    </button>
+  </div>
+</app-panel-lateral>

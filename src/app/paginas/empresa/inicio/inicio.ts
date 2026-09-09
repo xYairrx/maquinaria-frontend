@@ -6,10 +6,18 @@ import { Sesion } from '../../../nucleo/sesion/sesion';
 import { InicioEsqueleto } from './esqueleto';
 
 /**
- * Total de módulos del catálogo, para el «X de 26». Sale de la base central
- * (`ClavesModulo`), no de lo que esta empresa contrató.
+ * Total de módulos del catálogo, para el «X de 29». Sale de la base central
+ * (`ClavesModulo.Todas`), no de lo que esta empresa contrató.
+ *
+ * **Era 26 y quedó obsoleto el 2026-09-01**, cuando el MVP agregó `movimientos`, `proyectos` y
+ * `ventas`. El síntoma era mudo y absurdo a la vez: una empresa con los 29 contratados leía
+ * «29 de 26». Se descubrió el 2026-09-03 mirando la pantalla con datos reales, no compilando.
+ *
+ * Es un número copiado a mano de otro repositorio y por eso se desincroniza. Vive aquí porque
+ * la API no lo manda: `/api/mi/sesion` devuelve los módulos CONTRATADOS, y el total del
+ * catálogo es información de la plataforma, no de la empresa.
  */
-const MODULOS_DEL_CATALOGO = 26;
+const MODULOS_DEL_CATALOGO = 29;
 
 /**
  * Los módulos con pantalla propia. El resto se muestra apagado.
@@ -39,17 +47,36 @@ const IMPLEMENTADOS = new Set<string>([
   // Las cinco operaciones: confirmar, entregar, extender, devolver y cerrar.
   'rentas',
   'contratos',
-  // Órdenes de compra y de venta. Las dos declaran `compras` en el servidor, incluida la de
-  // venta: `[RequierePermiso("compras.consultar")]` en los dos controladores.
+  // Órdenes de compra. Su controlador declara `compras` en el servidor.
   'compras',
 
-  // `usuarios` NO ESTÁ, y es deliberado. Puestos y Trabajadores existen y usan esa clave, pero
-  // el módulo se llama «Usuarios y permisos» y eso NO se puede administrar: el backend no
-  // expone endpoints de usuarios ni de roles para una empresa —solo `/api/mi/sesion` y aceptar
-  // una invitación—, así que invitar gente sigue siendo una acción de plataforma.
-  //
-  // Marcarlo diría que se pueden dar de alta usuarios y repartir permisos desde aquí. Es la
-  // misma vara que dejó fuera a `equipos` cuando solo existía su catálogo. Ver §3.1 del plan.
+  // --------------------------------------------- lo que entró con el MVP --
+  // Órdenes de venta. Declaraban `compras` hasta el 2026-09-02; ahora exigen `ventas.*`, así
+  // que el módulo 23 dejó de estar vacío.
+  'ventas',
+
+  // El historial físico: listado con filtros, captura manual de los tres tipos que no nacen
+  // de un documento, y el historial dentro del expediente del equipo.
+  'movimientos',
+
+  // Las obras, con el alta que crea proyecto y ubicación en una transacción, y sus estados.
+  'proyectos',
+
+  // Abrir, marcar en proceso, finalizar y cancelar, con su ocupación del calendario y sus
+  // dos movimientos automáticos. El ciclo completo.
+  'mantenimiento',
+
+  // Los seis reportes se consultan. La EXPORTACIÓN no existe todavía y no cambia el listón:
+  // el módulo se puede operar —se consulta y se lee—, que es lo que esta marca afirma.
+  'reportes',
+
+  'dashboard',
+
+  // `usuarios` YA ESTÁ, desde el 2026-09-02. El comentario que vivía aquí decía que el
+  // backend no exponía endpoints de usuarios ni de roles para una empresa, y era cierto:
+  // ahora expone catorce, y las pantallas de Usuarios, Roles y permisos y Bitácora los usan.
+  // Invitar gente dejó de ser una acción de plataforma.
+  'usuarios',
 ]);
 
 @Component({

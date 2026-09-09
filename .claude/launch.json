@@ -3,7 +3,10 @@
   "configurations": [
     {
       "name": "maquinaria-frontend",
-      "url": "http://admin.localhost:4200"
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--", "--port", "4301"],
+      "port": 4301,
+      "url": "http://admin.localhost:4301"
     }
   ]
 }

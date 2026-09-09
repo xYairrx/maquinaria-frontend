@@ -1,0 +1,31 @@
+<!--
+  El esqueleto es DECORACIÓN y va `aria-hidden`; lo que sustituye al texto de «Cargando…» es el
+  `role="status"` en `sr-only`.
+
+  SE REDIBUJÓ con la pantalla el 2026-09-08: la anterior tenía la silueta de los tres chips de
+  filtro y de los dos botones de acción por fila, que ya no existen. Un esqueleto que no coincide
+  con lo que llega es peor que ninguno, porque el salto se lee como un fallo.
+
+  Nueve filas y no una cantidad plausible: aquí sí se sabe cuántas son.
+-->
+<div class="flex flex-col gap-4" aria-busy="true">
+  <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+
+  <div aria-hidden="true" class="flex flex-col gap-4">
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div class="border-b border-borde px-4 py-2.5 md:px-5">
+        <div class="esqueleto h-3 w-full"></div>
+      </div>
+
+      @for (fila of filas; track fila) {
+        <div
+          class="flex items-center gap-4 border-b border-borde-fila px-4 py-3 last:border-0 md:px-5"
+        >
+          <div class="esqueleto h-3.5 w-24 shrink-0"></div>
+          <div class="esqueleto h-3.5 w-40 shrink-0"></div>
+          <div class="esqueleto h-3 min-w-0 flex-1"></div>
+        </div>
+      }
+    </section>
+  </div>
+</div>

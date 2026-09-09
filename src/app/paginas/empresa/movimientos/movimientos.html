@@ -1,0 +1,576 @@
+<!--
+  El historial físico. SIN COLUMNA DE ACCIONES: la tabla es append-only y un trigger de la base
+  rechaza el UPDATE, así que no hay editar ni borrar que ofrecer. Una captura equivocada se
+  corrige con el movimiento contrario.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().movimientos.buscar"
+    [accion]="t().movimientos.crear"
+    (alPulsarAccion)="abrirAlta()"
+  >
+    <div filtros>
+      <label for="filtro-tipo" class="sr-only">{{ t().movimientos.colTipo }}</label>
+      <select
+        id="filtro-tipo"
+        (change)="filtrarPorTipo($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <!--
+          `[selected]` y no `[value]` en el <select>: este está FUERA del formulario reactivo,
+          y la vinculación del padre se aplica antes de que el @for haya creado una sola
+          opción, así que el navegador cae a la primera.
+        -->
+        <option value="" [selected]="tipoFiltrado() === undefined">
+          {{ t().movimientos.cualquierTipo }}
+        </option>
+        @for (tipo of tipos; track tipo) {
+          <option [value]="tipo" [selected]="tipoFiltrado() === tipo">
+            {{ nombreTipo(tipo) }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-equipo" class="sr-only">{{ t().movimientos.equipo }}</label>
+      <select
+        id="filtro-equipo"
+        (change)="filtrarPorEquipo($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="equipoFiltrado() === ''">
+          {{ t().movimientos.cualquierEquipo }}
+        </option>
+        @for (equipo of equipos(); track equipo.id) {
+          <option [value]="equipo.id" [selected]="equipoFiltrado() === equipo.id">
+            {{ t().comun.equipoEnLinea(equipo.codigoInterno, equipo.descripcion) }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-ubicacion" class="sr-only">{{ t().movimientos.ubicacion }}</label>
+      <select
+        id="filtro-ubicacion"
+        (change)="filtrarPorUbicacion($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="ubicacionFiltrada() === ''">
+          {{ t().movimientos.cualquierUbicacion }}
+        </option>
+        @for (ubicacion of ubicaciones(); track ubicacion.id) {
+          <option [value]="ubicacion.id" [selected]="ubicacionFiltrada() === ubicacion.id">
+            {{ ubicacion.nombre }}
+          </option>
+        }
+      </select>
+    </div>
+  </app-barra-herramientas>
+
+  @if (cargando()) {
+    <app-movimientos-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (movimientos().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-260 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                >
+                  {{ t().movimientos.colFecha }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().movimientos.colTipo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().movimientos.colEquipo }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().movimientos.colOrigen }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().movimientos.colDestino }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().movimientos.colObra }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().movimientos.colResponsable }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().movimientos.colMotivo }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (movimiento of movimientos(); track movimiento.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 whitespace-nowrap border-r border-borde bg-superficie px-4 py-3 tabular-nums md:px-5"
+                  >
+                    {{ movimiento.fecha }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <span
+                      class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                    >
+                      {{ nombreTipo(movimiento.tipo) }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 font-medium text-texto">
+                    {{ movimiento.codigoInterno }}
+                    @if (movimiento.nombre) {
+                      <span class="block text-xs font-normal text-texto-apagado">
+                        {{ movimiento.nombre }}
+                      </span>
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ movimiento.origen ?? t().movimientos.sinDato }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ movimiento.destino ?? t().movimientos.fueraDeLaRed }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ movimiento.proyecto ?? movimiento.cliente ?? t().movimientos.sinDato }}
+                  </td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ movimiento.trabajador }}</td>
+                  <td class="px-4 py-3 text-texto-secundario md:px-5">
+                    {{ movimiento.motivo }}
+                    <!--
+                      El folio del documento va DENTRO de la celda del motivo en lugar de en su
+                      propia columna: la tabla ya son ocho y una novena obligaría a fijar dos
+                      columnas para poder leerla de lado.
+                    -->
+                    @if (movimiento.referenciaFolio) {
+                      <span class="block text-[11px] text-texto-apagado">
+                        {{ movimiento.referenciaFolio }}
+                      </span>
+                    }
+                    <!--
+                      Y la evidencia, si la hay, como enlace en la misma celda. `target` y
+                      `rel` porque abre un archivo servido por la API: sacarlo de la pestaña
+                      de la aplicación evita perder el listado y su página.
+                    -->
+                    @if (movimiento.evidenciaArchivoId) {
+                      <a
+                        [href]="urlEvidencia(movimiento.id)"
+                        target="_blank"
+                        rel="noopener"
+                        class="block text-[11px] text-texto-secundario underline underline-offset-2 hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ movimiento.evidenciaNombre ?? t().movimientos.verEvidencia }}
+                      </a>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().movimientos.rango(desde(), hasta(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav class="flex items-center gap-3" [attr.aria-label]="t().movimientos.paginacion">
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().movimientos.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().movimientos.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().movimientos.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="t().movimientos.crear"
+  [apoyo]="t().movimientos.crearApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-movimiento">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="equipoId" class="text-sm font-medium text-texto-secundario">
+          {{ t().movimientos.equipo }}
+        </label>
+        <select
+          id="equipoId"
+          formControlName="equipoId"
+          [attr.aria-invalid]="mal(formulario.controls.equipoId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.equipoId) ? 'ayuda-equipo error-equipo' : 'ayuda-equipo'
+          "
+          class="campo-formulario"
+        >
+          <option value=""></option>
+          @for (equipo of equipos(); track equipo.id) {
+            <option [value]="equipo.id">
+              {{
+                t().comun.equipoEnLista(
+                  equipo.codigoInterno,
+                  equipo.descripcion,
+                  equipo.marca + ' ' + equipo.modelo
+                )
+              }}
+            </option>
+          }
+        </select>
+        <!--
+          EL ORIGEN NO SE PIDE: es donde la máquina está ahora. Se muestra para que quien
+          captura vea de dónde va a salir, y para explicar por qué los tipos ofrecidos cambian
+          cuando la máquina no tiene sitio.
+        -->
+        <p id="ayuda-equipo" class="text-xs text-texto-apagado">
+          @if (equipos().length === 0) {
+            {{ t().movimientos.sinEquipos }}
+          } @else if (equipoElegido(); as equipo) {
+            {{
+              equipo.ubicacion
+                ? t().movimientos.origenActual(equipo.ubicacion)
+                : t().movimientos.sinUbicacion
+            }}
+          } @else {
+            {{ t().movimientos.ayudaEquipo }}
+          }
+        </p>
+        <app-error-campo
+          id="error-equipo"
+          [visible]="mal(formulario.controls.equipoId)"
+          [mensaje]="t().movimientos.errorEquipo"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="tipo" class="text-sm font-medium text-texto-secundario">
+          {{ t().movimientos.tipo }}
+        </label>
+        <select
+          id="tipo"
+          formControlName="tipo"
+          aria-describedby="ayuda-tipo"
+          class="campo-formulario"
+        >
+          <!-- `ngValue` porque el tipo es un NÚMERO: `[value]` guardaría la cadena. -->
+          @for (tipo of tiposDisponibles(); track tipo) {
+            <option [ngValue]="tipo">{{ nombreTipo(tipo) }}</option>
+          }
+        </select>
+        <p id="ayuda-tipo" class="text-xs text-texto-apagado">
+          {{ t().movimientos.ayudaTipo }}
+        </p>
+      </div>
+
+      @if (pideDestino()) {
+        <div class="flex flex-col gap-1">
+          <label for="destinoId" class="text-sm font-medium text-texto-secundario">
+            {{ t().movimientos.destino }}
+            @if (!exigeDestino()) {
+              <span class="font-normal text-texto-apagado">{{ t().movimientos.opcional }}</span>
+            }
+          </label>
+          <select
+            id="destinoId"
+            formControlName="destinoId"
+            aria-describedby="ayuda-destino"
+            class="campo-formulario"
+          >
+            <option value=""></option>
+            @for (ubicacion of destinos(); track ubicacion.id) {
+              <option [value]="ubicacion.id">{{ ubicacion.nombre }}</option>
+            }
+          </select>
+          <p id="ayuda-destino" class="text-xs text-texto-apagado">
+            {{ exigeDestino() ? t().movimientos.ayudaDestino : t().movimientos.ayudaDestinoSalida }}
+          </p>
+        </div>
+      }
+
+      @if (pideProyecto()) {
+        <div class="flex flex-col gap-1">
+          <label for="proyectoId" class="text-sm font-medium text-texto-secundario">
+            {{ t().movimientos.obra }}
+          </label>
+          <select
+            id="proyectoId"
+            formControlName="proyectoId"
+            aria-describedby="ayuda-obra"
+            class="campo-formulario"
+          >
+            <option value=""></option>
+            @for (proyecto of proyectos(); track proyecto.id) {
+              <option [value]="proyecto.id">{{ proyecto.codigo }} — {{ proyecto.nombre }}</option>
+            }
+          </select>
+          <p id="ayuda-obra" class="text-xs text-texto-apagado">
+            {{ proyectos().length === 0 ? t().movimientos.sinObras : t().movimientos.ayudaObra }}
+          </p>
+        </div>
+      }
+
+      @if (pideCliente()) {
+        <div class="flex flex-col gap-1">
+          <label for="clienteId" class="text-sm font-medium text-texto-secundario">
+            {{ t().movimientos.cliente }}
+            <span class="font-normal text-texto-apagado">{{ t().movimientos.opcional }}</span>
+          </label>
+          <select
+            id="clienteId"
+            formControlName="clienteId"
+            aria-describedby="ayuda-cliente"
+            class="campo-formulario"
+          >
+            <option value=""></option>
+            @for (cliente of clientes(); track cliente.id) {
+              <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
+            }
+          </select>
+          <p id="ayuda-cliente" class="text-xs text-texto-apagado">
+            {{ t().movimientos.ayudaCliente }}
+          </p>
+        </div>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="trabajadorId" class="text-sm font-medium text-texto-secundario">
+          {{ t().movimientos.responsable }}
+        </label>
+        <select
+          id="trabajadorId"
+          formControlName="trabajadorId"
+          [attr.aria-invalid]="mal(formulario.controls.trabajadorId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.trabajadorId) ? 'ayuda-resp error-resp' : 'ayuda-resp'
+          "
+          class="campo-formulario"
+        >
+          <option value=""></option>
+          @for (trabajador of trabajadores(); track trabajador.id) {
+            <option [value]="trabajador.id">
+              {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }}
+            </option>
+          }
+        </select>
+        <p id="ayuda-resp" class="text-xs text-texto-apagado">
+          {{
+            trabajadores().length === 0
+              ? t().movimientos.sinTrabajadores
+              : t().movimientos.ayudaResponsable
+          }}
+        </p>
+        <app-error-campo
+          id="error-resp"
+          [visible]="mal(formulario.controls.trabajadorId)"
+          [mensaje]="t().movimientos.errorResponsable"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="motivoId" class="text-sm font-medium text-texto-secundario">
+          {{ t().movimientos.motivo }}
+        </label>
+        <select
+          id="motivoId"
+          formControlName="motivoId"
+          [attr.aria-invalid]="mal(formulario.controls.motivoId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.motivoId) ? 'ayuda-motivo error-motivo' : 'ayuda-motivo'
+          "
+          class="campo-formulario"
+        >
+          <option value=""></option>
+          @for (motivo of motivos(); track motivo.id) {
+            <option [value]="motivo.id">{{ motivo.nombre }}</option>
+          }
+        </select>
+        <p id="ayuda-motivo" class="text-xs text-texto-apagado">
+          {{ motivos().length === 0 ? t().movimientos.sinMotivos : t().movimientos.ayudaMotivo }}
+        </p>
+        <app-error-campo
+          id="error-motivo"
+          [visible]="mal(formulario.controls.motivoId)"
+          [mensaje]="t().movimientos.errorMotivo"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="fecha" class="text-sm font-medium text-texto-secundario">
+            {{ t().movimientos.fecha }}
+            <span class="font-normal text-texto-apagado">{{ t().movimientos.opcional }}</span>
+          </label>
+          <input
+            id="fecha"
+            formControlName="fecha"
+            type="date"
+            aria-describedby="ayuda-fecha"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="horometro" class="text-sm font-medium text-texto-secundario">
+            {{ t().movimientos.horometro }}
+            <span class="font-normal text-texto-apagado">{{ t().movimientos.opcional }}</span>
+          </label>
+          <input
+            id="horometro"
+            formControlName="horometro"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            class="campo-formulario"
+          />
+        </div>
+
+        <p id="ayuda-fecha" class="text-xs text-texto-apagado sm:col-span-2">
+          {{ t().movimientos.ayudaFecha }}
+        </p>
+
+        <!--
+          EL FOLIO DEL PAPEL QUE ORIGINÓ EL MOVIMIENTO, en texto libre. No enlaza con ningún
+          documento del sistema —ese vínculo lo pone el servidor en los movimientos
+          automáticos— y por eso se puede capturar sin riesgo de inventar una relación.
+        -->
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="referenciaFolio" class="text-sm font-medium text-texto-secundario">
+            {{ t().movimientos.referencia }}
+            <span class="font-normal text-texto-apagado">{{ t().movimientos.opcional }}</span>
+          </label>
+          <input
+            id="referenciaFolio"
+            formControlName="referenciaFolio"
+            type="text"
+            maxlength="80"
+            aria-describedby="ayuda-referencia"
+            class="campo-formulario"
+          />
+          <p id="ayuda-referencia" class="text-xs text-texto-apagado">
+            {{ t().movimientos.ayudaReferencia }}
+          </p>
+        </div>
+
+        <!--
+          LA EVIDENCIA VA FUERA DEL FORMULARIO REACTIVO: un `<input type="file">` no tiene
+          accesor de Angular, y con `formControlName` el control guardaría la ruta falsa que
+          expone el navegador en lugar del archivo.
+
+          Se sube ANTES de registrar el movimiento y su id entra en el alta. Al revés no se
+          puede: la tabla es append-only.
+        -->
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="evidencia" class="text-sm font-medium text-texto-secundario">
+            {{ t().movimientos.evidencia }}
+            <span class="font-normal text-texto-apagado">{{ t().movimientos.opcional }}</span>
+          </label>
+          <input
+            id="evidencia"
+            type="file"
+            accept="image/*,application/pdf"
+            aria-describedby="ayuda-evidencia"
+            (change)="elegirEvidencia($event.target)"
+            class="campo-formulario file:me-3 file:rounded-md file:border-0 file:bg-superficie-sutil file:px-3 file:py-1 file:text-sm file:text-texto-secundario"
+          />
+          @if (evidencia(); as archivo) {
+            <p class="flex flex-wrap items-center gap-2 text-xs text-texto-secundario">
+              <span class="font-medium text-texto">{{ archivo.name }}</span>
+              <button
+                type="button"
+                (click)="quitarEvidencia()"
+                class="underline underline-offset-2 hover:text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+              >
+                {{ t().movimientos.quitarEvidencia }}
+              </button>
+            </p>
+          }
+          <p id="ayuda-evidencia" class="text-xs text-texto-apagado">
+            {{ t().movimientos.ayudaEvidencia }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="observaciones" class="text-sm font-medium text-texto-secundario">
+            {{ t().movimientos.observaciones }}
+            <span class="font-normal text-texto-apagado">{{ t().movimientos.opcional }}</span>
+          </label>
+          <textarea
+            id="observaciones"
+            formControlName="observaciones"
+            rows="3"
+            aria-describedby="ayuda-obs"
+            class="campo-formulario"
+          ></textarea>
+          <p id="ayuda-obs" class="text-xs text-texto-apagado">
+            {{ t().movimientos.ayudaObservaciones }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().movimientos.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-movimiento"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().movimientos.guardando : t().movimientos.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

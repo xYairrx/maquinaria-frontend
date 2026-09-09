@@ -19,10 +19,23 @@ function hojas(valor: unknown, ruta = ''): readonly [string, string][] {
 
   // Las funciones son textos con un dato dentro. Se llaman con valores reconocibles
   // para poder exigir después que aparezcan en el resultado.
+  //
+  // EL 7 ES UNA APUESTA, no un contrato: casi todos los textos con un dato cuentan algo
+  // (`(n: number)`), pero algunos reciben una cadena y le llaman un método —`estado.toLowerCase()`—.
+  // Ahí el 7 revienta, y sin este reintento el `TypeError` se lleva las CUATRO pruebas de
+  // este bloque con un mensaje que no menciona la clave culpable. Se reintenta con cadena
+  // para que el recorrido siga; el texto que sí cuenta se sigue midiendo con el 7.
   if (typeof valor === 'function') {
-    const argumentos = Array.from({ length: valor.length }, (_, i) => (i === 0 ? 7 : `dato${i}`));
+    const llamar = (fn: (...a: unknown[]) => string, primero: unknown) =>
+      fn(...Array.from({ length: fn.length }, (_, i) => (i === 0 ? primero : `dato${i}`)));
 
-    return [[ruta, String((valor as (...a: unknown[]) => string)(...argumentos))]];
+    const fn = valor as (...a: unknown[]) => string;
+
+    try {
+      return [[ruta, String(llamar(fn, 7))]];
+    } catch {
+      return [[ruta, String(llamar(fn, 'dato0'))]];
+    }
   }
 
   if (valor !== null && typeof valor === 'object') {

@@ -225,9 +225,7 @@
         >
           <option value="">{{ t().contratos.sinDato }}</option>
           @for (renta of rentas(); track renta.id) {
-            <option [value]="renta.id">
-              {{ renta.folio }} — {{ renta.cliente }} — {{ renta.lugar.descripcion }}
-            </option>
+            <option [value]="renta.id">{{ renta.folio }} — {{ renta.cliente }}</option>
           }
         </select>
         <p id="ayuda-renta" class="text-xs text-texto-apagado">{{ t().contratos.ayudaRenta }}</p>

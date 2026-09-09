@@ -14,6 +14,7 @@ import { Barra } from '../../../disposicion/barra';
 import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
 import { Confirmacion } from '../../../disposicion/confirmacion';
 import { PanelLateral } from '../../../disposicion/panel-lateral';
+import { ApiCatalogos } from '../../../nucleo/api/api-catalogos';
 import { ApiTerceros } from '../../../nucleo/api/api-terceros';
 import type {
   AltaCliente,
@@ -67,6 +68,9 @@ const BAJA: EstadoCliente = 3;
 })
 export class Clientes {
   private readonly api = inject(ApiTerceros);
+  // Los tipos son un CATALOGO: su URL es `/api/catalogos/...`. Mismo reparto que en
+  // `trabajadores`, que inyecta su API y ademas la de catalogos para los puestos.
+  private readonly catalogos = inject(ApiCatalogos);
   private readonly barra = inject(Barra);
   private readonly confirmacion = inject(Confirmacion);
   private readonly fb = inject(NonNullableFormBuilder);
@@ -117,11 +121,17 @@ export class Clientes {
   protected readonly editando = signal<Cliente | null>(null);
   protected readonly cambiandoEstadoA = signal<Cliente | null>(null);
 
+  /** Los tipos ACTIVOS, para el desplegable. Recurso compartido y perezoso. */
+
   protected readonly formulario = this.fb.group({
     codigo: ['', validadorRequerido],
+    // Obligatorio en la base desde el MVP. `string` porque el id es un uuid: por eso el
+    // `<option>` usa `[value]` y no `[ngValue]`.
     razonSocial: ['', validadorRequerido],
     nombreComercial: [''],
-    rfc: ['', validadorRfc],
+    // DOS VALIDADORES: `validadorRfc` acepta el vacío —sigue siendo opcional en
+    // proveedores, §9— así que el «obligatorio» de §8 lo pone `validadorRequerido`.
+    rfc: ['', [validadorRequerido, validadorRfc]],
     telefono: ['', validadorTelefono],
     correo: ['', validadorCorreo],
 
@@ -271,7 +281,7 @@ export class Clientes {
       codigo: cliente.codigo,
       razonSocial: cliente.razonSocial,
       nombreComercial: cliente.nombreComercial ?? '',
-      rfc: cliente.rfc ?? '',
+      rfc: cliente.rfc,
       telefono: cliente.telefono ?? '',
       correo: cliente.correo ?? '',
       contactoNombre: cliente.contacto.nombre ?? '',
@@ -323,7 +333,9 @@ export class Clientes {
       codigo: v.codigo.trim().toUpperCase(),
       razonSocial: v.razonSocial.trim(),
       nombreComercial: vacioANulo(v.nombreComercial),
-      rfc: vacioANulo(v.rfc.toUpperCase()),
+      // OBLIGATORIO desde el 2026-09-03 (§8). El servidor lo rechaza vacío y dice cuál
+      // es el valor de «no lo dio»: XAXX010101000, el RFC de público en general.
+      rfc: v.rfc.trim().toUpperCase(),
       telefono: vacioANulo(v.telefono),
       correo: vacioANulo(v.correo.toLowerCase()),
       contacto: {

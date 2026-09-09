@@ -478,12 +478,12 @@
               [attr.for]="'tipo-' + linea.id"
               class="text-sm font-medium text-texto-secundario"
             >
-              {{ t().compras.tipoEquipo }}
+              {{ t().compras.categoria }}
             </label>
             <select
               [id]="'tipo-' + linea.id"
-              [value]="registroDe(linea.id, 'tipoEquipoId')"
-              (change)="escribirRegistro(linea.id, 'tipoEquipoId', $any($event.target).value)"
+              [value]="registroDe(linea.id, 'categoriaEquipoId')"
+              (change)="escribirRegistro(linea.id, 'categoriaEquipoId', $any($event.target).value)"
               class="campo-formulario"
             >
               <option value="">{{ t().ordenes.sinDato }}</option>
@@ -530,7 +530,7 @@
         class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
         role="alert"
       >
-        {{ t().compras.errorCodigoInterno }} {{ t().compras.errorTipoEquipo }}
+        {{ t().compras.errorCodigoInterno }} {{ t().compras.errorCategoria }}
       </p>
     }
   </div>

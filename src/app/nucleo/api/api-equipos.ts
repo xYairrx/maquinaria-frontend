@@ -1,5 +1,12 @@
 import { HttpClient, httpResource } from '@angular/common/http';
-import { Injectable, Injector, computed, inject, type Signal } from '@angular/core';
+import {
+  Injectable,
+  Injector,
+  computed,
+  inject,
+  runInInjectionContext,
+  type Signal,
+} from '@angular/core';
 import type { Observable } from 'rxjs';
 
 import { configuracion } from '../ambiente/configuracion';
@@ -10,10 +17,24 @@ import type {
   DocumentoEquipo,
   Equipo,
   EquipoTarifa,
+  PrecioVigente,
   TipoArchivoEquipo,
 } from './contratos';
 import { mensajeDeErrorDeRecurso } from './mensaje-error';
 import { FabricaDeRecursos } from './recursos-rest';
+
+/**
+ * Los precios de una máquina, ya en señales.
+ *
+ * **LLEVÓ UN SEGUNDO GRUPO durante unas horas del 2026-09-09** —`futuros`, los que aún no
+ * regían— mientras `equipo_tarifa` tenía vigencia. Al retirarse esa columna no hay precios
+ * futuros que avisar: hay uno por concepto y punto.
+ */
+export interface PreciosEnSenales {
+  readonly precios: Signal<readonly PrecioVigente[]>;
+  readonly cargando: Signal<boolean>;
+  readonly error: Signal<string | null>;
+}
 
 /** Lo que la pantalla de expediente necesita, ya en señales. */
 export interface ExpedienteDeEquipo {
@@ -37,6 +58,7 @@ export interface ExpedienteDeEquipo {
 @Injectable({ providedIn: 'root' })
 export class ApiEquipos {
   private readonly http = inject(HttpClient);
+  private readonly inyector = inject(Injector);
 
   private readonly fabrica = new FabricaDeRecursos(
     inject(HttpClient),
@@ -76,6 +98,32 @@ export class ApiEquipos {
   selectorEquipos(): Signal<readonly Equipo[]> {
     return this.fabrica.selector<Equipo>('equipos');
   }
+
+  /**
+   * Los años que ya se usan en el parque, del más reciente al más viejo. Alimenta las
+   * sugerencias del campo Año del alta.
+   *
+   * **NO USA `FabricaDeRecursos.selector()`** aunque lo parezca: aquella envía `Activo`,
+   * `Tamano` y `Orden` y espera una `Pagina<T>` de vuelta. Este endpoint devuelve un arreglo
+   * de enteros y nada más, así que se arma a mano.
+   *
+   * **PEREZOSO**, igual que los selectores de la fábrica y por el mismo motivo: `ApiEquipos` lo
+   * inyectan varias pantallas y solo una necesita los años. Creado en un campo, todas pagarían
+   * la petición.
+   */
+  selectorAnios(): Signal<readonly number[]> {
+    this.anios ??= runInInjectionContext(this.inyector, () => {
+      const rec = httpResource<readonly number[]>(
+        () => `${configuracion.urlApi}/api/equipos/anios`,
+      );
+
+      return computed(() => (rec.hasValue() ? rec.value() : []));
+    });
+
+    return this.anios;
+  }
+
+  private anios?: Signal<readonly number[]>;
 
   /**
    * El expediente de UN equipo: sus documentos y sus precios.
@@ -170,7 +218,37 @@ export class ApiEquipos {
     );
   }
 
-  /** Carga un precio. **Puede responder 409**: ya hay uno vigente para esa combinación. */
+  /**
+   * **Los precios que aplican HOY** para una máquina, resueltos para un cliente.
+   *
+   * Es lo que prellena una línea de cotización o de renta: se elige la máquina y los conceptos
+   * llegan con su precio en lugar de reteclearse.
+   *
+   * **NACIÓ CON UN SEGUNDO ARGUMENTO Y LO PERDIÓ EL MISMO DÍA.** Recibía el cliente del
+   * documento, porque `equipo_tarifa` guardaba precios negociados por cuenta y el servidor
+   * resolvía la precedencia. Esa columna se retiró a petición del cliente —no negocian precios
+   * por cuenta— así que la máquina es lo único que decide.
+   *
+   * `undefined` mientras no haya equipo es como se dice «no pidas todavía»; sin eso, la pantalla
+   * dispara una petición a `/api/equipos//tarifas/vigentes` al abrir.
+   */
+  preciosVigentesDe(equipoId: Signal<string>): PreciosEnSenales {
+    const recurso = httpResource<readonly PrecioVigente[]>(() => {
+      const equipo = equipoId();
+
+      return equipo
+        ? `${configuracion.urlApi}/api/equipos/${encodeURIComponent(equipo)}/tarifas/vigentes`
+        : undefined;
+    });
+
+    return {
+      precios: computed(() => (recurso.hasValue() ? recurso.value() : [])),
+      cargando: recurso.isLoading,
+      error: computed(() => mensajeDeErrorDeRecurso(recurso.error())),
+    };
+  }
+
+  /** Carga un precio. **Puede responder 409**: la máquina ya tiene uno de ese concepto. */
   crearPrecio(equipoId: string, alta: AltaEquipoTarifa): Observable<EquipoTarifa> {
     return this.http.post<EquipoTarifa>(
       `${configuracion.urlApi}/api/equipos/${encodeURIComponent(equipoId)}/tarifas`,
@@ -178,15 +256,25 @@ export class ApiEquipos {
     );
   }
 
-  /** Le pone fecha de fin a un precio vigente. **Es como se cambia un precio**, no editándolo. */
-  cerrarPrecio(
-    equipoId: string,
-    precioId: string,
-    vigenciaHasta: string,
-  ): Observable<EquipoTarifa> {
-    return this.http.patch<EquipoTarifa>(
-      `${configuracion.urlApi}/api/equipos/${encodeURIComponent(equipoId)}/tarifas/${encodeURIComponent(precioId)}/cierre`,
-      { vigenciaHasta },
+  /**
+   * Corrige el precio de un concepto.
+   *
+   * **SUSTITUYE AL CIERRE POR VIGENCIA**, que es como se cambiaba un precio hasta el
+   * 2026-09-09: se le ponía fecha de fin al vigente y se cargaba otro, de forma que el
+   * histórico quedaba. Retirada la vigencia no hay nada que reescribir —hay un precio por
+   * concepto— y el histórico se pierde. Lo cotizado no: cada documento guarda su copia.
+   */
+  editarPrecio(equipoId: string, precioId: string, precio: number): Observable<EquipoTarifa> {
+    return this.http.put<EquipoTarifa>(
+      `${configuracion.urlApi}/api/equipos/${encodeURIComponent(equipoId)}/tarifas/${encodeURIComponent(precioId)}`,
+      { precio },
+    );
+  }
+
+  /** Quita un precio. Sin vigencia no hay forma de «terminarlo», solo de borrarlo. */
+  eliminarPrecio(equipoId: string, precioId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${configuracion.urlApi}/api/equipos/${encodeURIComponent(equipoId)}/tarifas/${encodeURIComponent(precioId)}`,
     );
   }
 }

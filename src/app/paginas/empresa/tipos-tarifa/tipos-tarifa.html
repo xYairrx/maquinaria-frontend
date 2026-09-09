@@ -1,38 +1,25 @@
 <!--
-  Espejo estructural de `marcas.html`. Lo propio de esta pantalla es el desplegable de
-  categoría del formulario y su aviso cuando no hay ninguna activa.
+  Espejo estructural de `marcas.html`, que es la pantalla canónica de catálogo. Lo que
+  cambia son las columnas y los campos del formulario; el porqué de cada decisión —la
+  columna fija, el vacío que explica, el esqueleto solo en la primera carga— está allí.
 -->
 <div class="mx-auto flex flex-col gap-4">
   <app-barra-herramientas
     [busqueda]="busqueda"
-    [marcadorBusqueda]="t().tipos.buscar"
-    [soloActivas]="soloActivos"
+    [marcadorBusqueda]="t().tiposTarifa.buscar"
+    [soloActivas]="soloActivas"
     [etiquetas]="{
-      todas: t().tipos.todos,
-      activas: t().tipos.activos,
-      retiradas: t().tipos.retirados,
+      todas: t().tiposTarifa.todas,
+      activas: t().tiposTarifa.activas,
+      retiradas: t().tiposTarifa.retiradas,
     }"
-    [accion]="t().tipos.crear"
+    [accion]="t().tiposTarifa.crear"
     (alPulsarAccion)="abrirAlta()"
   >
-    <div filtros>
-      <label for="filtro-categoria" class="sr-only">{{ t().tipos.filtrarCategoria }}</label>
-      <select
-        id="filtro-categoria"
-        [value]="categoriaFiltrada()"
-        (change)="filtrarPorCategoria($any($event.target).value)"
-        class="campo-formulario filtro-barra"
-      >
-        <option value="">{{ t().tipos.todasLasCategorias }}</option>
-        @for (categoria of categorias(); track categoria.id) {
-          <option [value]="categoria.id">{{ categoria.nombre }}</option>
-        }
-      </select>
-    </div>
   </app-barra-herramientas>
 
   @if (cargando()) {
-    <app-tipos-esqueleto />
+    <app-tipos-tarifa-esqueleto />
   } @else {
     @if (error(); as mensaje) {
       <p
@@ -57,15 +44,17 @@
                   scope="col"
                   class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
                 >
-                  {{ t().tipos.colCodigo }}
+                  {{ t().tiposTarifa.colCodigo }}
                 </th>
-                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().tipos.colTipo }}</th>
-                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().tipos.colCategoria }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().tiposTarifa.colNombre }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">
-                  {{ t().tipos.colEquipos }}
+                  {{ t().tiposTarifa.colDescripcion }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">
+                  {{ t().tiposTarifa.colUso }}
                 </th>
                 <th scope="col" class="px-4 py-2.5 md:px-5">
-                  {{ t().tipos.acciones }}
+                  {{ t().tiposTarifa.acciones }}
                 </th>
               </tr>
             </thead>
@@ -73,6 +62,11 @@
             <tbody>
               @for (tipo of tipos(); track tipo.id) {
                 <tr class="border-b border-borde-fila align-top last:border-0">
+                  <!--
+                    El código va DENTRO de la celda fijada, bajo el nombre, y no en columna
+                    propia: fijar dos columnas deja demasiado poco ancho para lo demás en un
+                    teléfono. Mismo criterio que la píldora de estado en planes.
+                  -->
                   <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
                     {{ tipo.codigo }}
                   </td>
@@ -84,17 +78,20 @@
                         <span
                           class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
                         >
-                          {{ t().tipos.retirado }}
+                          {{ t().tiposTarifa.retirada }}
                         </span>
                       }
                     </div>
                   </td>
 
-                  <!-- El NOMBRE de la categoría, no su id: la API ya lo devuelve resuelto. -->
-                  <td class="px-4 py-3 text-texto-secundario">{{ tipo.categoria }}</td>
+                  <td class="px-4 py-3 text-texto-secundario">
+                    @if (tipo.descripcion; as descripcion) {
+                      <p class="max-w-96 text-xs leading-relaxed">{{ descripcion }}</p>
+                    }
+                  </td>
 
                   <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
-                    {{ tipo.equipos }}
+                    {{ tipo.tarifas }}
                   </td>
 
                   <td class="px-4 py-3 md:px-5">
@@ -103,7 +100,7 @@
                         type="button"
                         (click)="abrirEdicion(tipo)"
                         [attr.aria-label]="t().comun.editarA(tipo.nombre)"
-                        [title]="t().tipos.editar"
+                        [title]="t().tiposTarifa.editar"
                         class="boton-icono"
                       >
                         <svg
@@ -128,7 +125,7 @@
                             ? t().comun.retirarA(tipo.nombre)
                             : t().comun.reactivarA(tipo.nombre)
                         "
-                        [title]="tipo.activo ? t().tipos.retirar : t().tipos.reactivar"
+                        [title]="tipo.activo ? t().tiposTarifa.retirar : t().tiposTarifa.reactivar"
                         class="boton-icono"
                       >
                         @if (tipo.activo) {
@@ -178,13 +175,13 @@
     @if (total() > 0) {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
-          {{ t().tipos.rango(desde(), hasta(), total()) }}
+          {{ t().tiposTarifa.rango(desde(), hasta(), total()) }}
         </p>
 
         @if (paginas() > 1) {
           <nav
             class="flex items-center justify-between gap-3"
-            [attr.aria-label]="t().tipos.paginacion"
+            [attr.aria-label]="t().tiposTarifa.paginacion"
           >
             <button
               type="button"
@@ -192,11 +189,11 @@
               [disabled]="pagina() <= 1"
               class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
             >
-              {{ t().tipos.anterior }}
+              {{ t().tiposTarifa.anterior }}
             </button>
 
             <span class="text-xs tabular-nums text-texto-apagado">
-              {{ t().tipos.paginaDe(pagina(), paginas()) }}
+              {{ t().tiposTarifa.paginaDe(pagina(), paginas()) }}
             </span>
 
             <button
@@ -205,7 +202,7 @@
               [disabled]="pagina() >= paginas()"
               class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
             >
-              {{ t().tipos.siguiente }}
+              {{ t().tiposTarifa.siguiente }}
             </button>
           </nav>
         }
@@ -216,11 +213,11 @@
 
 <app-panel-lateral
   [abierto]="panelAbierto()"
-  [titulo]="editando() ? t().tipos.editarTitulo : t().tipos.crear"
-  [apoyo]="editando() ? t().tipos.editarApoyo : t().tipos.crearApoyo"
+  [titulo]="editando() ? t().tiposTarifa.editarTitulo : t().tiposTarifa.crear"
+  [apoyo]="editando() ? t().tiposTarifa.editarApoyo : t().tiposTarifa.crearApoyo"
   (cerrar)="cerrarPanel()"
 >
-  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-tipo">
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-tipo-tarifa">
     <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
       @if (error(); as mensaje) {
         <p
@@ -232,35 +229,9 @@
       }
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <!--
-          La categoría, primero: es de lo que cuelga el tipo, así que se elige antes de
-          nombrarlo. Un `<select>` nativo y no un desplegable propio — teclado, lector de
-          pantalla y el selector rodante del teléfono salen gratis.
-        -->
-        <div class="flex flex-col gap-1 sm:col-span-2">
-          <label for="categoria" class="text-sm font-medium text-texto-secundario">
-            {{ t().tipos.categoria }}
-          </label>
-          <select
-            id="categoria"
-            formControlName="categoriaEquipoId"
-            aria-describedby="ayuda-categoria"
-            class="campo-formulario"
-          >
-            <!-- Sin opción elegida por defecto: elegir es del capturista, no del formulario. -->
-            <option value="" disabled>{{ t().tipos.elegirCategoria }}</option>
-            @for (categoria of categorias(); track categoria.id) {
-              <option [value]="categoria.id">{{ categoria.nombre }}</option>
-            }
-          </select>
-          <p id="ayuda-categoria" class="text-xs text-texto-apagado">
-            {{ t().tipos.ayudaCategoria }}
-          </p>
-        </div>
-
         <div class="flex flex-col gap-1">
           <label for="codigo" class="text-sm font-medium text-texto-secundario">
-            {{ t().tipos.codigo }}
+            {{ t().tiposTarifa.codigo }}
           </label>
           <input
             id="codigo"
@@ -272,12 +243,14 @@
             aria-describedby="ayuda-codigo"
             class="campo-formulario"
           />
-          <p id="ayuda-codigo" class="text-xs text-texto-apagado">{{ t().tipos.ayudaCodigo }}</p>
+          <p id="ayuda-codigo" class="text-xs text-texto-apagado">
+            {{ t().tiposTarifa.ayudaCodigo }}
+          </p>
         </div>
 
         <div class="flex flex-col gap-1">
           <label for="nombre" class="text-sm font-medium text-texto-secundario">
-            {{ t().tipos.nombre }}
+            {{ t().tiposTarifa.nombre }}
           </label>
           <input
             id="nombre"
@@ -286,6 +259,14 @@
             autocomplete="off"
             class="campo-formulario"
           />
+        </div>
+
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="descripcion" class="text-sm font-medium text-texto-secundario">
+            {{ t().tiposTarifa.descripcion }}
+            <span class="font-normal text-texto-apagado">{{ t().tiposTarifa.opcional }}</span>
+          </label>
+          <input id="descripcion" formControlName="descripcion" class="campo-formulario" />
         </div>
       </div>
     </div>
@@ -297,16 +278,16 @@
       (click)="cerrarPanel()"
       class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
     >
-      {{ t().tipos.cerrar }}
+      {{ t().tiposTarifa.cerrar }}
     </button>
 
     <button
       type="submit"
-      form="formulario-tipo"
+      form="formulario-tipo-tarifa"
       [disabled]="!puedeEnviar()"
       class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
     >
-      {{ enviando() ? t().tipos.guardando : t().tipos.guardar }}
+      {{ enviando() ? t().tiposTarifa.guardando : t().tiposTarifa.guardar }}
     </button>
   </div>
 </app-panel-lateral>

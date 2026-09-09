@@ -133,8 +133,6 @@ export type Categoria = components['schemas']['CategoriaEquipoDto'];
 export type AltaCategoria = components['schemas']['AltaCategoriaEquipo'];
 
 /** Tipo de equipo: excavadora, retroexcavadora. Cuelga de una categoría. */
-export type TipoEquipo = components['schemas']['TipoEquipoDto'];
-export type AltaTipoEquipo = components['schemas']['AltaTipoEquipo'];
 
 /** Modelo: el 320D de Caterpillar. Cuelga de una marca y, opcionalmente, de un tipo. */
 export type ModeloEquipo = components['schemas']['ModeloEquipoDto'];
@@ -156,6 +154,34 @@ export type Clausula = components['schemas']['ClausulaDto'];
 export type AltaClausula = components['schemas']['AltaClausula'];
 
 /** Puesto de trabajo. De él cuelgan los trabajadores. */
+/**
+ * Los cuatro catalogos del MVP. Mismo molde que los siete de la Fase 1: codigo, nombre,
+ * descripcion y activo, con el conteo de lo que cuelga de ellos.
+ *
+ * `MotivoMovimiento` NO trae conteo aunque `movimiento` ya exista: contar cuantos movimientos
+ * usan un motivo es lo que diria si se puede retirar, y ese conteo entra cuando la pantalla lo
+ * necesite. Retirar un motivo ya en uso es legitimo —los movimientos viejos lo conservan—.
+ */
+/**
+ * La obra de un cliente, con su ubicacion ya resuelta.
+ *
+ * `maquinas` cuenta las asignadas y NO devueltas: es lo que dice si cerrarla deja algo dentro,
+ * y el servidor rechaza cerrar una obra con maquinas sin devolver.
+ *
+ * El ALTA no lleva `ubicacionId`: crea la obra Y su ubicacion en una transaccion del servidor,
+ * asi que pide los datos del sitio. Ver `ApiProyectos`.
+ */
+export type Proyecto = components['schemas']['ProyectoDto'];
+export type AltaProyecto = components['schemas']['AltaProyecto'];
+export type EstadoProyecto = components['schemas']['EstadoProyecto'];
+export type CambioEstadoProyecto = components['schemas']['CambioDeEstadoProyecto'];
+
+export type TipoTarifa = components['schemas']['TipoTarifaDto'];
+export type AltaTipoTarifa = components['schemas']['AltaTipoTarifa'];
+
+export type MotivoMovimiento = components['schemas']['MotivoMovimientoDto'];
+export type AltaMotivoMovimiento = components['schemas']['AltaMotivoMovimiento'];
+
 export type Puesto = components['schemas']['PuestoDto'];
 export type AltaPuesto = components['schemas']['AltaPuesto'];
 
@@ -288,18 +314,15 @@ export type CambioEstadoEquipo = components['schemas']['CambioEstadoEquipo'];
  */
 export type EstadoEquipo = components['schemas']['EstadoEquipo'];
 
-/** 1 Renta · 2 Venta · 3 RentaYVenta. Un solo ciclo de vida, que puede terminar en venta. */
-export type PropositoEquipo = components['schemas']['PropositoEquipo'];
-
-/** 1 Compra · 2 CargaInicial. De dónde salió el equipo al entrar al sistema. */
-export type OrigenEquipo = components['schemas']['OrigenEquipo'];
+// SIN `PropositoEquipo` NI `OrigenEquipo`: las dos columnas salieron el 2026-09-09, y con
+// el proposito se fue la distincion entre maquinaria de renta y de venta — cualquier equipo
+// se puede rentar y cualquiera se puede vender. Lo unico que sigue impidiendolo es el ESTADO.
 
 export interface FiltroEquipos extends FiltroListado {
   readonly UbicacionId?: string;
   readonly TipoEquipoId?: string;
   readonly ModeloEquipoId?: string;
   readonly Estado?: EstadoEquipo;
-  readonly Proposito?: PropositoEquipo;
 }
 
 /**
@@ -318,14 +341,39 @@ export type TipoArchivoEquipo = components['schemas']['TipoArchivoEquipo'];
  * El precio de un concepto para un equipo, con vigencia.
  *
  * **AQUÍ VIVE EL PRECIO, no en el catálogo de tarifas.** El catálogo dice QUÉ se cobra —renta
- * diaria, flete, operador—; esta tabla dice CUÁNTO, por equipo, con fecha, y opcionalmente para
- * un cliente concreto.
+ * diaria, flete, operador—; esta tabla dice CUÁNTO, por equipo y con fecha.
  *
- * `clienteId` nulo es el precio de LISTA; con cliente es el negociado, y gana sobre el de
- * lista. Un `EXCLUDE` impide que existan dos vigentes para la misma combinación, y por eso
- * cargar un precio puede responder **409**.
+ * **SIN PRECIO POR CLIENTE desde el 2026-09-09**: no se negocian precios por cuenta. Y al irse
+ * esa columna el `EXCLUDE` quedó MÁS estricto —antes un precio de lista y uno negociado podían
+ * solaparse—, así que cargar un precio del mismo concepto sin cerrar el vigente responde **409**
+ * donde antes pasaba.
  */
 export type EquipoTarifa = components['schemas']['EquipoTarifaDto'];
+
+/**
+ * **El precio que aplica HOY** para un concepto de una máquina, ya resuelto por el servidor.
+ *
+ * No es una fila de `equipo_tarifa` tal cual: es la que hoy cae dentro de su vigencia, y solo de
+ * conceptos que siguen en el catálogo.
+ *
+ * **Llevó un `deEsteCliente` mientras existió el precio por cuenta**, retirado el 2026-09-09: ya
+ * no hay dos precios entre los que elegir, así que no hay procedencia que distinguir.
+ *
+ * Sirve para PRELLENAR una línea; lo que se guarda es una copia congelada. `equipo_tarifa`
+ * propone, el documento conserva.
+ */
+export type PrecioVigente = components['schemas']['PrecioVigenteDto'];
+
+/**
+ * Los precios de una máquina **repartidos por si aplican hoy o todavía no**.
+ *
+ * El prellenado solo puede usar `aplican`: meter un precio que empieza en dos meses pondría en
+ * la cotización una cifra que todavía no rige. Pero **callar los otros hace que la pantalla
+ * parezca rota** — pasó el 2026-09-09 con dos tarifas asignadas y una sola traída. Así que
+ * `noAplicanAun` se informa, con su fecha, y no se prellena.
+ */
+// SIN `PreciosDeEquipo`: el sobre `aplican` / `noAplicanAun` existio unas horas, mientras
+// `equipo_tarifa` tenia vigencia. Sin ella no hay precios futuros que avisar.
 export type AltaEquipoTarifa = components['schemas']['AltaEquipoTarifa'];
 
 // ------------------------------------------------------ disponibilidad y traspasos --
@@ -362,32 +410,191 @@ export interface FiltroDisponibilidad extends FiltroListado {
   readonly Hasta?: string;
   readonly TipoEquipoId?: string;
   readonly UbicacionId?: string;
-  /** Para cotizar el precio negociado de ese cliente en lugar del de lista. */
-  readonly ClienteId?: string;
 }
 
-/**
- * Un traspaso de equipo entre ubicaciones que almacenan.
- *
- * **Solo de almacén a almacén** —bodega o patio, nunca desde ni hacia una sucursal— y lo impone
- * un TRIGGER de la base, no el código de la aplicación. Una sucursal administra y cotiza; no
- * guarda máquinas.
- */
-export type Transferencia = components['schemas']['TransferenciaDto'];
+// ------------------------------------------------------- seguridad de empresa --
 
 /**
- * `fin` decide si el traspaso OCUPA el calendario.
+ * Un usuario de la empresa, con sus roles resueltos.
  *
- * Si viene, se ocupa con motivo Traslado y el equipo no se puede rentar en ese periodo. Si no
- * viene, el traspaso se registra como instantáneo y no toca el calendario. Es opcional a
- * propósito: cerrar un traslado en curso es logística —M8, Fase 2—, y sin ese cierre una
- * ocupación «hasta que llegue» se quedaría abierta para siempre.
+ * **`accesoTotal` es la señal de «no le toques los roles»**: ese rol se otorga al aprovisionar
+ * la empresa y el servidor rechaza asignarlo o quitarlo. La pantalla no ofrece la acción.
+ *
+ * `invitacionPendiente` dice si tiene una liga vigente sin usar. Es lo que distingue «invitado
+ * y esperando» de «invitado y la liga caducó», que en la columna de estado se ven igual.
  */
-export type AltaTransferencia = components['schemas']['AltaTransferencia'];
+export type UsuarioEmpresa = components['schemas']['UsuarioEmpresaDto'];
+export type AltaUsuarioEmpresa = components['schemas']['AltaUsuarioEmpresa'];
+export type CambioUsuarioEmpresa = components['schemas']['CambioUsuarioEmpresa'];
+export type EstadoUsuario = components['schemas']['EstadoUsuario'];
+export type AsignacionDeRoles = components['schemas']['AsignacionDeRoles'];
 
-export interface FiltroTransferencias extends FiltroListado {
+/**
+ * Lo que devuelve invitar o reenviar. **`liga` existe solo en esa respuesta**: del token solo
+ * se guarda el hash, así que si se pierde hay que reenviar — y reenviar invalida esta.
+ */
+export type InvitacionEmitida = components['schemas']['InvitacionEmitida'];
+
+/**
+ * Un rol con su matriz de permisos.
+ *
+ * El de `accesoTotal` viene con `permisos: []`, y **eso no significa que no pueda nada**:
+ * significa que no le hacen falta, porque salta la verificación. La pantalla lo dice.
+ */
+export type Rol = components['schemas']['RolDto'];
+export type AltaRol = components['schemas']['AltaRol'];
+export type MatrizDePermisos = components['schemas']['MatrizDePermisos'];
+
+/** Los permisos que existen, agrupados por módulo, para dibujar la matriz. */
+export type ModuloConPermisos = components['schemas']['ModuloConPermisos'];
+export type Permiso = components['schemas']['PermisoDto'];
+
+export interface FiltroUsuariosEmpresa extends FiltroListado {
+  readonly Estado?: EstadoUsuario;
+  readonly RolId?: string;
+}
+
+// ---------------------------------------------------------------- bitácora --
+
+/**
+ * Una fila de la bitácora.
+ *
+ * **`valoresAnteriores` y `valoresNuevos` llegan como TEXTO**, no como objetos: son un diff de
+ * forma libre de 75 entidades distintas, y tiparlo exigiría un tipo por entidad. La pantalla
+ * lo formatea para leerlo.
+ *
+ * `modulo` va nulo en dos casos que se ven igual y no lo son: las filas de sesión —que no
+ * pertenecen a ningún módulo— y las escritas antes del 2026-09-02, cuando la columna no
+ * existía. La tabla es *append-only*, así que esas no se rellenaron.
+ */
+export type Auditoria = components['schemas']['AuditoriaDto'];
+export type AccionAuditoria = components['schemas']['AccionAuditoria'];
+export type ResultadoAuditoria = components['schemas']['ResultadoAuditoria'];
+
+export interface FiltroBitacora extends FiltroListado {
+  readonly Modulo?: string;
+  readonly Accion?: AccionAuditoria;
+  readonly Resultado?: ResultadoAuditoria;
+  readonly UsuarioId?: string;
+  readonly Entidad?: string;
+  readonly CorrelacionId?: string;
+  readonly Desde?: string;
+  readonly Hasta?: string;
+}
+
+// ----------------------------------------------------------- mantenimiento --
+
+/**
+ * Un trabajo de taller.
+ *
+ * **`tallerId` nulo cambia el flujo entero**: sin taller el trabajo se hace donde está la
+ * máquina y no hay movimiento ninguno; con taller, abrir escribe el movimiento de envío y
+ * cerrar exige decir a qué ubicación regresa.
+ */
+export type Mantenimiento = components['schemas']['MantenimientoDto'];
+export type AltaMantenimiento = components['schemas']['AltaMantenimiento'];
+export type CambioMantenimiento = components['schemas']['CambioMantenimiento'];
+export type CierreMantenimiento = components['schemas']['CierreMantenimiento'];
+export type CancelacionMantenimiento = components['schemas']['CancelacionMantenimiento'];
+export type CambioEnProceso = components['schemas']['CambioEnProceso'];
+export type TipoMantenimiento = components['schemas']['TipoMantenimiento'];
+export type EstadoMantenimiento = components['schemas']['EstadoMantenimiento'];
+
+export interface FiltroMantenimientos extends FiltroListado {
   readonly EquipoId?: string;
+  readonly Estado?: EstadoMantenimiento;
+  readonly Tipo?: TipoMantenimiento;
+  readonly TallerId?: string;
+  readonly ProveedorId?: string;
+  readonly Desde?: string;
+  readonly Hasta?: string;
+  /** Abierto o EnProceso en una sola pregunta. Es el filtro por omisión de la pantalla. */
+  readonly Vigentes?: boolean;
+}
+
+// ------------------------------------------------------- reportes y tablero --
+
+/**
+ * Los seis reportes. **Cuatro exigen periodo** —utilización, rentas, movimientos y
+ * mantenimiento— y responden 400 sin él: un reporte que elige su propio periodo da un total
+ * cuyo alcance nadie sabe.
+ */
+export type FilaParque = components['schemas']['FilaParque'];
+
+/**
+ * Cada fila trae `diasDelPeriodo` y el desglose además del porcentaje, **para que el número se
+ * pueda verificar sin conocer la fórmula**. Los días ocupados cuentan todo lo que impide
+ * rentar la máquina, no solo la renta.
+ */
+export type FilaUtilizacion = components['schemas']['FilaUtilizacion'];
+export type FilaRentas = components['schemas']['FilaRentas'];
+export type FilaMovimientos = components['schemas']['FilaMovimientos'];
+export type FilaMantenimiento = components['schemas']['FilaMantenimiento'];
+export type FilaClientes = components['schemas']['FilaClientes'];
+
+export interface FiltroReporte {
+  readonly Desde?: string;
+  readonly Hasta?: string;
   readonly UbicacionId?: string;
+  readonly TipoEquipoId?: string;
+  readonly ClienteId?: string;
+  readonly EquipoId?: string;
+}
+
+/** Los cinco bloques del tablero, en una sola respuesta. */
+export type Tablero = components['schemas']['TableroDto'];
+
+// ---------------------------------------------------------------- movimientos --
+
+/**
+ * Un movimiento: el historial FÍSICO de una máquina, con los nombres ya resueltos.
+ *
+ * **Nueve tipos, y solo tres se capturan** —Salida (2), Traspaso (3), Asignación a proyecto
+ * (4)—. Los otros seis los escribe el servidor dentro de la transacción del documento que los
+ * provoca: la entrega y la devolución de una renta, las dos puntas de un mantenimiento, la
+ * venta, y el alta de la máquina. Mandar uno de esos al POST se rechaza con un 400 que dice
+ * qué proceso sí lo escribe.
+ *
+ * El décimo caso, y el único raro: **una entrada al inventario (1) SÍ se acepta a mano cuando
+ * el equipo no tiene ubicación todavía**. Es como se coloca una máquina que se dio de alta
+ * antes de llegar; sin esa puerta se quedaría sin sitio para siempre, porque los otros ocho
+ * tipos exigen origen.
+ *
+ * **APPEND-ONLY**: no hay PUT ni DELETE, y no es una omisión de la API — un trigger de la base
+ * rechaza el UPDATE. Una captura equivocada se corrige con el movimiento contrario, que es
+ * además lo que de verdad pasó.
+ */
+export type Movimiento = components['schemas']['MovimientoDto'];
+
+/**
+ * **No lleva origen**: es donde el equipo está ahora, y lo resuelve el servidor. Aceptarlo
+ * permitiría registrar una salida «desde» un patio en el que la máquina no estaba.
+ *
+ * `fecha` nula = ahora. Una fecha distinta de hoy exige el permiso `movimientos.autorizar`:
+ * fechar en otro día mete el movimiento entre dos que ya existen y cambia lo que el historial
+ * cuenta, sin tocar ninguna fila anterior.
+ */
+export type AltaMovimiento = components['schemas']['AltaMovimiento'];
+
+export type TipoMovimiento = components['schemas']['TipoMovimiento'];
+
+/**
+ * Lo que devuelve subir una evidencia: el id que hay que meter en el alta del movimiento.
+ *
+ * La subida va SEPARADA y ANTES, porque la tabla de movimientos es *append-only*: la fila se
+ * escribe con su evidencia dentro o sin ella para siempre.
+ */
+export type EvidenciaSubida = components['schemas']['EvidenciaSubidaDto'];
+
+export interface FiltroMovimientos extends FiltroListado {
+  readonly EquipoId?: string;
+  /** Las DOS puntas: lo que entró a esa ubicación y lo que salió. */
+  readonly UbicacionId?: string;
+  readonly ProyectoId?: string;
+  readonly Tipo?: TipoMovimiento;
+  readonly MotivoId?: string;
+  readonly Desde?: string;
+  readonly Hasta?: string;
 }
 
 // --------------------------------------------------------------- cotizaciones --
@@ -401,12 +608,26 @@ export interface FiltroTransferencias extends FiltroListado {
 export type Cotizacion = components['schemas']['CotizacionDto'];
 
 /**
- * Una línea. **La define su TARIFA**; el equipo y el tipo son contexto OPCIONAL.
+ * Una línea: **lo que se ofrece**, con las N tarifas que componen su precio.
  *
- * Los dos pueden venir nulos, y eso importa: una línea de flete no tiene equipo ni tipo. El
- * CHECK que exigía uno de los dos se quitó el 2026-08-25 porque hacía imposible cotizar un flete.
+ * **CAMBIÓ DE FORMA EL 2026-09-08.** Antes la definía su tarifa —una línea, un concepto— y
+ * llevaba cantidad y precio; los tres viven ahora en `CotizacionLineaTarifa`. Aquí queda de qué
+ * se trata el renglón: la máquina si se sabe cuál, y una descripción.
+ *
+ * El `importe` es la SUMA de sus tarifas y lo calcula el servidor. **Ya no hay categoría**:
+ * cotizar «una retroexcavadora» sin decir cuál dejó de ser un dato y pasa a ser texto en la
+ * descripción.
  */
 export type CotizacionLinea = components['schemas']['CotizacionLineaDto'];
+
+/**
+ * Un concepto cobrable DENTRO de una línea: `importe = cantidad × precioUnitario`.
+ *
+ * `unidad` es el rótulo de la tarifa —Hora, Día, Kilómetro— y **es lo que hace legible la
+ * cantidad**: «5» no dice nada sin saber de qué concepto se predica. Por eso la cantidad vive
+ * aquí y no en la línea: cinco días de renta y un flete no comparten cantidad.
+ */
+export type CotizacionLineaTarifa = components['schemas']['CotizacionLineaTarifaDto'];
 
 /**
  * El FOLIO no va en el alta: lo genera el sistema. Aceptarlo dejaría que dos capturistas
@@ -415,11 +636,22 @@ export type CotizacionLinea = components['schemas']['CotizacionLineaDto'];
 export type AltaCotizacion = components['schemas']['AltaCotizacion'];
 
 /**
- * El PRECIO UNITARIO se captura, no se calcula. La fase no escoge la tarifa conveniente ni
- * decide si doce días son semana más días: un vendedor captura lo que acordó y el documento lo
- * conserva. El IMPORTE sí se calcula, en el servidor: cantidad por precio.
+ * La línea CON SUS CONCEPTOS, en una sola petición. **Al menos uno**: el servidor rechaza la
+ * lista vacía, porque una línea sin conceptos no cobra nada.
+ *
+ * Van dentro y no en llamadas sueltas porque crearla vacía y añadirle el primero después deja,
+ * entre las dos peticiones, un renglón que no significa nada. Añadir y quitar conceptos de una
+ * línea que YA existe sí tiene sus propios endpoints.
  */
 export type AltaCotizacionLinea = components['schemas']['AltaCotizacionLinea'];
+
+/**
+ * El PRECIO UNITARIO se captura, no se calcula. El catálogo de tarifas guarda conceptos, no
+ * precios: el costo se pone cada vez que aplica. La fase no escoge la tarifa conveniente ni
+ * decide si doce días son semana más días. El IMPORTE sí se calcula, en el servidor: cantidad
+ * por precio.
+ */
+export type AltaCotizacionLineaTarifa = components['schemas']['AltaCotizacionLineaTarifa'];
 
 /**
  * Siete estados: 1 Borrador · 2 Enviada · 3 EnRevisión · 4 Aceptada · 5 Rechazada · 6 Vencida ·
@@ -430,6 +662,12 @@ export type AltaCotizacionLinea = components['schemas']['AltaCotizacionLinea'];
  * `SIGUIENTES` en `cotizaciones.ts`.
  */
 export type EstadoCotizacion = components['schemas']['EstadoCotizacion'];
+
+/**
+ * Renta (1) o Venta (2). **Es de lo que depende a qué se convierte una propuesta aceptada**, y
+ * no se puede deducir de las líneas: la misma máquina se renta y se vende.
+ */
+export type TipoCotizacion = components['schemas']['TipoCotizacion'];
 
 export interface FiltroCotizaciones extends FiltroListado {
   readonly ClienteId?: string;
@@ -462,6 +700,19 @@ export type Renta = components['schemas']['RentaDto'];
 export type RentaLinea = components['schemas']['RentaLineaDto'];
 
 /**
+ * Un cargo **sobre una máquina** de la renta: su flete, su operador, sus maniobras.
+ *
+ * **Entró el 2026-09-09.** Hasta entonces `renta_linea` era «una máquina y una tarifa», así que
+ * un cargo de una máquina se guardaba como otra LÍNEA del mismo equipo y la renta se leía
+ * distinta de la cotización que la originó. Es el espejo de `CotizacionLineaTarifa`, con tres
+ * campos que esa no tiene —`trabajadorId`, `descripcion` y `costo`—: una cotización no sabe
+ * quién va a operar la máquina ni cuánto nos va a costar el flete.
+ *
+ * No confundir con `RentaConcepto`, que es lo que se cobra y **no es de ninguna máquina**.
+ */
+export type RentaLineaTarifa = components['schemas']['RentaLineaTarifaDto'];
+
+/**
  * **Lo que se cobra además**: flete, operador, maniobras. No lleva equipo, así que no toca el
  * calendario.
  *
@@ -479,20 +730,28 @@ export type RentaConcepto = components['schemas']['RentaConceptoDto'];
  */
 export type ExtensionRenta = components['schemas']['ExtensionRentaDto'];
 
-/**
- * **DÓNDE SE TRABAJA VA AQUÍ DENTRO**, no en una tabla `obra`. `descripcion` es obligatoria y el
- * resto de la dirección es opcional.
- *
- * El precio de esa simplificación está dicho en el alcance: no se puede agrupar rentabilidad por
- * obra de forma confiable.
- */
-export type LugarRenta = components['schemas']['LugarRenta'];
-
 /** El folio lo genera el sistema, igual que en la cotización. */
 export type AltaRenta = components['schemas']['AltaRenta'];
 
-/** El `equipoId` es obligatorio: sin máquina concreta no hay fila de calendario. */
+/**
+ * El `equipoId` es obligatorio: sin máquina concreta no hay fila de calendario.
+ *
+ * **YA NO LLEVA `tarifaId`**, retirado el 2026-09-09: los cargos van en `tarifas`, y se pueden
+ * mandar aquí o agregar después. `cantidad` y `precioUnitario` son ahora el costo de la MÁQUINA,
+ * y los dos admiten cero — una máquina que solo lleva fletes.
+ */
 export type AltaRentaLinea = components['schemas']['AltaRentaLinea'];
+
+export type AltaRentaLineaTarifa = components['schemas']['AltaRentaLineaTarifa'];
+
+/**
+ * A dónde va una máquina de la renta: la obra y el sitio.
+ *
+ * **Con obra, el sitio SOBRA**: una obra tiene ubicación obligatoria, así que el servidor lo
+ * saca de ella — y rechaza uno que la contradiga en lugar de ignorarlo. Los dos nulos son
+ * «quitarle el destino», legítimo mientras la máquina no salga.
+ */
+export type DestinoDeLinea = components['schemas']['DestinoDeLinea'];
 
 export type AltaRentaConcepto = components['schemas']['AltaRentaConcepto'];
 
@@ -656,6 +915,11 @@ export type OrdenVenta = components['schemas']['OrdenVentaDto'];
 
 /** Una línea de venta: un equipo EXISTENTE que se vende. Al revés que la de compra. */
 export type OrdenVentaDetalle = components['schemas']['OrdenVentaDetalleDto'];
+
+/** Un papel colgado de una venta: contrato, factura, comprobante de pago, carta factura. */
+export type DocumentoVenta = components['schemas']['DocumentoVentaDto'];
+
+export type TipoArchivoVenta = components['schemas']['TipoArchivoVenta'];
 
 export type AltaOrdenVenta = components['schemas']['AltaOrdenVenta'];
 

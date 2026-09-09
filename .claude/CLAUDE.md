@@ -440,6 +440,17 @@ error path that clears the flag lives in the `subscribe`. The screen looked froz
 submits. Three screens survived on that alone. An OPTIONAL numeric field has no such cover,
 and Modelos was the first one.
 
+**And the mirror image bit twice more on 2026-09-03**: `validadorRequerido` on a numeric
+`<select>` — the enum `tipo` of Movimientos and of Mantenimiento. It reads the control through
+`texto()`, which returns `''` for anything that is not a string, so it answers
+`{ required: true }` **always** and the submit button never enables. `validadores.ts` says so in
+its own docblock and it still happened. The symptom is the cruellest of the family: a complete
+looking form, no error message anywhere —warnings need `touched`, and a field prefilled with a
+default is never touched— and a dead button.
+
+An enum `<select>` with a default value and no empty option **needs no validator at all**: it
+cannot be empty by construction. That is the fix, not a numeric validator.
+
 Two more consequences worth writing down:
 
 - **Truncate before sending.** The accessor uses `parseFloat`, so `250.5` reaches you even
@@ -452,6 +463,180 @@ Two more consequences worth writing down:
 compiler checks the declaration and nothing checks the accessor, so these two rules — this
 one and `[ngValue]` — are the whole list of places where a typed reactive form will lie to
 you. Regression tests: `paginas/empresa/modelos/modelos.spec.ts`.
+
+## Edit `textos.ts` by CONTENT, never by line number
+
+The dictionary is ~6000 lines with two symmetric halves (`es-MX`, `en-US`), so the temptation is
+to collect line numbers first and delete them afterwards. **Do not.** Every earlier edit shifts
+every later index, and a wrong index deletes a key that looks unrelated — the build then fails
+somewhere else entirely, and there is **no git in this project** to undo it.
+
+That happened on 2026-09-08: eight deletions computed against the original file, applied after
+four whole blocks had already been removed. It destroyed six `en-US` strings and one section
+header. Six of them had to be re-translated from the Spanish, because neither `dist/`,
+`.angular/cache` nor the dev server held the previous bundle.
+
+```py
+# yes — cannot land in the wrong place
+assert s.count(linea) == 1
+s = s.replace(linea, "")
+```
+
+```py
+# no — every prior deletion invalidates this index
+del lineas[4217 - 1]
+```
+
+**And when it does go wrong, the repair tool is symmetry.** Walk both halves with a brace-depth
+counter — which does not need the file to compile — and list, per section, the keys present in
+one language and absent in the other. That names the damage exactly.
+
+Adding is safer than deleting, but the same rule applies: anchor on a unique neighbouring
+string, not on a number.
+
+## A field that can CREATE its catalog entry is a `datalist`, not a combobox
+
+When a catalog field must let you type a value that does not exist yet — and save it so it
+becomes an option later — use a native `<input list="...">` plus `<datalist>`. The browser gives
+you filtering, keyboard and screen-reader support for free.
+
+**Do NOT hand-roll `role="combobox"`.** That role promises arrow keys, Home and End, and
+announcing a role without its keyboard contract is worse than not announcing it — the same rule
+as dropdowns above.
+
+Three consequences to get right:
+
+- **The control holds TEXT, not an id.** The id does not exist while someone is typing. Resolve
+  it — or create the entry — in the submit handler.
+- **Normalize before deciding it does not exist.** `===` treats `Excavadora`, `excavadora` and
+  `Excavadora ` as three different catalog entries, and the catalog stops being useful for
+  grouping within weeks. Trim, lowercase, and strip diacritics (`normalize('NFD')` +
+  `/\p{Diacritic}/gu`) so `Camión` finds `Camion`.
+- **Chain creations that depend on each other**, never `forkJoin`. A new model is created WITH
+  its category, so it needs that id first; in parallel you get a half-built catalog when the
+  first one fails.
+
+And **drop any effect that cleared the field when a parent filter changed**. That belongs to a
+closed `<select>`, where an out-of-list value renders blank. With free text it destroys what the
+person typed — the value not being in the list is exactly the case that should create one.
+
+The normalizing helpers live in `nucleo/formularios/texto.ts` — `mismoNombre` and
+`codigoDesdeNombre` — because two screens need them: the equipment form and the price panel of
+the record. A helper imported from one page component into another turns that page into a
+library without anyone deciding so.
+
+**A field that creates a catalog entry needing MORE than a name reveals those fields inline.**
+A rate needs a code, a unit and a scope, so the price panel of the record shows them the moment
+what you typed stops matching the catalog, and hides them again when it matches. Do not send
+people to another screen and back: that round trip is what the `datalist` exists to remove.
+
+Regression tests: `paginas/empresa/equipos/equipos.spec.ts`,
+`nucleo/formularios/texto.spec.ts`.
+
+## An HTML comment between a tag's ATTRIBUTES is not valid HTML
+
+```html
+<!-- NO: «Opening tag "app-panel-lateral" not terminated» — and the message never says
+     comment, so you look at the bindings instead. -->
+<app-panel-lateral
+  [abierto]="panel()"
+  <!-- what the title decides -->
+  [titulo]="titulo()"
+>
+```
+
+Put it **before** the opening tag. The error points at the element's line, several lines below
+the comment, which is why this costs a minute more than it should.
+
+## A trailing comma in a template call is an EXTRA ARGUMENT
+
+Prettier formats a multi-line call in a `.ts` file with a trailing comma, and Angular's template
+parser does not accept one:
+
+```html
+<!-- NO: «Parser Error: Unexpected token )» and «Expected 3 arguments, but got 4» -->
+{{
+  t().comun.equipoEnLista(
+    equipo.codigoInterno,
+    equipo.descripcion,
+    equipo.marca + ' ' + equipo.modelo,
+  )
+}}
+```
+
+Drop the comma after the last argument. **Prettier does not add it back** — it leaves template
+interpolations alone, so the formatted file and the compiling file are the same file.
+
+It fails loudly at build time, which is why it belongs here and not in a review checklist: the
+trap is that the habit comes from the `.ts` next door, where the comma is REQUIRED by the
+formatter. `ng build` catches it; `tsc` does not look at templates.
+
+## A cascading `<select>` must not clear its child while the catalog is EMPTY
+
+Filtering one dropdown by another needs an effect that clears the child when the chosen value
+leaves the list. That effect has a case that is not hypothetical: **catalogs arrive through
+`httpResource`, so until they answer the list is empty — and an empty list contains nothing, not
+even the correct value.**
+
+```ts
+effect(() => {
+  const permitidos = this.modelos();
+  const elegido = this.formulario.controls.modeloEquipoId.value;
+
+  // `length > 0` FIRST. Without it, opening an edit form before the catalog loads wipes the
+  // field, and whoever saves believes they changed nothing.
+  if (permitidos.length > 0 && elegido !== '' && !permitidos.some((m) => m.id === elegido)) {
+    this.formulario.controls.modeloEquipoId.setValue('');
+  }
+});
+```
+
+> Equipos no longer has this effect — its catalog fields became free-text `datalist` inputs on
+> 2026-09-07, where clearing would destroy what someone typed (see the section above). The rule
+> stands for any dropdown that stays a closed `<select>`.
+
+**If you DO store the parent on the child entity, let the engine enforce it.** `equipo` keeps
+`marca_id` even though brand hangs off the model — the client asked for it, and it buys filtering
+without a join. What makes that safe is not discipline in the service: it is a COMPOSITE foreign
+key, `(modelo_equipo_id, marca_id)` against a `UNIQUE (id, marca_id)` on `modelo_equipo`. A row
+saying Caterpillar with a Komatsu model does not enter. Derive the value server-side on write and
+never accept it from the request body — otherwise a wrong value comes back as a constraint error
+instead of a message.
+
+The rule that survives: **duplicated data needs a constraint, not a convention.** Without one,
+do not duplicate.
+
+Regression tests: `tests/Maquinaria.Api.Tests/Empresas/CamposDelDocumentoPruebas.cs` pins that
+both foreign keys stay composite.
+
+## A `<input type="file">` has NO value accessor — keep it out of the form
+
+Fourth of the family, and the one where the control does not lie about the type: it holds
+something completely different from what you want. Angular ships no `ControlValueAccessor` for
+file inputs, so `formControlName` binds the element's `value` — the browser's fake path string,
+`C:\fakepath\photo.jpg` — and the `File` is never reachable.
+
+```ts
+protected readonly evidencia = signal<File | null>(null);          // yes
+
+protected elegirArchivo(entrada: EventTarget | null): void {
+  const archivos = (entrada as HTMLInputElement | null)?.files;
+  this.evidencia.set(archivos && archivos.length > 0 ? archivos[0] : null);
+}
+```
+
+```ts
+evidencia: [null as File | null],   // no — the control gets 'C:\fakepath\photo.jpg'
+```
+
+The upload itself is `FormData` + `HttpClient`, and **you must not set `Content-Type`**: the
+browser has to write it so it can include the `boundary`. Fixing it by hand breaks the
+multipart body with no error you can read.
+
+Used in `paginas/empresa/movimientos` (evidence) and `paginas/empresa/orden-venta` (sale
+documents). In Movimientos the upload is also a SEPARATE request that runs BEFORE the create —
+the movements table is append-only and its trigger rejects every UPDATE, so the row is written
+with its evidence inside or without it forever.
 
 ## A `<select>` OUTSIDE a reactive form preselects with `[selected]`, not `[value]`
 
@@ -490,6 +675,133 @@ Two more things that cost a debugging round each while pinning this down:
 Regression tests: `paginas/plataforma/empresas/selector-estado.spec.ts`, which pins BOTH
 forms — the broken one included, so nobody "simplifies" the template back to `[value]`.
 
+
+## A lazy selector called INSIDE a `computed` throws NG0602
+
+`FabricaDeRecursos.selector()` and its siblings are **lazy on purpose**: they create their
+`httpResource` the first time they are called, so a screen only fetches the dropdowns it uses.
+That means the call has a side effect — and `httpResource` uses an `effect` internally.
+
+Call it from inside a `computed` and Angular throws
+**`NG0602: effect() cannot be called from within a reactive context`**.
+
+```ts
+private readonly ubicaciones = this.organizacion.selectorUbicacionesActivas();   // yes
+readonly talleres = computed(() => this.ubicaciones().filter(u => u.tipo === 3));
+
+readonly talleres = computed(() =>                                               // no — NG0602
+  this.organizacion.selectorUbicacionesActivas()().filter(u => u.tipo === 3));
+```
+
+**The symptom does not look like an exception.** It shipped in Mantenimiento on 2026-09-03: the
+list rendered neither its rows nor its empty message — the section collapsed to its 2px border —
+and the only trace was the console. `ng build` was clean and all 314 tests passed, because
+nothing mounts these components against the real services. It was found by opening the screen.
+
+The shape of the mistake is `selectorX()()` — two call pairs in a row, one to build and one to
+read. **Grep for `selector[A-Za-z]*()()` before shipping a screen**; a lazy factory belongs in a
+field, and only the reading `()` goes in the `computed`.
+
+## A field disabled through the CONTROL disappears from `formulario.value`
+
+Fourth of the reactive-form family, and the one that changes what the request sends.
+`control.disable()` does not just grey the field: Angular **removes it from the group's value**,
+so `getRawValue()` still has it but `value` does not — and a DTO built from the form sends the
+key as `undefined`, which serializes to `null`.
+
+That is exactly wrong when the field is read-only because the SERVER owns it. The equipment
+file shows its location and refuses to move it (the API answers 409); disabling the control
+would have made every save send `ubicacionId: null`, which the server reads as *an attempt to
+move it out of every location*.
+
+```html
+<select formControlName="ubicacionId" [attr.disabled]="editando ? '' : null">  <!-- yes -->
+```
+
+```ts
+this.formulario.controls.ubicacionId.disable();   // no — drops it from the payload
+```
+
+`[attr.disabled]` greys the field in the DOM, the control keeps its value, and the PUT still
+carries the current location — which is what makes the server's "did you try to change it?"
+check meaningful. Disable through the control only when the value genuinely should not be sent.
+
+And prefer disabled over hidden for a field the server owns: whoever opens the record still
+needs to see where the machine is.
+
+## Pushing to a `FormArray` does NOT re-render — the array is mutated in place
+
+Fifth of the reactive-form family, and it is a zoneless problem, not a forms one.
+`FormArray.controls` returns **the same array instance every time**; `push()` and `removeAt()`
+mutate it. With no zones and `OnPush`, iterating it directly means the new row is never drawn:
+
+```html
+@for (fila of formulario.controls.conceptos.controls; track $index) { … }   <!-- no -->
+```
+
+A `computed` around it is no better, and this is the part that costs an hour: `computed`
+memoizes **by reference**, and the reference never changes — so the memo never invalidates.
+
+```ts
+// no — returns the identical array, so the computed never reports a change
+protected readonly filas = computed(() => this.formulario.controls.conceptos.controls);
+```
+
+Keep a version signal, bump it on every add and remove, and return a **copy**:
+
+```ts
+private readonly version = signal(0);
+
+protected readonly filas = computed(() => {
+  this.version();                                        // explicit dependency
+  return [...this.formulario.controls.conceptos.controls];  // a NEW reference
+});
+
+protected agregarFila(): void {
+  this.formulario.controls.conceptos.push(this.filaEnBlanco());
+  this.version.update((v) => v + 1);
+}
+```
+
+In the template, `formArrayName` on the wrapper and `[formGroupName]="$index"` on each row —
+bind by index, not by control instance.
+
+An event handler on the same component does happen to schedule change detection, so a button
+inside the template can look like it works by accident. It stops working the moment a row is
+added from anywhere else — an effect, a resource arriving, a parent. The version signal is what
+makes it correct rather than lucky.
+
+Live in `paginas/empresa/cotizacion`: a quote line captures its N chargeable concepts as an
+array, and the last row cannot be removed because the server rejects a line with none.
+
+### And an effect must not read a computed that depends on what it writes
+
+The sibling trap, found the day after. An effect that prefills those rows looked like this:
+
+```ts
+effect(() => {
+  if (this.precios().length > 0 && this.conceptosIntactos()) {  // no — infinite loop
+    this.ponerPrecios();          // bumps `version`, which `conceptosIntactos` reads
+  }
+});
+```
+
+`conceptosIntactos` is a `computed` over the version signal, and the prefill bumps that signal —
+so the effect schedules itself, forever.
+
+The fix is not `untracked()`: it is to read the **form** instead of the computed, because a
+`FormControl` is not a signal and reading it creates no dependency.
+
+```ts
+if (this.precios().length > 0 && this.formulario.controls.conceptos.pristine) { … }  // yes
+```
+
+Keep the computed for the TEMPLATE, which does need to re-render. The rule generalizes: inside
+an effect, read the plain object; expose the signal-backed view for the view.
+
+And `pristine` is the right question for any prefill: it goes false when the **user** types and
+stays true when code calls `setValue`, so a prefill can never clobber captured input — call
+`markAsPristine()` after filling so the next prefill still works.
 
 ## Route inputs can be `undefined` despite their type
 

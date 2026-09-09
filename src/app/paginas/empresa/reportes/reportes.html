@@ -1,0 +1,407 @@
+<!--
+  Los seis reportes, en pestañas y con un periodo compartido. SOLO LECTURA: un reporte no
+  escribe nada, así que no hay acciones de fila ni acción primaria en la barra.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <!--
+    Chips y no un <select>: son seis y se comparan entre sí. Un desplegable escondería cinco
+    detrás de un clic y haría creer que son pantallas distintas.
+  -->
+  <div class="flex flex-wrap gap-2" role="group" [attr.aria-label]="t().reportes.titulo">
+    @for (c of categorias; track c) {
+      <button
+        type="button"
+        class="chip"
+        [class.chip-activo]="categoria() === c"
+        [attr.aria-pressed]="categoria() === c"
+        (click)="elegir(c)"
+      >
+        {{ t().reportes.categorias[c] }}
+      </button>
+    }
+  </div>
+
+  <!--
+    El periodo se muestra SIEMPRE, también en las dos categorías que no lo usan: esconderlo al
+    cambiar de pestaña movería el resto de la pantalla hacia arriba y hacia abajo. En esas dos
+    se dice que se ignora.
+  -->
+  <section class="flex flex-col gap-2 rounded-xl border border-borde bg-superficie p-4 md:p-5">
+    <div class="flex flex-wrap items-end gap-3">
+      <div class="flex flex-col gap-1">
+        <label for="desde" class="text-sm font-medium text-texto-secundario">
+          {{ t().reportes.desde }}
+        </label>
+        <input
+          id="desde"
+          type="date"
+          [value]="desde()"
+          (change)="cambiarDesde($any($event.target).value)"
+          class="campo-formulario"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="hasta" class="text-sm font-medium text-texto-secundario">
+          {{ t().reportes.hasta }}
+        </label>
+        <input
+          id="hasta"
+          type="date"
+          [value]="hasta()"
+          (change)="cambiarHasta($any($event.target).value)"
+          class="campo-formulario"
+        />
+      </div>
+
+      <button
+        type="button"
+        (click)="ultimoMes()"
+        class="rounded-lg border border-borde-campo px-3 py-2 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+      >
+        {{ t().reportes.ultimoMes }}
+      </button>
+    </div>
+
+    <p class="text-xs text-texto-apagado">
+      {{ exigePeriodo(categoria()) ? t().reportes.ayudaPeriodo : t().reportes.periodoIgnorado }}
+    </p>
+  </section>
+
+  @if (error(); as mensaje) {
+    <p
+      class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+      role="alert"
+    >
+      {{ mensaje }}
+    </p>
+  }
+
+  @if (faltaPeriodo()) {
+    <!--
+      NO ES UN VACÍO, ES UNA PETICIÓN QUE NO SE HIZO. Decir «sin resultados» aquí sería
+      mentir: nadie ha preguntado nada todavía.
+    -->
+    <p
+      class="rounded-xl border border-borde bg-superficie px-4 py-6 text-sm text-texto-secundario md:px-5"
+    >
+      {{ t().reportes.eligePeriodo }}
+    </p>
+  } @else if (cargando()) {
+    <div class="flex flex-col gap-3" aria-busy="true">
+      <p role="status" class="sr-only">{{ t().comun.cargando }}</p>
+      <div aria-hidden="true" class="flex flex-col gap-2">
+        <div class="esqueleto h-10 rounded-lg"></div>
+        <div class="esqueleto h-10 rounded-lg"></div>
+        <div class="esqueleto h-10 rounded-lg"></div>
+        <div class="esqueleto h-10 rounded-lg"></div>
+        <div class="esqueleto h-10 rounded-lg"></div>
+      </div>
+    </div>
+  } @else if (filas() === 0) {
+    <p
+      class="rounded-xl border border-borde bg-superficie px-4 py-6 text-sm text-texto-secundario md:px-5"
+    >
+      {{ t().reportes.sinFilas }}
+    </p>
+  } @else {
+    <section class="rounded-xl border border-borde bg-superficie">
+      <div class="overflow-x-auto" tabindex="0">
+        @switch (categoria()) {
+          @case ('parque') {
+            <table class="tabla-columnas w-full min-w-160 text-center text-sm">
+              <thead
+                class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+              >
+                <tr>
+                  <th scope="col" class="px-4 py-2.5 text-start font-medium md:px-5">
+                    {{ t().reportes.colAgrupacion }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 text-start font-medium">
+                    {{ t().reportes.colValor }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                    {{ t().reportes.colEquipos }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (fila of parque.filas(); track fila.grupo + fila.valor) {
+                  <tr class="border-b border-borde-fila last:border-0">
+                    <td class="px-4 py-3 text-start text-texto-secundario md:px-5">
+                      {{ t().reportes.grupos[fila.grupo] ?? fila.grupo }}
+                    </td>
+                    <td class="px-4 py-3 text-start font-medium text-texto">{{ fila.valor }}</td>
+                    <td class="px-4 py-3 tabular-nums text-texto md:px-5">{{ fila.equipos }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+          @case ('utilizacion') {
+            <table class="tabla-columnas w-full min-w-240 text-center text-sm">
+              <thead
+                class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+              >
+                <tr>
+                  <th
+                    scope="col"
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 text-start font-medium md:px-5"
+                  >
+                    {{ t().reportes.colEquipo }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">
+                    {{ t().reportes.colUbicacion }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colDias }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">
+                    {{ t().reportes.colOcupados }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">
+                    {{ t().reportes.colRentados }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colTaller }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                    {{ t().reportes.colUtilizacion }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (fila of utilizacion.filas(); track fila.equipoId) {
+                  <tr class="border-b border-borde-fila last:border-0">
+                    <td
+                      class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 text-start md:px-5"
+                    >
+                      <span class="font-medium text-texto">{{ fila.codigoInterno }}</span>
+                      <span class="block text-xs text-texto-apagado">
+                        @if (fila.nombre) {
+                          {{ fila.nombre }} ·
+                        }
+                        {{ fila.marca }} {{ fila.modelo }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-texto-secundario">
+                      {{ fila.ubicacion ?? t().reportes.sinDato }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ fila.diasDelPeriodo }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto">{{ fila.diasOcupados }}</td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ fila.diasRentados }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ fila.diasMantenimiento }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums font-medium text-texto md:px-5">
+                      {{ fila.porcentajeUtilizacion }}%
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+          @case ('rentas') {
+            <table class="tabla-columnas w-full min-w-220 text-center text-sm">
+              <thead
+                class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+              >
+                <tr>
+                  <th
+                    scope="col"
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                  >
+                    {{ t().reportes.colFolio }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colCliente }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colInicio }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colFin }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colEstado }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">
+                    {{ t().reportes.colMaquinas }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                    {{ t().reportes.colTotal }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (fila of rentas.filas(); track fila.rentaId) {
+                  <tr class="border-b border-borde-fila last:border-0">
+                    <td
+                      class="sticky left-0 whitespace-nowrap border-r border-borde bg-superficie px-4 py-3 font-medium text-texto md:px-5"
+                    >
+                      {{ fila.folio }}
+                    </td>
+                    <td class="px-4 py-3 text-texto-secundario">{{ fila.cliente }}</td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ fila.fechaInicio }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ fila.fechaFin }}
+                    </td>
+                    <td class="px-4 py-3 text-texto-secundario">
+                      {{ nombreEstadoRenta(fila.estado) }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ fila.maquinas }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto md:px-5">{{ fila.total }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+          @case ('movimientos') {
+            <table class="tabla-columnas w-full min-w-160 text-center text-sm">
+              <thead
+                class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+              >
+                <tr>
+                  <th scope="col" class="px-4 py-2.5 text-start font-medium md:px-5">
+                    {{ t().reportes.colTipo }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 text-start font-medium">
+                    {{ t().reportes.colMotivo }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                    {{ t().reportes.colCantidad }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (fila of movimientos.filas(); track fila.tipo + fila.motivo) {
+                  <tr class="border-b border-borde-fila last:border-0">
+                    <td class="px-4 py-3 text-start font-medium text-texto md:px-5">
+                      {{ nombreTipoMovimiento(fila.tipo) }}
+                    </td>
+                    <td class="px-4 py-3 text-start text-texto-secundario">{{ fila.motivo }}</td>
+                    <td class="px-4 py-3 tabular-nums text-texto md:px-5">{{ fila.cantidad }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+          @case ('mantenimiento') {
+            <table class="tabla-columnas w-full min-w-220 text-center text-sm">
+              <thead
+                class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+              >
+                <tr>
+                  <th
+                    scope="col"
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                  >
+                    {{ t().reportes.colFolio }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colEquipo }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colTipo }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colEstado }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colInicio }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">
+                    {{ t().reportes.colDiasFuera }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                    {{ t().reportes.colCosto }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (fila of mantenimiento.filas(); track fila.id) {
+                  <tr class="border-b border-borde-fila last:border-0">
+                    <td
+                      class="sticky left-0 whitespace-nowrap border-r border-borde bg-superficie px-4 py-3 font-medium text-texto md:px-5"
+                    >
+                      {{ fila.folio }}
+                    </td>
+                    <td class="px-4 py-3 text-texto-secundario">
+                      {{ t().comun.equipoEnLinea(fila.codigoInterno, fila.nombre) }}
+                    </td>
+                    <td class="px-4 py-3 text-texto-secundario">
+                      {{ nombreTipoMantenimiento(fila.tipo) }}
+                    </td>
+                    <td class="px-4 py-3 text-texto-secundario">
+                      {{ nombreEstadoMantenimiento(fila.estado) }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ fila.fechaInicio }}
+                    </td>
+                    <!--
+                      LOS ABIERTOS VAN SIN DÍAS FUERA a propósito: «hasta hoy» cambiaría cada
+                      vez que se consulta el reporte, y un número que se mueve solo no se
+                      puede citar.
+                    -->
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ fila.diasFuera ?? t().reportes.enCurso }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto md:px-5">
+                      {{ fila.costo ?? t().reportes.sinDato }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+          @case ('clientes') {
+            <table class="tabla-columnas w-full min-w-180 text-center text-sm">
+              <thead
+                class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+              >
+                <tr>
+                  <th
+                    scope="col"
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 text-start font-medium md:px-5"
+                  >
+                    {{ t().reportes.colCliente }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colRentas }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">
+                    {{ t().reportes.colVigentes }}
+                  </th>
+                  <th scope="col" class="px-4 py-2.5 font-medium">{{ t().reportes.colObras }}</th>
+                  <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                    {{ t().reportes.colTotal }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (fila of clientes.filas(); track fila.clienteId) {
+                  <tr class="border-b border-borde-fila last:border-0">
+                    <td
+                      class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 text-start font-medium text-texto md:px-5"
+                    >
+                      {{ fila.razonSocial }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">{{ fila.rentas }}</td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ fila.rentasVigentes }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ fila.proyectos }}
+                    </td>
+                    <td class="px-4 py-3 tabular-nums text-texto md:px-5">
+                      {{ fila.totalRentado }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        }
+      </div>
+    </section>
+
+    @if (categoria() === 'utilizacion') {
+      <!--
+        LA DEFINICIÓN, escrita en la pantalla. Un porcentaje de utilización sin definición no
+        significa nada, y las columnas de días son lo que permite verificarlo.
+      -->
+      <p class="text-xs text-texto-apagado">{{ t().reportes.definicionUtilizacion }}</p>
+    }
+  }
+</div>

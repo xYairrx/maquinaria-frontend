@@ -16,19 +16,30 @@ import { Barra } from '../../../disposicion/barra';
 import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
 import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiCotizaciones } from '../../../nucleo/api/api-cotizaciones';
-import { ApiOrganizacion } from '../../../nucleo/api/api-organizacion';
-import { ApiTerceros } from '../../../nucleo/api/api-terceros';
 import type {
   AltaCotizacion,
   Cotizacion,
   EstadoCotizacion,
   FiltroCotizaciones,
+  TipoCotizacion,
+  UnidadTarifa,
 } from '../../../nucleo/api/contratos';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { ErrorCampo, errorVisible } from '../../../nucleo/formularios/error-campo';
 import { validadorRequerido } from '../../../nucleo/formularios/validadores';
 import { idioma, t } from '../../../nucleo/i18n/i18n';
 import { CotizacionesEsqueleto } from './esqueleto';
+
+/**
+ * ISO con zona → lo que `<input type="datetime-local">` acepta: `AAAA-MM-DDTHH:mm`.
+ *
+ * Corta la cadena en lugar de construir un `Date`: el valor llega en UTC y pasarlo por `Date`
+ * lo movería a la zona del navegador, que es exactamente lo que no se quiere en un campo que
+ * el usuario capturó con esas mismas letras.
+ */
+function aLocal(iso: string | null | undefined): string {
+  return iso ? iso.slice(0, 16) : '';
+}
 
 const TAMANO_PAGINA = 50;
 
@@ -37,6 +48,16 @@ const ESTADOS: readonly EstadoCotizacion[] = [1, 2, 3, 4, 5, 6, 7];
 
 /** `EstadoCotizacion.Borrador`. Con nombre porque decide qué se puede tocar. */
 const BORRADOR: EstadoCotizacion = 1;
+
+/**
+ * **LAS CUATRO UNIDADES DE TIEMPO, y solo esas.** `UnidadTarifa` tiene seis; Evento (5) y
+ * Kilómetro (6) no se pueden contar a partir de un rango de fechas, así que un CHECK impide
+ * que la cotización las lleve y aquí no se ofrecen.
+ *
+ * Constante y no una función: son cuatro números, y sus rótulos salen del diccionario en la
+ * plantilla — así siguen el idioma sin que esto se evalúe al cargar el módulo.
+ */
+const UNIDADES: readonly UnidadTarifa[] = [1, 2, 3, 4];
 
 /**
  * La moneda de los importes.
@@ -82,8 +103,6 @@ const MONEDA = 'MXN';
 })
 export class Cotizaciones {
   private readonly api = inject(ApiCotizaciones);
-  private readonly terceros = inject(ApiTerceros);
-  private readonly organizacion = inject(ApiOrganizacion);
   private readonly barra = inject(Barra);
   private readonly fb = inject(NonNullableFormBuilder);
 
@@ -95,13 +114,16 @@ export class Cotizaciones {
   protected readonly mal = errorVisible;
 
   /**
-   * Solo los clientes ACTIVOS: `ValidarAsync` rechaza cotizarle a uno suspendido o dado de
-   * baja. Y solo las ubicaciones ADMINISTRATIVAS: una bodega guarda máquinas, no cotiza, y hay
-   * un trigger que lo hace cumplir.
+   * NI CLIENTES, NI UBICACIONES, NI TRABAJADORES.
+   *
+   * La cotización se quedó sin los tres: el responsable el 2026-09-08 y el cliente y la
+   * ubicación el 2026-09-09. Quien la levantó lo dice la bitácora de auditoría; **el cliente y
+   * las condiciones los pide el panel de conversión**, porque la renta sí los necesita — de
+   * ella salen el contrato y la factura.
+   *
+   * Y con la ubicación se fue la regla de «solo se cotiza desde un patio», con su disparador.
    */
-  protected readonly clientes = this.terceros.selectorClientesActivos();
-  protected readonly ubicaciones = this.organizacion.selectorAdministrativas();
-  protected readonly trabajadores = this.organizacion.selectorTrabajadores();
+  protected readonly unidades = UNIDADES;
 
   protected readonly busqueda = signal('');
 
@@ -111,14 +133,12 @@ export class Cotizaciones {
   );
 
   protected readonly estadoFiltrado = signal<EstadoCotizacion | undefined>(undefined);
-  protected readonly clienteFiltrado = signal('');
 
   protected readonly pagina = signal(1);
 
   private readonly filtro = computed<FiltroCotizaciones>(() => ({
     Texto: this.busquedaDiferida().trim() || undefined,
     Estado: this.estadoFiltrado(),
-    ClienteId: this.clienteFiltrado() || undefined,
     Numero: this.pagina(),
     Tamano: TAMANO_PAGINA,
   }));
@@ -145,22 +165,55 @@ export class Cotizaciones {
   protected readonly editando = signal<Cotizacion | null>(null);
 
   protected readonly formulario = this.fb.group({
-    clienteId: ['', validadorRequerido],
-    ubicacionId: ['', validadorRequerido],
-    trabajadorId: ['', validadorRequerido],
-
     // Las dos fechas son `<input type="date">`, que escribe TEXTO —`2026-08-28` o vacío—, no
     // un `Date`. Se mandan como están: el backend las lee como `DateOnly`.
     fecha: [''],
-    vigenciaHasta: [''],
+    // OBLIGATORIA (§10). Es un `<input type="date">`, que guarda TEXTO, así que
+    // `validadorRequerido` sirve — a diferencia de un `<select>` numérico, donde da
+    // `{ required: true }` siempre.
+    vigenciaHasta: ['', validadorRequerido],
+
+    // **SIN VALIDADOR Y CON VALOR INICIAL**: es un `<select>` numérico, y `validadorRequerido`
+    // pasa por `texto()`, que devuelve `''` para lo que no sea cadena — daría
+    // `{ required: true }` siempre y el botón no se habilitaría nunca. Con dos opciones y sin
+    // opción vacía no puede estar vacío por construcción.
+    tipo: [1 as TipoCotizacion],
+
+    // **CÓMO SE COBRA EL PERIODO**, y va justo después del tipo porque se lee junto: «una
+    // cotización de renta, por día». De ella y del periodo sale la cantidad de cada línea, y
+    // multiplicada por el costo del equipo, el costo de la máquina.
+    //
+    // Sin validador y con valor inicial, por lo mismo que el tipo: es un `<select>` numérico.
+    // Solo las cuatro de TIEMPO — Evento y Kilómetro no se pueden contar con fechas.
+    unidad: [2 as UnidadTarifa],
+
+    // El periodo PROPUESTO, solo en las de renta. Son `<input type="datetime-local">`, que
+    // escribe texto sin zona: se le pega la Z al mandarlo, igual que en Movimientos.
+    periodoInicio: [''],
+    periodoFin: [''],
 
     // Numéricos, así que `number | null`: un campo vaciado escribe `null`, nunca cadena vacía.
     // El servidor los declara `decimal` no anulables, así que salen con `?? 0`.
     descuento: [0 as number | null],
     impuestos: [0 as number | null],
 
+    // SIN CONDICIONES: salieron el 2026-09-09. Se capturan en la renta al convertir, que es
+    // donde de verdad se firman.
     notas: [''],
   });
+
+  /** Las dos opciones del `<select>`, en el orden del enum. */
+  protected readonly tiposCotizacion: readonly TipoCotizacion[] = [1, 2];
+
+  /**
+   * Los valores COMO SEÑAL. Sin esto, `esRenta` leería un `FormGroup` —que no es reactivo— y
+   * se quedaría con el primer valor: el periodo no aparecería al cambiar el tipo.
+   */
+  private readonly valores = toSignal(this.formulario.valueChanges, {
+    initialValue: this.formulario.getRawValue(),
+  });
+
+  protected readonly esRenta = computed(() => this.valores().tipo === 1);
 
   protected readonly mensajeVacio = computed(() => {
     const texto = this.busquedaDiferida().trim();
@@ -213,7 +266,6 @@ export class Cotizaciones {
     effect(() => {
       this.busquedaDiferida();
       this.estadoFiltrado();
-      this.clienteFiltrado();
       this.pagina.set(1);
     });
   }
@@ -239,11 +291,12 @@ export class Cotizaciones {
     this.editando.set(null);
     this.errorMutacion.set(null);
     this.formulario.reset({
-      clienteId: '',
-      ubicacionId: '',
-      trabajadorId: '',
       fecha: '',
       vigenciaHasta: '',
+      tipo: 1 as TipoCotizacion,
+      unidad: 2 as UnidadTarifa,
+      periodoInicio: '',
+      periodoFin: '',
       // Con 0 y no con null: son obligatorios, y `reset` con el tipo equivocado devuelve el
       // desajuste que el accesor numérico ya provocó una vez en Modelos.
       descuento: 0,
@@ -257,11 +310,13 @@ export class Cotizaciones {
     this.editando.set(cotizacion);
     this.errorMutacion.set(null);
     this.formulario.reset({
-      clienteId: cotizacion.clienteId,
-      ubicacionId: cotizacion.ubicacionId,
-      trabajadorId: cotizacion.trabajadorId,
       fecha: cotizacion.fecha,
-      vigenciaHasta: cotizacion.vigenciaHasta ?? '',
+      vigenciaHasta: cotizacion.vigenciaHasta,
+      tipo: cotizacion.tipo,
+      unidad: cotizacion.unidad,
+      // El servidor manda ISO con Z; `datetime-local` quiere `AAAA-MM-DDTHH:mm` sin zona.
+      periodoInicio: aLocal(cotizacion.periodoInicio),
+      periodoFin: aLocal(cotizacion.periodoFin),
       descuento: cotizacion.descuento,
       impuestos: cotizacion.impuestos,
       notas: cotizacion.notas ?? '',
@@ -285,12 +340,18 @@ export class Cotizaciones {
     const v = this.formulario.getRawValue();
 
     const alta = {
-      clienteId: v.clienteId,
-      ubicacionId: v.ubicacionId,
-      trabajadorId: v.trabajadorId,
       // Vacía va NULA y no como cadena: el backend pone la de hoy cuando no llega fecha.
       fecha: v.fecha || null,
-      vigenciaHasta: v.vigenciaHasta || null,
+      // OBLIGATORIA desde el 2026-09-03 (§10): una propuesta sin caducidad es un precio
+      // que el cliente puede reclamar un año después.
+      vigenciaHasta: v.vigenciaHasta,
+      tipo: v.tipo,
+      unidad: v.unidad,
+      // EL PERIODO SOLO EN LAS DE RENTA. Una de venta lo manda nulo aunque quedara escrito en
+      // el control: el servidor lo rechaza y un CHECK lo rechazaría después, pero sobre todo
+      // sería un periodo que no significa nada.
+      periodoInicio: v.tipo === 1 && v.periodoInicio !== '' ? `${v.periodoInicio}:00Z` : null,
+      periodoFin: v.tipo === 1 && v.periodoFin !== '' ? `${v.periodoFin}:00Z` : null,
       descuento: v.descuento ?? 0,
       impuestos: v.impuestos ?? 0,
       notas: v.notas.trim() === '' ? null : v.notas.trim(),

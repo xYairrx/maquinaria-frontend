@@ -1,5 +1,17 @@
 # Plan de la Fase 1 — frontend de empresa
 
+> ### ⚠ Sustituido en parte — 2026-09-01
+>
+> **El plan vigente es el del MVP:** ver [`plan-mvp-front.md`](plan-mvp-front.md). Donde este
+> documento y aquel se contradigan, manda el del MVP.
+>
+> Lo que sigue vigente de aquí, y por eso no se borra: el **patrón canónico de una pantalla de
+> módulo** (§8), los **tres contratos** que habla toda pantalla —filtro, página y razón de
+> rechazo— (§5), el flujo de `api:sync` (§6) y las **cuatro trampas** que ya costaron una
+> depuración cada una (§ «Cuatro trampas»). Todo eso se aplica igual a las pantallas nuevas.
+>
+> Lo que quedó atrás: el mapa de 18 pantallas y su orden (§4 y §7), y el estado por paso.
+
 > **Este documento manda sobre qué pantallas se construyen y en qué orden.** El alcance del
 > producto está en `maquinaria-backend/docs/06-alcance-fase1.md` y el plan del backend en
 > `07-plan-fase1.md`; aquí está la mitad que falta: las pantallas de la aplicación de

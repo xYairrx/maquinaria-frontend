@@ -128,6 +128,9 @@ export class Ventas {
     // Numéricos: sin `validadorRequerido`, que está escrito para texto.
     descuento: [0 as number | null],
     impuestos: [0 as number | null],
+    // Contado, parcialidades, anticipo: lo que se imprime en el documento de venta.
+    // Separado de las notas internas, como pide el documento funcional.
+    condicionesPago: [''],
     notas: [''],
   });
 
@@ -212,6 +215,7 @@ export class Ventas {
       fecha: '',
       descuento: 0,
       impuestos: 0,
+      condicionesPago: '',
       notas: '',
     });
     this.panelAbierto.set(true);
@@ -239,6 +243,7 @@ export class Ventas {
       fecha: v.fecha || null,
       descuento: v.descuento ?? 0,
       impuestos: v.impuestos ?? 0,
+      condicionesPago: v.condicionesPago.trim() === '' ? null : v.condicionesPago.trim(),
       notas: v.notas.trim() === '' ? null : v.notas.trim(),
     } satisfies AltaOrdenVenta;
 

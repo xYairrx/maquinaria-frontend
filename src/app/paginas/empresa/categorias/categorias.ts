@@ -31,7 +31,7 @@ const TAMANO_PAGINA = 50;
  * `nombre` y `descripcion` en lugar de un solo nombre.
  *
  * **De una categoría cuelgan los TIPOS de equipo**, y la columna de conteo lo enseña. Por
- * eso retirarla no es inocuo: sus tipos siguen apuntándole, pero deja de ofrecerse al crear
+ * eso retirarla no es inocuo: sus equipos siguen apuntándole, pero deja de ofrecerse al crear
  * uno nuevo.
  */
 @Component({

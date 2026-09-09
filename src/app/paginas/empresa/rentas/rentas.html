@@ -70,7 +70,6 @@
                   {{ t().rentas.colFolio }}
                 </th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().rentas.colCliente }}</th>
-                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().rentas.colLugar }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().rentas.colPeriodo }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().rentas.colEstado }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().rentas.colTotal }}</th>
@@ -90,8 +89,6 @@
                   </td>
 
                   <td class="px-4 py-3 text-texto">{{ renta.cliente }}</td>
-
-                  <td class="px-4 py-3 text-texto-secundario">{{ renta.lugar.descripcion }}</td>
 
                   <!--
                     Inicio y fin juntos: separarlos en dos columnas obliga a leer de un lado al
@@ -290,16 +287,17 @@
         <div class="flex flex-col gap-1">
           <label for="trabajadorId" class="text-sm font-medium text-texto-secundario">
             {{ t().rentas.responsable }}
+            <span class="font-normal text-texto-apagado">{{ t().cotizaciones.opcional }}</span>
           </label>
+          <!--
+            DEJO DE SER OBLIGATORIO EL 2026-09-09, con la columna. Exigirlo aqui dejaria una
+            renta convertida desde cotizacion —que no lo lleva— imposible de editar sin
+            inventarle uno.
+          -->
           <select
             id="trabajadorId"
             formControlName="trabajadorId"
-            [attr.aria-invalid]="mal(formulario.controls.trabajadorId) ? 'true' : null"
-            [attr.aria-describedby]="
-              mal(formulario.controls.trabajadorId)
-                ? 'ayuda-responsable error-responsable'
-                : 'ayuda-responsable'
-            "
+            aria-describedby="ayuda-responsable"
             class="campo-formulario"
           >
             <option value="">{{ t().rentas.sinDato }}</option>
@@ -313,11 +311,31 @@
           <p id="ayuda-responsable" class="text-xs text-texto-apagado">
             {{ t().rentas.ayudaResponsable }}
           </p>
-          <app-error-campo
-            id="error-responsable"
-            [visible]="mal(formulario.controls.trabajadorId)"
-            [mensaje]="t().rentas.errorResponsable"
-          />
+        </div>
+
+        <!--
+          LA UNIDAD, JUSTO ANTES DEL PERIODO, porque es lo que le da sentido: de ella y de las
+          dos fechas sale la cantidad de cada linea de equipo. La misma forma que en cotizacion.
+
+          `ngValue` y NO `value`: es un enum numerico.
+        -->
+        <div class="flex flex-col gap-1">
+          <label for="unidad" class="text-sm font-medium text-texto-secundario">
+            {{ t().rentas.unidad }}
+          </label>
+          <select
+            id="unidad"
+            formControlName="unidad"
+            aria-describedby="ayuda-unidad"
+            class="campo-formulario"
+          >
+            @for (opcion of unidades; track opcion) {
+              <option [ngValue]="opcion">{{ t().rentas.unidades[opcion] }}</option>
+            }
+          </select>
+          <p id="ayuda-unidad" class="text-xs text-texto-apagado">
+            {{ t().rentas.ayudaUnidad }}
+          </p>
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -374,113 +392,6 @@
           <p id="ayuda-periodo" class="text-xs text-texto-apagado sm:col-span-2">
             {{ t().rentas.ayudaPeriodo }}
           </p>
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <label for="lugarDescripcion" class="text-sm font-medium text-texto-secundario">
-            {{ t().rentas.lugar }}
-          </label>
-          <input
-            id="lugarDescripcion"
-            formControlName="lugarDescripcion"
-            autocomplete="off"
-            [attr.aria-invalid]="mal(formulario.controls.lugarDescripcion) ? 'true' : null"
-            [attr.aria-describedby]="
-              mal(formulario.controls.lugarDescripcion) ? 'ayuda-lugar error-lugar' : 'ayuda-lugar'
-            "
-            class="campo-formulario"
-          />
-          <p id="ayuda-lugar" class="text-xs text-texto-apagado">{{ t().rentas.ayudaLugar }}</p>
-          <app-error-campo
-            id="error-lugar"
-            [visible]="mal(formulario.controls.lugarDescripcion)"
-            [mensaje]="t().rentas.errorLugar"
-          />
-        </div>
-
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div class="flex flex-col gap-1 sm:col-span-2">
-            <label for="calle" class="text-sm font-medium text-texto-secundario">
-              {{ t().rentas.calle }}
-            </label>
-            <input id="calle" formControlName="calle" autocomplete="off" class="campo-formulario" />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label for="colonia" class="text-sm font-medium text-texto-secundario">
-              {{ t().rentas.colonia }}
-            </label>
-            <input
-              id="colonia"
-              formControlName="colonia"
-              autocomplete="off"
-              class="campo-formulario"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label for="codigoPostal" class="text-sm font-medium text-texto-secundario">
-              {{ t().rentas.codigoPostal }}
-            </label>
-            <input
-              id="codigoPostal"
-              formControlName="codigoPostal"
-              inputmode="numeric"
-              maxlength="10"
-              autocomplete="off"
-              class="campo-formulario"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label for="municipio" class="text-sm font-medium text-texto-secundario">
-              {{ t().rentas.municipio }}
-            </label>
-            <input
-              id="municipio"
-              formControlName="municipio"
-              autocomplete="off"
-              class="campo-formulario"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label for="estadoProv" class="text-sm font-medium text-texto-secundario">
-              {{ t().rentas.estadoProv }}
-            </label>
-            <input
-              id="estadoProv"
-              formControlName="estadoProv"
-              autocomplete="off"
-              class="campo-formulario"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label for="contacto" class="text-sm font-medium text-texto-secundario">
-              {{ t().rentas.contacto }}
-            </label>
-            <input
-              id="contacto"
-              formControlName="contacto"
-              autocomplete="off"
-              class="campo-formulario"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label for="telefono" class="text-sm font-medium text-texto-secundario">
-              {{ t().rentas.telefono }}
-            </label>
-            <input
-              id="telefono"
-              formControlName="telefono"
-              type="tel"
-              inputmode="tel"
-              autocomplete="off"
-              class="campo-formulario"
-            />
-          </div>
         </div>
       </fieldset>
 
@@ -564,10 +475,39 @@
         </div>
 
         <div class="flex flex-col gap-1">
+          <label for="condiciones" class="text-sm font-medium text-texto-secundario">
+            {{ t().rentas.condiciones }}
+          </label>
+          <textarea
+            id="condiciones"
+            formControlName="condiciones"
+            rows="3"
+            aria-describedby="ayuda-condiciones"
+            class="campo-formulario"
+          ></textarea>
+          <p id="ayuda-condiciones" class="text-xs text-texto-apagado">
+            {{ t().rentas.ayudaCondiciones }}
+          </p>
+        </div>
+
+        <!--
+          Y LAS NOTAS APARTE. Con un solo campo, o se imprimían las notas internas en el
+          contrato y el acuse de entrega, o no se imprimía nada.
+        -->
+        <div class="flex flex-col gap-1">
           <label for="notas" class="text-sm font-medium text-texto-secundario">
             {{ t().rentas.notas }}
           </label>
-          <textarea id="notas" formControlName="notas" rows="3" class="campo-formulario"></textarea>
+          <textarea
+            id="notas"
+            formControlName="notas"
+            rows="3"
+            aria-describedby="ayuda-notas"
+            class="campo-formulario"
+          ></textarea>
+          <p id="ayuda-notas" class="text-xs text-texto-apagado">
+            {{ t().rentas.ayudaNotas }}
+          </p>
         </div>
       </fieldset>
     </div>

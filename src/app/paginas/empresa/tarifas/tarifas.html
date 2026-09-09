@@ -62,6 +62,7 @@
                 <th scope="col" class="px-4 py-2.5 font-medium">
                   {{ t().tarifas.colDescripcion }}
                 </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().tarifas.colTipo }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().tarifas.colUnidad }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().tarifas.colAplicaA }}</th>
                 <th scope="col" class="px-4 py-2.5 md:px-5">
@@ -91,6 +92,10 @@
                   </td>
                   <td class="px-4 py-3 text-xs text-texto-apagado">
                     <span class="line-clamp-2 max-w-64">{{ tarifa.descripcion }}</span>
+                  </td>
+
+                  <td class="whitespace-nowrap px-4 py-3 text-texto-secundario">
+                    {{ tarifa.tipo }}
                   </td>
 
                   <td class="whitespace-nowrap px-4 py-3 text-texto-secundario">
@@ -283,6 +288,30 @@
             autocomplete="off"
             class="campo-formulario"
           />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="tipo-tarifa" class="text-sm font-medium text-texto-secundario">
+            {{ t().tarifas.tipo }}
+          </label>
+          <select
+            id="tipo-tarifa"
+            formControlName="tipoTarifaId"
+            aria-describedby="ayuda-tipo-tarifa"
+            class="campo-formulario"
+          >
+            <!--
+              `value` y NO `ngValue`: el id es un uuid, o sea texto, asi que el accesor
+              escribe en el control exactamente lo que dice el atributo. La regla de
+              `ngValue` aplica a enums, numeros y objetos, no a un GUID.
+            -->
+            @for (tipo of tipos(); track tipo.id) {
+              <option [value]="tipo.id">{{ tipo.nombre }}</option>
+            }
+          </select>
+          <p id="ayuda-tipo-tarifa" class="text-xs text-texto-apagado">
+            {{ t().tarifas.ayudaTipo }}
+          </p>
         </div>
 
         <div class="flex flex-col gap-1">

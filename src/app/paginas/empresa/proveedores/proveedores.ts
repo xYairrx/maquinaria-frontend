@@ -14,6 +14,7 @@ import { Barra } from '../../../disposicion/barra';
 import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
 import { Confirmacion } from '../../../disposicion/confirmacion';
 import { PanelLateral } from '../../../disposicion/panel-lateral';
+import { ApiCatalogos } from '../../../nucleo/api/api-catalogos';
 import { ApiTerceros } from '../../../nucleo/api/api-terceros';
 import type { AltaProveedor, FiltroListado, Proveedor } from '../../../nucleo/api/contratos';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
@@ -49,6 +50,9 @@ const TAMANO_PAGINA = 50;
 })
 export class Proveedores {
   private readonly api = inject(ApiTerceros);
+  // Los tipos son un CATALOGO: su URL es `/api/catalogos/...`. Mismo reparto que en
+  // `trabajadores`, que inyecta su API y ademas la de catalogos para los puestos.
+  private readonly catalogos = inject(ApiCatalogos);
   private readonly barra = inject(Barra);
   private readonly confirmacion = inject(Confirmacion);
   private readonly fb = inject(NonNullableFormBuilder);
@@ -96,8 +100,11 @@ export class Proveedores {
 
   protected readonly editando = signal<Proveedor | null>(null);
 
+  /** Los tipos ACTIVOS, para el desplegable. Recurso compartido y perezoso. */
+
   protected readonly formulario = this.fb.group({
     codigo: ['', validadorRequerido],
+    // Obligatorio en la base desde el MVP. `string` porque el id es un uuid.
     razonSocial: ['', validadorRequerido],
     nombreComercial: [''],
     // Los tres validadores son espejo de los del backend y viven en `nucleo/formularios`.

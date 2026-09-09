@@ -1,0 +1,465 @@
+<!--
+  Los usuarios de la empresa. SIN BORRAR: no se borran, viven en un estado. Y sin «crear con
+  contraseña»: se invita, y la persona la define al abrir la liga.
+-->
+<div class="mx-auto flex flex-col gap-4">
+  <app-barra-herramientas
+    [busqueda]="busqueda"
+    [marcadorBusqueda]="t().usuarios.buscar"
+    [accion]="t().usuarios.invitar"
+    (alPulsarAccion)="abrirAlta()"
+  >
+    <div filtros>
+      <label for="filtro-estado" class="sr-only">{{ t().usuarios.colEstado }}</label>
+      <select
+        id="filtro-estado"
+        (change)="filtrarPorEstado($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="estadoFiltro() === undefined">
+          {{ t().usuarios.cualquierEstado }}
+        </option>
+        @for (estado of estados; track estado) {
+          <option [value]="estado" [selected]="estadoFiltro() === estado">
+            {{ nombreEstado(estado) }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div filtros>
+      <label for="filtro-rol" class="sr-only">{{ t().usuarios.colRoles }}</label>
+      <select
+        id="filtro-rol"
+        (change)="filtrarPorRol($any($event.target).value)"
+        class="campo-formulario filtro-barra"
+      >
+        <option value="" [selected]="rolFiltro() === ''">{{ t().usuarios.cualquierRol }}</option>
+        @for (rol of rolesAsignables(); track rol.id) {
+          <option [value]="rol.id" [selected]="rolFiltro() === rol.id">{{ rol.nombre }}</option>
+        }
+      </select>
+    </div>
+  </app-barra-herramientas>
+
+  <!--
+    LA LIGA VIVE EN LA PANTALLA, no en el panel: el panel se cierra con el mismo gesto que lo
+    abrió, y esta liga existe SOLO en esa respuesta. Se queda hasta que alguien la descarta.
+  -->
+  @if (ligaEmitida(); as emitida) {
+    <div class="aviso flex flex-col gap-2" role="status">
+      <p class="text-sm font-medium text-texto">{{ t().usuarios.ligaTitulo(emitida.correo) }}</p>
+      <p class="text-xs text-texto-secundario">{{ t().usuarios.ligaApoyo }}</p>
+
+      <p class="break-all rounded-lg border border-borde bg-superficie p-2 text-xs text-texto">
+        {{ emitida.liga }}
+      </p>
+
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          (click)="copiar(emitida.liga)"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+        >
+          {{ t().usuarios.copiar }}
+        </button>
+
+        <button
+          type="button"
+          (click)="descartarLiga()"
+          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+        >
+          {{ t().usuarios.descartar }}
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (cargando()) {
+    <app-usuarios-esqueleto />
+  } @else {
+    @if (error(); as mensaje) {
+      <p
+        class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+        role="alert"
+      >
+        {{ mensaje }}
+      </p>
+    }
+
+    <section class="rounded-xl border border-borde bg-superficie" [attr.aria-busy]="recargando()">
+      @if (usuarios().length === 0) {
+        <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ mensajeVacio() }}</p>
+      } @else {
+        <div class="overflow-x-auto" tabindex="0">
+          <table class="tabla-columnas w-full min-w-240 text-center text-sm">
+            <thead
+              class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
+            >
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 text-start font-medium md:px-5"
+                >
+                  {{ t().usuarios.colPersona }}
+                </th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().usuarios.colRoles }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().usuarios.colAcceso }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().usuarios.colEstado }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
+                  {{ t().usuarios.acciones }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (usuario of usuarios(); track usuario.id) {
+                <tr class="border-b border-borde-fila last:border-0">
+                  <td
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 text-start md:px-5"
+                  >
+                    <p class="font-medium text-texto">
+                      {{ usuario.nombre }} {{ usuario.apellidos }}
+                    </p>
+                    <p class="text-xs text-texto-apagado">{{ usuario.correo }}</p>
+                    @if (usuario.invitacionPendiente) {
+                      <p class="text-xs text-texto-apagado">{{ t().usuarios.conInvitacion }}</p>
+                    }
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    @if (usuario.accesoTotal) {
+                      <span
+                        class="inline-block whitespace-nowrap rounded-full bg-estado-neutro-fondo px-2 py-0.5 text-[11px] font-medium text-estado-neutro-texto"
+                      >
+                        {{ t().usuarios.accesoTotal }}
+                      </span>
+                    } @else if (usuario.roles.length === 0) {
+                      {{ t().usuarios.sinRoles }}
+                    } @else {
+                      {{ usuario.roles.join(', ') }}
+                    }
+                  </td>
+
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ usuario.ultimoAccesoEn ?? t().usuarios.nunca }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <!--
+                      `[selected]` y no `[value]`: este <select> está FUERA de un formulario
+                      reactivo, y la vinculación del padre se aplica antes de que el @for haya
+                      creado una sola opción.
+                    -->
+                    <select
+                      [attr.aria-label]="t().usuarios.estadoDe(usuario.correo)"
+                      (change)="alElegirEstado(usuario, $any($event.target).value)"
+                      class="campo-formulario"
+                    >
+                      @for (estado of estados; track estado) {
+                        <option [value]="estado" [selected]="usuario.estado === estado">
+                          {{ nombreEstado(estado) }}
+                        </option>
+                      }
+                    </select>
+                  </td>
+
+                  <td class="px-4 py-3 md:px-5">
+                    <div class="flex flex-wrap justify-center gap-2">
+                      <button
+                        type="button"
+                        (click)="abrirEdicion(usuario)"
+                        class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                      >
+                        {{ t().usuarios.editar }}
+                      </button>
+
+                      <!--
+                        AL DE ACCESO TOTAL NO SE LE TOCAN LOS ROLES: se otorga al aprovisionar
+                        la empresa y el servidor lo rechaza. No se ofrece la acción en vez de
+                        dejar que descubra el 409.
+                      -->
+                      @if (!usuario.accesoTotal) {
+                        <button
+                          type="button"
+                          (click)="abrirRoles(usuario)"
+                          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                        >
+                          {{ t().usuarios.roles }}
+                        </button>
+                      }
+
+                      @if (usuario.estado === 1) {
+                        <button
+                          type="button"
+                          (click)="reenviar(usuario)"
+                          class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                        >
+                          {{ t().usuarios.reenviar }}
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (total() > 0) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="order-last ms-auto text-xs tabular-nums text-texto-apagado" aria-live="polite">
+          {{ t().usuarios.rango(desde(), hasta(), total()) }}
+        </p>
+
+        @if (paginas() > 1) {
+          <nav class="flex items-center gap-3" [attr.aria-label]="t().usuarios.paginacion">
+            <button
+              type="button"
+              (click)="irA(pagina() - 1)"
+              [disabled]="pagina() <= 1"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().usuarios.anterior }}
+            </button>
+
+            <span class="text-xs tabular-nums text-texto-apagado">
+              {{ t().usuarios.paginaDe(pagina(), paginas()) }}
+            </span>
+
+            <button
+              type="button"
+              (click)="irA(pagina() + 1)"
+              [disabled]="pagina() >= paginas()"
+              class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:text-estado-neutro-texto"
+            >
+              {{ t().usuarios.siguiente }}
+            </button>
+          </nav>
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-panel-lateral
+  [abierto]="panelAbierto()"
+  [titulo]="editando() ? t().usuarios.editarTitulo : t().usuarios.invitar"
+  [apoyo]="editando() ? t().usuarios.editarApoyo : t().usuarios.invitarApoyo"
+  (cerrar)="cerrarPanel()"
+>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario-usuario">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="correo" class="text-sm font-medium text-texto-secundario">
+          {{ t().usuarios.correo }}
+        </label>
+        <!--
+          DESHABILITADO EN LA EDICIÓN con `[attr.disabled]`, no con `control.disable()`: eso lo
+          sacaría de `formulario.value`. El correo es la llave del login y lo que la bitácora
+          congela; cambiarlo es cambiar de identidad, y para eso se invita a otra persona.
+        -->
+        <input
+          id="correo"
+          formControlName="correo"
+          type="email"
+          autocomplete="off"
+          [attr.disabled]="editando() ? '' : null"
+          [attr.aria-invalid]="mal(formulario.controls.correo) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formulario.controls.correo) ? 'ayuda-correo error-correo' : 'ayuda-correo'
+          "
+          class="campo-formulario"
+        />
+        <p id="ayuda-correo" class="text-xs text-texto-apagado">
+          {{ editando() ? t().usuarios.correoNoSeCambia : t().usuarios.ayudaCorreo }}
+        </p>
+        <app-error-campo
+          id="error-correo"
+          [visible]="mal(formulario.controls.correo)"
+          [mensaje]="t().usuarios.errorCorreo"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="nombre" class="text-sm font-medium text-texto-secundario">
+          {{ t().usuarios.nombre }}
+        </label>
+        <input
+          id="nombre"
+          formControlName="nombre"
+          autocomplete="off"
+          [attr.aria-invalid]="mal(formulario.controls.nombre) ? 'true' : null"
+          [attr.aria-describedby]="mal(formulario.controls.nombre) ? 'error-nombre' : null"
+          class="campo-formulario"
+        />
+        <app-error-campo
+          id="error-nombre"
+          [visible]="mal(formulario.controls.nombre)"
+          [mensaje]="t().usuarios.errorNombre"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="apellidos" class="text-sm font-medium text-texto-secundario">
+            {{ t().usuarios.apellidos }}
+            <span class="font-normal text-texto-apagado">{{ t().usuarios.opcional }}</span>
+          </label>
+          <input
+            id="apellidos"
+            formControlName="apellidos"
+            autocomplete="off"
+            class="campo-formulario"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="telefono" class="text-sm font-medium text-texto-secundario">
+            {{ t().usuarios.telefono }}
+            <span class="font-normal text-texto-apagado">{{ t().usuarios.opcional }}</span>
+          </label>
+          <input
+            id="telefono"
+            formControlName="telefono"
+            type="tel"
+            autocomplete="off"
+            class="campo-formulario"
+          />
+        </div>
+      </div>
+
+      @if (!editando()) {
+        <fieldset class="flex flex-col gap-2">
+          <legend class="text-sm font-medium text-texto-secundario">
+            {{ t().usuarios.rolesIniciales }}
+          </legend>
+          <p class="text-xs text-texto-apagado">{{ t().usuarios.ayudaRolesIniciales }}</p>
+
+          @if (rolesAsignables().length === 0) {
+            <p class="text-xs text-texto-apagado">{{ t().usuarios.sinRolesQueAsignar }}</p>
+          }
+
+          @for (rol of rolesAsignables(); track rol.id) {
+            <label class="flex items-start gap-2 text-sm text-texto">
+              <input
+                type="checkbox"
+                [checked]="rolesNuevos().includes(rol.id)"
+                (change)="alternarRolNuevo(rol.id)"
+                class="mt-0.5"
+              />
+              <span>
+                {{ rol.nombre }}
+                @if (rol.descripcion) {
+                  <span class="block text-xs text-texto-apagado">{{ rol.descripcion }}</span>
+                }
+              </span>
+            </label>
+          }
+        </fieldset>
+      }
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarPanel()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().usuarios.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-usuario"
+      [disabled]="!puedeEnviar()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{
+        enviando()
+          ? t().usuarios.guardando
+          : editando()
+            ? t().usuarios.guardar
+            : t().usuarios.enviarInvitacion
+      }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<app-panel-lateral
+  [abierto]="asignando() !== null"
+  [titulo]="t().usuarios.rolesTitulo"
+  [apoyo]="t().usuarios.rolesApoyo"
+  (cerrar)="cerrarRoles()"
+>
+  @if (asignando(); as usuario) {
+    <div class="flex flex-col gap-4 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      <p class="text-sm text-texto-secundario">{{ usuario.correo }}</p>
+
+      @if (rolesElegidos().length === 0) {
+        <p class="text-xs text-texto-apagado">{{ t().usuarios.avisoSinRoles }}</p>
+      }
+
+      <fieldset class="flex flex-col gap-2">
+        <legend class="sr-only">{{ t().usuarios.rolesTitulo }}</legend>
+
+        @for (rol of rolesAsignables(); track rol.id) {
+          <label class="flex items-start gap-2 text-sm text-texto">
+            <input
+              type="checkbox"
+              [checked]="rolesElegidos().includes(rol.id)"
+              (change)="alternarRol(rol.id)"
+              class="mt-0.5"
+            />
+            <span>
+              {{ rol.nombre }}
+              @if (rol.descripcion) {
+                <span class="block text-xs text-texto-apagado">{{ rol.descripcion }}</span>
+              }
+            </span>
+          </label>
+        }
+      </fieldset>
+    </div>
+  }
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarRoles()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().usuarios.cerrar }}
+    </button>
+
+    <button
+      type="button"
+      (click)="guardarRoles()"
+      [disabled]="enviando()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().usuarios.guardando : t().usuarios.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>

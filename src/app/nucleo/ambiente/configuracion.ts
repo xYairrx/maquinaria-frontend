@@ -23,7 +23,24 @@
  */
 export const AMBIENTES = [
   {
+    // Sin barra final: `urlApi` se concatena con `/api/...`, y una barra de más produce
+    // `//api/...`, que el enrutador de ASP.NET Core no reconoce. Lo vigila el spec.
+    //
+    // LA API LOCAL, y tiene que seguir siéndolo. Estuvo apuntando al despliegue de
+    // Railway, y eso rompe el desarrollo local de una forma que engaña: la petición sale,
+    // el CORS de ese ambiente rechaza el origen `http://<slug>.localhost:<puerto>` —su
+    // `DominioBase` es `maqvia.com` y exige https—, y el navegador la bloquea antes de
+    // que llegue respuesta. El frontend solo ve estado 0 y dice «no se pudo contactar al
+    // servidor», así que se busca el fallo en la API local, que estaba levantada y bien.
+    //
+    // Es también lo que este archivo dice de sí mismo más abajo: el ambiente al que cae
+    // un anfitrión desconocido «apunta a una API que no existe fuera de la máquina del
+    // desarrollador». Con la URL de Railway, esa frase era falsa.
     urlApi: 'http://localhost:5123',
+    /**
+     * `bajio.localhost:4200` funciona sin tocar el archivo `hosts` porque Chrome y
+     * Edge resuelven `*.localhost` a 127.0.0.1 de forma nativa.
+     */
     dominioBase: 'localhost',
   },
   {

@@ -118,10 +118,20 @@ export class Tarifas {
 
   protected readonly editando = signal<Tarifa | null>(null);
 
+  /**
+   * Los tipos ACTIVOS, para el desplegable. Recurso compartido y perezoso: si otra pantalla
+   * ya lo pidio, no se vuelve a pedir.
+   */
+  protected readonly tipos = this.api.selectorTiposTarifa();
+
   protected readonly formulario = this.fb.group({
     codigo: ['', [Validators.required, Validators.maxLength(30)]],
     nombre: ['', [Validators.required, Validators.maxLength(80)]],
     descripcion: [''],
+    // El tipo es OBLIGATORIO en la base desde el MVP. Se declara `string` porque el id es
+    // un uuid: por eso el `<option>` puede usar `[value]` y no `[ngValue]` —un GUID ya es
+    // texto, asi que el accesor no miente—.
+    tipoTarifaId: ['', Validators.required],
     // Tipado como UnidadTarifa y no como number: el contrato admite 1..6 y el compilador
     // lo hace cumplir desde que el documento OpenAPI declara los valores del enum.
     unidad: [2 as UnidadTarifa, Validators.required],
@@ -210,6 +220,9 @@ export class Tarifas {
       codigo: '',
       nombre: '',
       descripcion: '',
+      // El primero de la lista, que es Operacion salvo que la empresa reordene el catalogo.
+      // Un desplegable obligatorio que arranca vacio obliga a un clic que no decide nada.
+      tipoTarifaId: this.tipos()[0]?.id ?? '',
       unidad: 2,
       aplicaRenta: true,
       aplicaVenta: false,
@@ -224,6 +237,7 @@ export class Tarifas {
       codigo: tarifa.codigo,
       nombre: tarifa.nombre,
       descripcion: tarifa.descripcion ?? '',
+      tipoTarifaId: tarifa.tipoTarifaId,
       unidad: tarifa.unidad,
       aplicaRenta: tarifa.aplicaRenta,
       aplicaVenta: tarifa.aplicaVenta,
@@ -268,6 +282,7 @@ export class Tarifas {
       codigo: v.codigo.trim(),
       nombre: v.nombre.trim(),
       descripcion: v.descripcion.trim() === '' ? null : v.descripcion.trim(),
+      tipoTarifaId: v.tipoTarifaId,
       unidad: v.unidad,
       aplicaRenta: v.aplicaRenta,
       aplicaVenta: v.aplicaVenta,

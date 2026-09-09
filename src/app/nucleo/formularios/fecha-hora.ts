@@ -69,3 +69,22 @@ export function aCampoLocal(iso: string): string {
     `T${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`
   );
 }
+
+/**
+ * Hoy, en el formato que espera un `<input type="date">`: `yyyy-MM-dd`.
+ *
+ * **En hora LOCAL y no en UTC**, que es lo contrario de lo que hace el resto de este archivo —y
+ * por eso conviene decirlo—. Un `toISOString().slice(0, 10)` da el día en Greenwich: al oeste,
+ * de las 18:00 en adelante devuelve MAÑANA, y el campo arrancaría con una fecha que quien lo
+ * mira no reconoce como hoy.
+ *
+ * El valor que se envía SÍ se convierte a instante; esto es solo lo que se pinta.
+ */
+export function hoyEnCampo(): string {
+  const ahora = new Date();
+
+  const mes = `${ahora.getMonth() + 1}`.padStart(2, '0');
+  const dia = `${ahora.getDate()}`.padStart(2, '0');
+
+  return `${ahora.getFullYear()}-${mes}-${dia}`;
+}

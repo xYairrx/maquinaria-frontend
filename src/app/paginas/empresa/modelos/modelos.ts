@@ -35,11 +35,11 @@ const TAMANO_PAGINA = 50;
  * **Dos selectores, y no son simétricos.** La MARCA es obligatoria —un modelo sin marca no
  * identifica nada— y el TIPO es opcional: el mismo 320D puede clasificarse como excavadora
  * o quedar sin tipo hasta que alguien lo decida. El modelo del backend lo dice con
- * `TipoEquipoId` anulable, y el formulario lo respeta con una opción «sin tipo» que manda
+ * `CategoriaId` anulable, y el formulario lo respeta con una opción «sin tipo» que manda
  * `null`, no cadena vacía.
  *
  * **Los dos filtran en el SERVIDOR.** `FiltroModelosEquipo` acepta `MarcaId` y
- * `TipoEquipoId`, así que la pantalla no trae el catálogo entero para filtrarlo en memoria.
+ * `CategoriaId`, así que la pantalla no trae el catálogo entero para filtrarlo en memoria.
  *
  * **`horasEntreServicios` es de mantenimiento, no de catálogo.** Vive aquí porque es una
  * propiedad del modelo —todo 320D se sirve cada tantas horas— y es lo que la Fase 3 usará
@@ -61,7 +61,7 @@ export class Modelos {
 
   /** Los dos desplegables, compartidos y solo con lo activo. */
   protected readonly marcas = this.api.selectorMarcas();
-  protected readonly tipos = this.api.selectorTipos();
+  protected readonly tipos = this.api.selectorCategorias();
 
   /** Sin marcas activas no hay de dónde colgar un modelo. El tipo sí puede faltar. */
   protected readonly sinMarcas = computed(() => this.marcas().length === 0);
@@ -113,7 +113,7 @@ export class Modelos {
   protected readonly formulario = this.fb.group({
     marcaId: ['', Validators.required],
     // Cadena vacía = «sin tipo». Se traduce a `null` al enviar; el backend lo acepta.
-    tipoEquipoId: [''],
+    categoriaEquipoId: [''],
     nombre: ['', [Validators.required, Validators.maxLength(80)]],
     descripcion: [''],
     // NÚMERO, y anulable. Lo decide el `NumberValueAccessor`, no esta declaración: un
@@ -195,7 +195,7 @@ export class Modelos {
     this.errorMutacion.set(null);
     this.formulario.reset({
       marcaId: '',
-      tipoEquipoId: '',
+      categoriaEquipoId: '',
       nombre: '',
       descripcion: '',
       horasEntreServicios: null,
@@ -208,7 +208,7 @@ export class Modelos {
     this.errorMutacion.set(null);
     this.formulario.reset({
       marcaId: modelo.marcaId,
-      tipoEquipoId: modelo.tipoEquipoId ?? '',
+      categoriaEquipoId: modelo.categoriaEquipoId ?? '',
       nombre: modelo.nombre,
       descripcion: modelo.descripcion ?? '',
       horasEntreServicios: modelo.horasEntreServicios ?? null,
@@ -251,7 +251,7 @@ export class Modelos {
       marcaId: v.marcaId,
       // Cadena vacía va como null, no como ''. La columna es anulable y '' sería un id
       // inválido que el servidor rechazaría.
-      tipoEquipoId: v.tipoEquipoId === '' ? null : v.tipoEquipoId,
+      categoriaEquipoId: v.categoriaEquipoId === '' ? null : v.categoriaEquipoId,
       nombre: v.nombre.trim(),
       descripcion: v.descripcion.trim() === '' ? null : v.descripcion.trim(),
       horasEntreServicios: horas === null || !Number.isFinite(horas) ? null : Math.trunc(horas),

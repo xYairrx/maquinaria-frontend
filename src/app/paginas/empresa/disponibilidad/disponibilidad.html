@@ -59,27 +59,6 @@
           </select>
         </div>
 
-        <div class="flex flex-col gap-1 sm:col-span-2">
-          <label for="filtro-cliente" class="text-sm font-medium text-texto-secundario">
-            {{ t().disponibilidad.cliente }}
-          </label>
-          <select
-            id="filtro-cliente"
-            [value]="clienteFiltrado()"
-            (change)="filtrarPorCliente($any($event.target).value)"
-            aria-describedby="ayuda-cliente"
-            class="campo-formulario"
-          >
-            <option value="">{{ t().disponibilidad.precioLista }}</option>
-            @for (cliente of clientes(); track cliente.id) {
-              <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
-            }
-          </select>
-          <p id="ayuda-cliente" class="text-xs text-texto-apagado">
-            {{ t().disponibilidad.ayudaCliente }}
-          </p>
-        </div>
-
         <div class="flex items-end sm:col-span-2 lg:col-span-2 lg:justify-end">
           <button type="submit" class="boton-principal w-full sm:w-auto">
             {{ t().disponibilidad.consultar }}
@@ -161,11 +140,14 @@
                 <tr class="border-b border-borde-fila last:border-0">
                   <td class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 md:px-5">
                     {{ equipo.codigoInterno }}
+                    @if (equipo.nombre) {
+                      <span class="block text-xs text-texto-apagado">{{ equipo.nombre }}</span>
+                    }
                   </td>
                   <td class="px-4 py-3 font-medium text-texto">
                     {{ equipo.marca }} {{ equipo.modelo }}
                   </td>
-                  <td class="px-4 py-3 text-texto-secundario">{{ equipo.tipoEquipo }}</td>
+                  <td class="px-4 py-3 text-texto-secundario">{{ equipo.categoria }}</td>
                   <td class="px-4 py-3 text-texto-secundario">
                     {{ equipo.ubicacion ?? t().disponibilidad.sinDato }}
                   </td>

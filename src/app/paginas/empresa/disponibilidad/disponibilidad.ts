@@ -14,7 +14,6 @@ import { PanelLateral } from '../../../disposicion/panel-lateral';
 import { ApiCatalogos } from '../../../nucleo/api/api-catalogos';
 import { ApiDisponibilidad } from '../../../nucleo/api/api-disponibilidad';
 import { ApiOrganizacion } from '../../../nucleo/api/api-organizacion';
-import { ApiTerceros } from '../../../nucleo/api/api-terceros';
 import type {
   EquipoDisponible,
   FiltroDisponibilidad,
@@ -59,7 +58,6 @@ export class Disponibilidad {
   private readonly api = inject(ApiDisponibilidad);
   private readonly catalogos = inject(ApiCatalogos);
   private readonly organizacion = inject(ApiOrganizacion);
-  private readonly terceros = inject(ApiTerceros);
   private readonly barra = inject(Barra);
   private readonly confirmacion = inject(Confirmacion);
   private readonly fb = inject(NonNullableFormBuilder);
@@ -67,9 +65,10 @@ export class Disponibilidad {
   protected readonly t = t;
   protected readonly motivosManuales = MOTIVOS_MANUALES;
 
-  protected readonly tipos = this.catalogos.selectorTipos();
+  protected readonly tipos = this.catalogos.selectorCategorias();
   protected readonly ubicaciones = this.organizacion.selectorUbicaciones();
-  protected readonly clientes = this.terceros.selectorClientes();
+  // SIN SELECTOR DE CLIENTES: lo leia el filtro del precio negociado, retirado el
+  // 2026-09-09 con la columna `equipo_tarifa.cliente_id`.
 
   /**
    * El periodo consultado. **Se APLICA al pulsar Consultar**, no al teclear.
@@ -82,7 +81,9 @@ export class Disponibilidad {
 
   protected readonly tipoFiltrado = signal('');
   protected readonly ubicacionFiltrada = signal('');
-  protected readonly clienteFiltrado = signal('');
+  // SIN FILTRO DE CLIENTE. Existio para ver el precio negociado de ese cliente en lugar del
+  // de lista, y el 2026-09-09 se retiro el precio por cliente: el desplegable habria quedado
+  // cambiando el resultado en nada.
 
   protected readonly formularioPeriodo = this.fb.group({
     desde: [''],
@@ -102,9 +103,8 @@ export class Disponibilidad {
     return {
       Desde: p ? `${p.desde}T00:00:00Z` : undefined,
       Hasta: p ? `${p.hasta}T00:00:00Z` : undefined,
-      TipoEquipoId: this.tipoFiltrado() || undefined,
+      CategoriaId: this.tipoFiltrado() || undefined,
       UbicacionId: this.ubicacionFiltrada() || undefined,
-      ClienteId: this.clienteFiltrado() || undefined,
       Tamano: 200,
     };
   });
@@ -178,10 +178,6 @@ export class Disponibilidad {
 
   protected filtrarPorUbicacion(id: string): void {
     this.ubicacionFiltrada.set(id);
-  }
-
-  protected filtrarPorCliente(id: string): void {
-    this.clienteFiltrado.set(id);
   }
 
   protected abrirCalendario(equipo: EquipoDisponible): void {

@@ -10,11 +10,14 @@ import type {
   AltaRenta,
   AltaRentaConcepto,
   AltaRentaLinea,
+  AltaRentaLineaTarifa,
+  DestinoDeLinea,
   CierreDeRenta,
   ExtensionRenta,
   Renta,
   RentaConcepto,
   RentaLinea,
+  RentaLineaTarifa,
 } from './contratos';
 import { mensajeDeErrorDeRecurso } from './mensaje-error';
 import { FabricaDeRecursos } from './recursos-rest';
@@ -187,6 +190,48 @@ export class ApiRentas {
   quitarLinea(id: string, lineaId: string): Observable<void> {
     return this.fabrica.borrar(
       `rentas/${encodeURIComponent(id)}/lineas/${encodeURIComponent(lineaId)}`,
+      { recargar: 'rentas' },
+    );
+  }
+
+  /**
+   * Agrega un cargo a una máquina que ya está en la renta.
+   *
+   * **Cuelga de la LÍNEA y no de la renta, y ahí está la diferencia con `agregarConcepto`**:
+   * esto se cobra por esta máquina —sale en su renglón y suma a su importe— y aquello se cobra
+   * por la renta entera. Solo en Borrador, como la línea: después tiene calendario detrás.
+   */
+  agregarTarifa(
+    id: string,
+    lineaId: string,
+    alta: AltaRentaLineaTarifa,
+  ): Observable<RentaLineaTarifa> {
+    return this.fabrica.publicar<RentaLineaTarifa>(
+      `rentas/${encodeURIComponent(id)}/lineas/${encodeURIComponent(lineaId)}/tarifas`,
+      alta,
+      { recargar: 'rentas' },
+    );
+  }
+
+  /**
+   * Asigna la máquina a una obra —y con ella su sitio de entrega—, o se lo quita.
+   *
+   * **En cualquier estado salvo Cerrada y Cancelada**, al contrario que agregar o quitar
+   * líneas: la obra no toca el calendario, y en la práctica se sabe después de confirmar.
+   * Responde 409 si la máquina ya se entregó: a partir de ahí moverla es un movimiento.
+   */
+  asignarDestino(id: string, lineaId: string, destino: DestinoDeLinea): Observable<RentaLinea> {
+    return this.fabrica.reemplazar<RentaLinea>(
+      `rentas/${encodeURIComponent(id)}/lineas/${encodeURIComponent(lineaId)}/destino`,
+      destino,
+      { recargar: 'rentas' },
+    );
+  }
+
+  quitarTarifa(id: string, lineaId: string, tarifaLineaId: string): Observable<void> {
+    return this.fabrica.borrar(
+      `rentas/${encodeURIComponent(id)}/lineas/${encodeURIComponent(lineaId)}` +
+        `/tarifas/${encodeURIComponent(tarifaLineaId)}`,
       { recargar: 'rentas' },
     );
   }

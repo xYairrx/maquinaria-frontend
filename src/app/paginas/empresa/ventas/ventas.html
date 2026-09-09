@@ -304,10 +304,35 @@
       </div>
 
       <div class="flex flex-col gap-1">
+        <label for="condicionesPago" class="text-sm font-medium text-texto-secundario">
+          {{ t().ordenes.condicionesPago }}
+        </label>
+        <textarea
+          id="condicionesPago"
+          formControlName="condicionesPago"
+          rows="3"
+          aria-describedby="ayuda-condiciones"
+          class="campo-formulario"
+        ></textarea>
+        <p id="ayuda-condiciones" class="text-xs text-texto-apagado">
+          {{ t().ordenes.ayudaCondicionesPago }}
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-1">
         <label for="notas" class="text-sm font-medium text-texto-secundario">
           {{ t().ordenes.notas }}
         </label>
-        <textarea id="notas" formControlName="notas" rows="3" class="campo-formulario"></textarea>
+        <textarea
+          id="notas"
+          formControlName="notas"
+          rows="3"
+          aria-describedby="ayuda-notas"
+          class="campo-formulario"
+        ></textarea>
+        <p id="ayuda-notas" class="text-xs text-texto-apagado">
+          {{ t().ordenes.ayudaNotas }}
+        </p>
       </div>
     </div>
   </form>

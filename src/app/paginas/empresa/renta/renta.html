@@ -75,7 +75,12 @@
         </div>
         <div>
           <dt class="text-xs text-texto-apagado">{{ t().renta.responsable }}</dt>
-          <dd class="text-texto">{{ r.trabajador }}</dd>
+          <!--
+            CON RESGUARDO: el responsable es opcional desde el 2026-09-09 y una renta convertida
+            desde cotizacion no lo lleva. Sin el `??` la ficha ensenaria un hueco, que se lee
+            como un fallo de la pantalla y no como un dato que no se capturo.
+          -->
+          <dd class="text-texto">{{ r.trabajador ?? t().renta.sinDato }}</dd>
         </div>
         <div class="col-span-2">
           <dt class="text-xs text-texto-apagado">{{ t().renta.periodo }}</dt>
@@ -84,10 +89,6 @@
             –
             {{ r.fin | date: 'short' : undefined : locale() }}
           </dd>
-        </div>
-        <div class="col-span-2 sm:col-span-3">
-          <dt class="text-xs text-texto-apagado">{{ t().renta.lugar }}</dt>
-          <dd class="text-texto">{{ r.lugar.descripcion }}</dd>
         </div>
         <div>
           <!-- La cotizacion de origen, cuando la hay: una renta puede nacer suelta. -->
@@ -229,11 +230,16 @@
     </section>
 
     <!--
-      COTIZADO POR TIPO. Solo aparece si la renta salio de una cotizacion Y esa cotizacion trae
-      lineas sin maquina. Va ANTES de la tabla de equipos porque es lo que falta por hacer, no
-      un historico.
+      COTIZADO SIN MAQUINA. Solo aparece si la renta salio de una cotizacion Y esa cotizacion
+      trae lineas sin equipo. Va ANTES de la tabla de equipos porque es algo que decidir, no un
+      historico.
+
+      HASTA EL 2026-09-08 ERA «cotizado por tipo» y la lista significaba «esto falta». Al
+      retirarse la categoria de la linea, una linea sin maquina ya no se distingue de un flete,
+      asi que aqui pueden aparecer cargos que deben quedarse como cargos. El texto de la
+      cabecera lo dice: es una revision, no una lista de pendientes.
     -->
-    @if (esBorrador() && cotizadasPorTipo().length > 0) {
+    @if (esBorrador() && cotizadasSinMaquina().length > 0) {
       <section class="rounded-xl border border-amarillo bg-superficie">
         <div class="border-b border-borde px-4 py-3 md:px-5">
           <h2 class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
@@ -253,7 +259,7 @@
                   scope="col"
                   class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
                 >
-                  {{ t().renta.colTipo }}
+                  {{ t().renta.colCotizado }}
                 </th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colConcepto }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colCantidad }}</th>
@@ -265,26 +271,41 @@
             </thead>
 
             <tbody>
-              @for (cotizada of cotizadasPorTipo(); track cotizada.id) {
+              @for (cotizada of cotizadasSinMaquina(); track cotizada.id) {
                 <tr class="border-b border-borde-fila last:border-0">
                   <td
                     class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium md:px-5"
                   >
-                    {{ cotizada.tipoEquipo }}
+                    {{ rotuloCotizado(cotizada) }}
                   </td>
-                  <td class="px-4 py-3 text-texto-secundario">{{ cotizada.tarifa }}</td>
-                  <td class="px-4 py-3 tabular-nums text-texto-secundario">
-                    {{ cotizada.cantidad }} {{ cotizada.unidad }}
-                  </td>
-                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
-                    {{ cotizada.precioUnitario | currency: moneda : 'symbol' : '1.2-2' : locale() }}
-                  </td>
+
+                  <!--
+                    EL PRIMER CONCEPTO, que es el que se precargaria: es el mismo criterio que
+                    sigue la conversion al decidir cual se vuelve linea de renta. Si la linea
+                    traia varios, los demas ya estan abajo como cargos.
+                  -->
+                  @if (primerConcepto(cotizada); as concepto) {
+                    <td class="px-4 py-3 text-texto-secundario">{{ concepto.tarifa }}</td>
+                    <td class="px-4 py-3 tabular-nums text-texto-secundario">
+                      {{ concepto.cantidad }} {{ concepto.unidad }}
+                    </td>
+                    <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+                      {{
+                        concepto.precioUnitario | currency: moneda : 'symbol' : '1.2-2' : locale()
+                      }}
+                    </td>
+                  } @else {
+                    <td class="px-4 py-3 text-texto-apagado" colspan="3">
+                      {{ t().renta.sinConceptoCotizado }}
+                    </td>
+                  }
+
                   <td class="px-4 py-2 md:px-5">
                     <button
                       type="button"
                       (click)="asignarDesde(cotizada)"
-                      [disabled]="enviando()"
-                      [attr.aria-label]="t().renta.asignarA(cotizada.tipoEquipo ?? '')"
+                      [disabled]="enviando() || cotizada.tarifas.length === 0"
+                      [attr.aria-label]="t().renta.asignarA(rotuloCotizado(cotizada))"
                       class="rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed"
                     >
                       {{ t().renta.asignar }}
@@ -321,20 +342,27 @@
       @if (lineas().length === 0) {
         <p class="px-4 py-6 text-sm text-texto-secundario md:px-5">{{ t().renta.sinLineas }}</p>
       } @else {
+        <!--
+          DOS NIVELES EN UNA SOLA TABLA, IGUAL QUE LA COTIZACION. Arriba la MAQUINA —su costo,
+          su cantidad y el TOTAL del renglon en negrita— y debajo una fila por CARGO, sangrada.
+
+          **LO AGRUPABA ESTA PANTALLA Y AHORA LO TRAE EL DTO.** Unas horas del 2026-09-09 la
+          tabla `renta_linea` tenia una fila por (equipo, concepto) y aqui se juntaban por
+          maquina; esa tarde la tabla paso a tener una fila por maquina con sus cargos dentro,
+          asi que agrupar aqui seria rehacer lo que el modelo ya dice.
+        -->
         <div class="overflow-x-auto" tabindex="0">
-          <table class="tabla-columnas w-full min-w-240 text-center text-sm">
+          <table class="tabla-columnas w-full min-w-220 text-center text-sm">
             <thead
               class="border-b border-borde text-[11px] uppercase tracking-wide text-texto-apagado"
             >
               <tr>
                 <th
                   scope="col"
-                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 font-medium md:px-5"
+                  class="sticky left-0 border-r border-borde bg-superficie px-4 py-2.5 text-start font-medium md:px-5"
                 >
                   {{ t().renta.colEquipo }}
                 </th>
-                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colModelo }}</th>
-                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colConcepto }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colCantidad }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colPrecio }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colImporte }}</th>
@@ -350,32 +378,124 @@
               </tr>
             </thead>
 
-            <tbody>
-              @for (linea of lineas(); track linea.id) {
-                <tr class="border-b border-borde-fila last:border-0">
-                  <td
-                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 font-medium md:px-5"
+            <!--
+              UN `tbody` POR MAQUINA. Es HTML valido y hace el agrupamiento explicito: la
+              maquina y sus cargos son un bloque, y el borde de abajo separa una maquina de la
+              siguiente en lugar de separar cada cargo.
+            -->
+            @for (linea of lineas(); track linea.id) {
+              <tbody class="border-b border-borde last:border-0">
+                <tr>
+                  <th
+                    scope="rowgroup"
+                    class="sticky left-0 border-r border-borde bg-superficie px-4 py-3 text-start font-semibold text-texto md:px-5"
                   >
-                    {{ linea.codigoInterno }}
+                    {{ t().comun.equipoEnLinea(linea.codigoInterno, linea.nombre) }}
+
+                    <span class="block text-[11px] font-normal text-texto-secundario">
+                      {{ linea.modelo }}
+                    </span>
+
+                    <!--
+                      EL DESTINO Y LA OBRA DENTRO DE LA CELDA DEL EQUIPO, no en su propia
+                      columna: son dato de esta maquina, asi que van con ella.
+                    -->
+                    <span class="block text-[11px] font-normal text-texto-apagado">
+                      {{ linea.ubicacionDestino ?? t().renta.sinDestino }}
+                      @if (linea.proyecto) {
+                        · {{ linea.proyecto }}
+                      }
+                    </span>
+                  </th>
+
+                  <!--
+                    LA CANTIDAD Y EL PRECIO SON LOS DE LA MAQUINA; el importe, el del RENGLON
+                    entero —maquina mas cargos—. Es la misma asimetria que en la cotizacion, y a
+                    proposito: la fila de arriba rotula el renglon completo del documento.
+                  -->
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ linea.cantidad }} {{ t().cotizaciones.unidades[renta()!.unidad] }}
                   </td>
-                  <td class="px-4 py-3 text-texto-secundario">{{ linea.modelo }}</td>
-                  <td class="px-4 py-3 text-texto-secundario">{{ linea.tarifa }}</td>
-                  <td class="px-4 py-3 tabular-nums text-texto-secundario">{{ linea.cantidad }}</td>
                   <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
                     {{ linea.precioUnitario | currency: moneda : 'symbol' : '1.2-2' : locale() }}
                   </td>
-                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
+
+                  <td class="whitespace-nowrap px-4 py-3 font-semibold tabular-nums text-texto">
                     {{ linea.importe | currency: moneda : 'symbol' : '1.2-2' : locale() }}
                   </td>
+
                   <td class="px-4 py-3 tabular-nums text-texto-secundario">
                     {{ linea.horometroSalida ?? t().renta.sinDato }}
                   </td>
                   <td class="px-4 py-3 tabular-nums text-texto-secundario">
                     {{ linea.horometroDevolucion ?? t().renta.sinDato }}
                   </td>
+
                   <td class="px-4 py-2 md:px-5">
                     <div class="flex justify-center gap-1">
+                      <!--
+                        ASIGNAR LA OBRA. **Fuera del `@if (esBorrador())` a proposito**: la obra
+                        no toca el calendario y se suele saber DESPUES de confirmar. Lo que la
+                        cierra es que la maquina se haya entregado, y de eso se encarga el
+                        servidor con un 409.
+
+                        Es la funcion que faltaba: hasta el 2026-09-09 la obra solo se podia
+                        poner al crear la linea, y una renta que venia de una cotizacion llegaba
+                        siempre sin ella.
+                      -->
+                      @if (admiteCargos()) {
+                        <button
+                          type="button"
+                          (click)="abrirDestino(linea)"
+                          [disabled]="enviando()"
+                          [attr.aria-label]="t().renta.asignarObraA(linea.codigoInterno)"
+                          [title]="t().renta.asignarObra"
+                          class="boton-icono"
+                        >
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11" />
+                            <circle cx="12" cy="10" r="2.5" />
+                          </svg>
+                        </button>
+                      }
+
                       @if (esBorrador()) {
+                        <!--
+                          AGREGAR UN CARGO A ESTA MAQUINA, que es lo que entro el 2026-09-09:
+                          antes un flete de esta maquina se capturaba abajo, en los cargos de la
+                          renta, y nada decia de que maquina era.
+                        -->
+                        <button
+                          type="button"
+                          (click)="abrirConcepto(linea)"
+                          [disabled]="enviando()"
+                          [attr.aria-label]="t().renta.agregarCargoA(linea.codigoInterno)"
+                          [title]="t().renta.agregarCargoALaMaquina"
+                          class="boton-icono"
+                        >
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 5v14M5 12h14" />
+                          </svg>
+                        </button>
+
                         <button
                           type="button"
                           (click)="quitarLinea(linea)"
@@ -403,8 +523,81 @@
                     </div>
                   </td>
                 </tr>
-              }
-            </tbody>
+
+                @for (cargo of linea.tarifas; track cargo.id) {
+                  <tr class="border-t border-borde-fila">
+                    <td
+                      class="sticky left-0 border-r border-borde bg-superficie px-4 py-2 text-start text-texto-secundario md:px-5"
+                    >
+                      <!-- La sangria dice «esto cuelga de arriba» sin necesitar una columna. -->
+                      <span class="ps-4">↳ {{ cargo.tarifa }}</span>
+
+                      @if (cargo.trabajador || cargo.descripcion) {
+                        <span class="block ps-4 text-[11px] text-texto-apagado">
+                          {{ cargo.trabajador ?? cargo.descripcion }}
+                        </span>
+                      }
+                    </td>
+
+                    <!-- La unidad va junto a la cantidad: «3 Dia» dice mas que «3» solo. -->
+                    <td class="whitespace-nowrap px-4 py-2 tabular-nums text-texto-secundario">
+                      {{ cargo.cantidad }} {{ cargo.unidad }}
+                    </td>
+
+                    <td class="whitespace-nowrap px-4 py-2 tabular-nums text-texto-secundario">
+                      {{ cargo.precioUnitario | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                    </td>
+
+                    <td class="whitespace-nowrap px-4 py-2 tabular-nums text-texto-secundario">
+                      {{ cargo.importe | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                    </td>
+
+                    <!--
+                      EL COSTO OCUPA LAS DOS COLUMNAS DE HOROMETRO, que son de la maquina y no
+                      de un cargo. §8 pide separar precio cobrado y costo real para calcular el
+                      margen, asi que cuando lo hay se ve.
+                    -->
+                    <td class="px-4 py-2 text-[11px] text-texto-apagado" colspan="2">
+                      @if (cargo.costo !== null) {
+                        {{
+                          t().renta.costoDelCargo(
+                            (cargo.costo | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? ''
+                          )
+                        }}
+                      }
+                    </td>
+
+                    <td class="px-4 py-1 md:px-5">
+                      <div class="flex justify-center">
+                        @if (esBorrador()) {
+                          <button
+                            type="button"
+                            (click)="quitarTarifa(linea, cargo)"
+                            [disabled]="enviando()"
+                            [attr.aria-label]="t().renta.quitarCargoA(cargo.tarifa)"
+                            [title]="t().renta.quitar"
+                            class="boton-icono"
+                          >
+                            <svg
+                              class="size-4"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.75"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M5 12h14" />
+                            </svg>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            }
           </table>
         </div>
       }
@@ -621,6 +814,7 @@
         <select
           id="equipoId"
           formControlName="equipoId"
+          (change)="alElegirEquipoEnLinea($any($event.target).value)"
           [attr.aria-invalid]="mal(formularioLinea.controls.equipoId) ? 'true' : null"
           [attr.aria-describedby]="
             mal(formularioLinea.controls.equipoId) ? 'ayuda-equipo error-equipo' : 'ayuda-equipo'
@@ -630,7 +824,13 @@
           <option value="">{{ t().renta.sinDato }}</option>
           @for (equipo of equiposDisponibles(); track equipo.id) {
             <option [value]="equipo.id">
-              {{ equipo.codigoInterno }} — {{ equipo.marca }} {{ equipo.modelo }}
+              {{
+                t().comun.equipoEnLista(
+                  equipo.codigoInterno,
+                  equipo.descripcion,
+                  equipo.marca + ' ' + equipo.modelo
+                )
+              }}
             </option>
           }
         </select>
@@ -645,43 +845,17 @@
         />
       </div>
 
-      <div class="flex flex-col gap-1">
-        <label for="linea-tarifaId" class="text-sm font-medium text-texto-secundario">
-          {{ t().renta.concepto }}
-        </label>
-        <select
-          id="linea-tarifaId"
-          formControlName="tarifaId"
-          [attr.aria-invalid]="mal(formularioLinea.controls.tarifaId) ? 'true' : null"
-          [attr.aria-describedby]="
-            mal(formularioLinea.controls.tarifaId)
-              ? 'ayuda-linea-concepto error-linea-concepto'
-              : 'ayuda-linea-concepto'
-          "
-          class="campo-formulario"
-        >
-          <option value="">{{ t().renta.sinDato }}</option>
-          @for (tarifa of tarifas(); track tarifa.id) {
-            <option [value]="tarifa.id">{{ tarifa.codigo }} — {{ tarifa.nombre }}</option>
-          }
-        </select>
-        <p id="ayuda-linea-concepto" class="text-xs text-texto-apagado">
-          {{ t().renta.ayudaConcepto }}
-        </p>
-        @if (tarifas().length === 0) {
-          <p class="aviso text-sm text-texto-secundario">{{ t().renta.sinTarifas }}</p>
-        }
-        <app-error-campo
-          id="error-linea-concepto"
-          [visible]="mal(formularioLinea.controls.tarifaId)"
-          [mensaje]="t().renta.errorConcepto"
-        />
-      </div>
+      <!--
+        SIN CONCEPTO EN LA LINEA, retirado el 2026-09-09. La linea es la MAQUINA; sus cargos se
+        agregan uno por uno con el boton de su renglon, igual que en la cotizacion. Mientras
+        estuvo aqui, una maquina con flete y operador eran tres renglones del mismo equipo.
+      -->
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div class="flex flex-col gap-1">
           <label for="linea-cantidad" class="text-sm font-medium text-texto-secundario">
             {{ t().renta.cantidad }}
+            <span class="font-normal text-texto-apagado">{{ t().cotizaciones.opcional }}</span>
           </label>
           <input
             id="linea-cantidad"
@@ -702,11 +876,13 @@
             [visible]="mal(formularioLinea.controls.cantidad)"
             [mensaje]="t().renta.errorCantidad"
           />
+          <p class="text-xs text-texto-apagado">{{ t().renta.ayudaCantidadDelPeriodo }}</p>
         </div>
 
         <div class="flex flex-col gap-1">
           <label for="linea-precio" class="text-sm font-medium text-texto-secundario">
-            {{ t().renta.precioUnitario }}
+            {{ t().renta.costoDeLaMaquina }}
+            <span class="font-normal text-texto-apagado">{{ t().cotizaciones.opcional }}</span>
           </label>
           <input
             id="linea-precio"
@@ -727,6 +903,35 @@
             [visible]="mal(formularioLinea.controls.precioUnitario)"
             [mensaje]="t().renta.errorPrecio"
           />
+
+          <!--
+            EL CALCULO, A LA VISTA. Es lo que el servidor va a poner si el campo se deja en
+            blanco: las unidades del periodo por el costo que el equipo tiene cargado para la
+            unidad del documento.
+
+            **Se ensena porque un numero que aparece solo despues de guardar no se revisa** — y
+            porque cuando sale en cero, la razon se ve aqui y no en el total del contrato.
+          -->
+          @if (costoCalculado(); as calculo) {
+            @if (calculo.porUnidad !== null) {
+              <p class="text-xs text-texto-apagado">
+                {{
+                  t().renta.calculoDelCosto(
+                    calculo.unidades,
+                    t().cotizaciones.unidades[renta()!.unidad],
+                    (calculo.porUnidad | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? '',
+                    (calculo.total | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? ''
+                  )
+                }}
+              </p>
+            } @else {
+              <p class="aviso text-sm text-texto-secundario">
+                {{ t().renta.sinCostoParaLaUnidad(t().cotizaciones.unidades[renta()!.unidad]) }}
+              </p>
+            }
+          } @else {
+            <p class="text-xs text-texto-apagado">{{ t().renta.ayudaCostoDeLaMaquina }}</p>
+          }
         </div>
 
         <div class="flex flex-col gap-1 sm:col-span-2">
@@ -748,7 +953,294 @@
             {{ t().renta.ayudaHorasIncluidas }}
           </p>
         </div>
+
+        <!--
+          LA OBRA, **ESCRIBIENDOLA**. Es un `datalist` como el modelo del alta de equipo y el
+          concepto del expediente: se teclea, el navegador filtra entre las obras de ESTE
+          cliente, y si lo escrito no esta se crea al guardar.
+
+          Era un `<select>` cerrado hasta el 2026-09-09, y con el una renta a una obra nueva
+          obligaba a salir a Proyectos, darla de alta y volver.
+        -->
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label for="obraTexto" class="text-sm font-medium text-texto-secundario">
+            {{ t().renta.proyecto }}
+            <span class="font-normal text-texto-apagado">{{ t().renta.opcional }}</span>
+          </label>
+          <input
+            id="obraTexto"
+            formControlName="obraTexto"
+            list="lista-obras"
+            autocomplete="off"
+            (input)="alEscribirObra()"
+            aria-describedby="ayuda-proyecto"
+            class="campo-formulario"
+          />
+          <datalist id="lista-obras">
+            @for (o of obrasDelCliente(); track o.id) {
+              <!-- La ubicacion va en el texto del `<option>`: dos obras con nombre parecido se
+                   distinguen por donde estan. -->
+              <option [value]="o.nombre">{{ o.codigo }} · {{ o.ubicacion }}</option>
+            }
+          </datalist>
+          <p id="ayuda-proyecto" class="text-xs text-texto-apagado">
+            {{ t().renta.ayudaProyecto }}
+          </p>
+          @if (obrasDelCliente().length === 0) {
+            <p class="text-xs text-texto-apagado">{{ t().renta.sinProyectos }}</p>
+          }
+        </div>
+
+        <!--
+          LO QUE HACE FALTA PARA ABRIR LA OBRA, y solo cuando hay que abrirla. **La ubicacion no
+          se pregunta: el servidor la crea con la obra**, en la misma transaccion y con tipo
+          Proyecto. Pedir primero que alguien cree la ubicacion, se acuerde del tipo y despues la
+          elija aqui son tres pasos y dos formas de equivocarse.
+        -->
+        @if (obraNueva()) {
+          <div class="flex flex-col gap-4 rounded-lg border border-borde-campo p-3 sm:col-span-2">
+            <p class="text-sm text-texto-secundario">
+              {{ t().renta.obraNueva(formularioLinea.controls.obraTexto.value) }}
+            </p>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div class="flex flex-col gap-1">
+                <label for="codigoObra" class="text-sm font-medium text-texto-secundario">
+                  {{ t().renta.codigoObra }}
+                </label>
+                <input
+                  id="codigoObra"
+                  formControlName="codigoObra"
+                  maxlength="30"
+                  autocapitalize="characters"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-describedby="ayuda-codigo-obra"
+                  class="campo-formulario"
+                />
+                <p id="ayuda-codigo-obra" class="text-xs text-texto-apagado">
+                  {{ t().renta.ayudaCodigoObra }}
+                </p>
+                <app-error-campo
+                  id="error-codigo-obra"
+                  [visible]="
+                    formularioLinea.controls.codigoObra.value.trim() === '' &&
+                    formularioLinea.controls.codigoObra.touched
+                  "
+                  [mensaje]="t().renta.errorCodigoObra"
+                />
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <label for="domicilioObra" class="text-sm font-medium text-texto-secundario">
+                  {{ t().renta.domicilioObra }}
+                  <span class="font-normal text-texto-apagado">{{ t().renta.opcional }}</span>
+                </label>
+                <input
+                  id="domicilioObra"
+                  formControlName="domicilioObra"
+                  autocomplete="off"
+                  aria-describedby="ayuda-domicilio-obra"
+                  class="campo-formulario"
+                />
+                <p id="ayuda-domicilio-obra" class="text-xs text-texto-apagado">
+                  {{ t().renta.ayudaDomicilioObra }}
+                </p>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!--
+          EL SITIO SOLO SIN OBRA. Con obra sale de ella —tiene ubicacion obligatoria, y la nueva
+          la abre el servidor— y el servidor RECHAZA uno que la contradiga, asi que ofrecer los
+          dos sueltos seria ofrecer un 400.
+        -->
+        @if (obraEscrita(); as obra) {
+          <div class="flex flex-col gap-1 sm:col-span-2">
+            <p class="text-sm font-medium text-texto-secundario">
+              {{ t().renta.ubicacionDestino }}
+            </p>
+            <p class="text-texto">{{ obra.ubicacion }}</p>
+            <p class="text-xs text-texto-apagado">{{ t().renta.destinoDeLaObra }}</p>
+          </div>
+        } @else if (!obraNueva()) {
+          <div class="flex flex-col gap-1 sm:col-span-2">
+            <label for="ubicacionDestinoId" class="text-sm font-medium text-texto-secundario">
+              {{ t().renta.ubicacionDestino }}
+              <span class="font-normal text-texto-apagado">{{ t().renta.opcional }}</span>
+            </label>
+            <select
+              id="ubicacionDestinoId"
+              formControlName="ubicacionDestinoId"
+              aria-describedby="ayuda-destino"
+              class="campo-formulario"
+            >
+              <option value="">{{ t().renta.sinDestino }}</option>
+              @for (u of ubicaciones(); track u.id) {
+                <option [value]="u.id">{{ u.nombre }}</option>
+              }
+            </select>
+            <p id="ayuda-destino" class="text-xs text-texto-apagado">
+              {{ t().renta.ayudaDestino }}
+            </p>
+          </div>
+        }
       </div>
+
+      <!--
+        ══════════════ LOS CARGOS DE LA MAQUINA, EN EL MISMO PANEL ══════════════
+
+        Igual que en la cotizacion, y es lo que se pidio el 2026-09-09: al elegir la maquina
+        llegan sus precios cargados —una fila por concepto y una vacia al final— y se pueden
+        cambiar, quitar o agregar sin salir de aqui.
+
+        **Cambiar una cifra NO toca `equipo_tarifa`**: cambia lo que se va a guardar en la
+        linea. El catalogo propone, el documento conserva.
+      -->
+      <fieldset class="flex flex-col gap-3 border-t border-borde pt-4">
+        <legend class="text-[11px] font-semibold uppercase tracking-wide text-texto-apagado">
+          {{ t().renta.cargosDeLaMaquina }}
+        </legend>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <p class="text-xs text-texto-apagado">{{ t().renta.ayudaCargosDeLaMaquina }}</p>
+
+          @if (precios().length > 0) {
+            <button
+              type="button"
+              (click)="ponerPrecios()"
+              class="ms-auto rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+            >
+              {{ t().renta.traerPrecios }}
+            </button>
+          }
+        </div>
+
+        <!--
+          `track fila` Y NO `track $index`. Con el indice, Angular reutiliza los nodos —el
+          indice no cambio— y `formGroupName` **sigue apuntando al grupo descartado**: el
+          arreglo tiene los valores buenos y los campos muestran los viejos. Costo exactamente
+          eso en la cotizacion, y esta en `CLAUDE.md`.
+        -->
+        <div formArrayName="cargos" class="flex flex-col gap-3">
+          @for (fila of filasDeCargo(); track fila; let i = $index) {
+            <div [formGroupName]="i" class="grid grid-cols-1 gap-3 sm:grid-cols-12">
+              <div class="flex flex-col gap-1 sm:col-span-5">
+                <label
+                  [attr.for]="'cargo-tarifa-' + i"
+                  class="text-xs font-medium text-texto-secundario"
+                >
+                  {{ t().renta.concepto }}
+                </label>
+                <select
+                  [id]="'cargo-tarifa-' + i"
+                  formControlName="tarifaId"
+                  class="campo-formulario"
+                >
+                  <option value="">{{ t().renta.sinDato }}</option>
+                  @for (tarifa of tarifas(); track tarifa.id) {
+                    <option [value]="tarifa.id">{{ tarifa.codigo }} — {{ tarifa.nombre }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="flex flex-col gap-1 sm:col-span-2">
+                <label
+                  [attr.for]="'cargo-cant-' + i"
+                  class="text-xs font-medium text-texto-secundario"
+                >
+                  {{ t().renta.cantidad }}
+                </label>
+                <input
+                  [id]="'cargo-cant-' + i"
+                  formControlName="cantidad"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  class="campo-formulario"
+                />
+              </div>
+
+              <div class="flex flex-col gap-1 sm:col-span-4">
+                <label
+                  [attr.for]="'cargo-precio-' + i"
+                  class="text-xs font-medium text-texto-secundario"
+                >
+                  {{ t().renta.precioUnitario }}
+                </label>
+                <input
+                  [id]="'cargo-precio-' + i"
+                  formControlName="precioUnitario"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  class="campo-formulario"
+                />
+
+                <!--
+                  QUE LA CIFRA SE APARTA DE LA DEL EQUIPO, con un boton para volver. Solo esta
+                  fila: quien se equivoco en una no quiere perder las otras dos que ya ajusto.
+                -->
+                @if (seApartaDelPorDefecto(i)) {
+                  <p class="text-xs text-texto-apagado">
+                    {{
+                      t().renta.porDefecto(
+                        (porDefectoDe(fila.controls.tarifaId.value)!.precio
+                          | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? '',
+                        porDefectoDe(fila.controls.tarifaId.value)!.unidad
+                      )
+                    }}
+                    <button
+                      type="button"
+                      (click)="usarElPorDefecto(i)"
+                      class="underline underline-offset-2 hover:text-texto-secundario focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+                    >
+                      {{ t().renta.usarElPorDefecto }}
+                    </button>
+                  </p>
+                }
+              </div>
+
+              <div class="flex items-end sm:col-span-1">
+                <button
+                  type="button"
+                  (click)="quitarFilaDeCargo(i)"
+                  [disabled]="filasDeCargo().length === 1"
+                  [attr.aria-label]="t().renta.quitarFila"
+                  [title]="t().renta.quitarFila"
+                  class="boton-icono disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <svg
+                    class="size-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 12h14" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <button
+          type="button"
+          (click)="agregarFilaDeCargo()"
+          class="self-start rounded-lg border border-borde-campo px-3 py-1.5 text-[13px] text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+        >
+          {{ t().renta.agregarFila }}
+        </button>
+      </fieldset>
     </div>
   </form>
 
@@ -772,11 +1264,21 @@
   </div>
 </app-panel-lateral>
 
-<!-- ==================================================================== cargo -->
+<!--
+  ================================================================== cargo
+
+  EL TITULO DICE A QUE SE LE ESTA CARGANDO. Con maquina el cargo va al renglon de esa maquina;
+  sin ella, a los cargos de la renta. Es el mismo panel —los campos son identicos— y sin el
+  titulo no habria forma de saber cual de las dos cosas se hace.
+
+  El comentario va AQUI Y NO DENTRO DE LA ETIQUETA: un `<!-- -->` entre atributos no es HTML valido
+y Angular lo rechaza con «Opening tag not terminated», que no menciona el comentario. -->
 <app-panel-lateral
   [abierto]="panelConcepto()"
-  [titulo]="t().renta.agregarConceptoTitulo"
-  [apoyo]="t().renta.agregarConceptoApoyo"
+  [titulo]="
+    lineaDelCargo() === null ? t().renta.agregarConceptoTitulo : t().renta.agregarCargoALaMaquina
+  "
+  [apoyo]="apoyoDelCargo()"
   (cerrar)="cerrarConcepto()"
 >
   <form [formGroup]="formularioConcepto" (ngSubmit)="agregarConcepto()" id="formulario-renta-cargo">
@@ -797,6 +1299,7 @@
         <select
           id="cargo-tarifaId"
           formControlName="tarifaId"
+          (change)="alElegirConcepto()"
           [attr.aria-invalid]="mal(formularioConcepto.controls.tarifaId) ? 'true' : null"
           [attr.aria-describedby]="
             mal(formularioConcepto.controls.tarifaId) ? 'error-cargo-concepto' : null
@@ -808,6 +1311,12 @@
             <option [value]="tarifa.id">{{ tarifa.codigo }} — {{ tarifa.nombre }}</option>
           }
         </select>
+        <p id="ayuda-cargo-concepto" class="text-xs text-texto-apagado">
+          {{ t().renta.ayudaConcepto }}
+        </p>
+        @if (tarifas().length === 0) {
+          <p class="aviso text-sm text-texto-secundario">{{ t().renta.sinTarifas }}</p>
+        }
         <app-error-campo
           id="error-cargo-concepto"
           [visible]="mal(formularioConcepto.controls.tarifaId)"
@@ -893,6 +1402,21 @@
             "
             class="campo-formulario"
           />
+          <!--
+            QUE EL PRECIO NO SE TECLEO. Sin decirlo, una cifra que aparece sola se lee como un
+            valor por omision cualquiera y nadie la revisa.
+
+            **SE MUDO AQUI DESDE EL PANEL DE LA LINEA el 2026-09-09**: alli el precio dejo de
+            ser el de una tarifa —es el costo de la maquina, que pone el servidor— y aqui es
+            donde vive una tarifa del catalogo, que es lo que el equipo tiene con precio.
+          -->
+          @if (precioElegido()) {
+            <p class="text-xs text-texto-apagado">{{ t().renta.precioTraido }}</p>
+          } @else if (
+            lineaDelCargo() !== null && formularioConcepto.controls.tarifaId.value !== ''
+          ) {
+            <p class="text-xs text-texto-apagado">{{ t().renta.equipoSinPrecios }}</p>
+          }
           <app-error-campo
             id="error-cargo-precio"
             [visible]="mal(formularioConcepto.controls.precioUnitario)"
@@ -1086,7 +1610,8 @@
               [attr.for]="'horometro-' + linea.equipoId"
               class="text-sm font-medium text-texto-secundario"
             >
-              {{ linea.codigoInterno }} — {{ linea.modelo }}
+              {{ t().comun.equipoEnLinea(linea.codigoInterno, linea.nombre) }} —
+              {{ linea.modelo }}
             </label>
             <input
               [id]="'horometro-' + linea.equipoId"
@@ -1134,6 +1659,114 @@
       class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
     >
       {{ enviando() ? t().renta.guardando : t().renta.cerrarRenta }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<!--
+  ================================================================== la obra
+
+  ASIGNAR LA MAQUINA A UNA OBRA. Panel propio y no parte del alta porque el momento es otro: la
+  obra se suele saber despues de confirmar la renta, y lo que viene de una cotizacion llega
+  siempre sin ella. Hasta el 2026-09-09 no habia forma de ponerla despues.
+-->
+<app-panel-lateral
+  [abierto]="panelDestino()"
+  [titulo]="t().renta.asignarObra"
+  [apoyo]="t().renta.asignarObraApoyo"
+  (cerrar)="cerrarDestino()"
+>
+  <form [formGroup]="formularioDestino" (ngSubmit)="guardarDestino()" id="formulario-destino">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      @if (lineaDelDestino(); as linea) {
+        <p class="text-sm text-texto-secundario">
+          {{ t().comun.equipoEnLinea(linea.codigoInterno, linea.nombre) }} — {{ linea.modelo }}
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="destino-proyectoId" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.proyecto }}
+          <span class="font-normal text-texto-apagado">{{ t().renta.opcional }}</span>
+        </label>
+        <select
+          id="destino-proyectoId"
+          formControlName="proyectoId"
+          aria-describedby="ayuda-destino-proyecto"
+          class="campo-formulario"
+        >
+          <option value="">{{ t().renta.sinProyecto }}</option>
+          @for (p of proyectos(); track p.id) {
+            <option [value]="p.id">{{ p.codigo }} — {{ p.nombre }}</option>
+          }
+        </select>
+        <p id="ayuda-destino-proyecto" class="text-xs text-texto-apagado">
+          {{ t().renta.ayudaProyecto }}
+        </p>
+        @if (proyectos().length === 0) {
+          <p class="aviso text-sm text-texto-secundario">{{ t().renta.sinProyectos }}</p>
+        }
+      </div>
+
+      <!-- Igual que en el alta: con obra el sitio sale de ella y no se pregunta. -->
+      @if (obraDelDestino(); as obra) {
+        <div class="flex flex-col gap-1">
+          <p class="text-sm font-medium text-texto-secundario">
+            {{ t().renta.ubicacionDestino }}
+          </p>
+          <p class="text-texto">{{ obra.ubicacion }}</p>
+          <p class="text-xs text-texto-apagado">{{ t().renta.destinoDeLaObra }}</p>
+        </div>
+      } @else {
+        <div class="flex flex-col gap-1">
+          <label for="destino-ubicacionId" class="text-sm font-medium text-texto-secundario">
+            {{ t().renta.ubicacionDestino }}
+            <span class="font-normal text-texto-apagado">{{ t().renta.opcional }}</span>
+          </label>
+          <select
+            id="destino-ubicacionId"
+            formControlName="ubicacionDestinoId"
+            aria-describedby="ayuda-destino-sitio"
+            class="campo-formulario"
+          >
+            <option value="">{{ t().renta.sinDestino }}</option>
+            @for (u of ubicaciones(); track u.id) {
+              <option [value]="u.id">{{ u.nombre }}</option>
+            }
+          </select>
+          <p id="ayuda-destino-sitio" class="text-xs text-texto-apagado">
+            {{ t().renta.ayudaDestino }}
+          </p>
+        </div>
+      }
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarDestino()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().renta.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-destino"
+      [disabled]="enviando()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().renta.guardando : t().renta.guardar }}
     </button>
   </div>
 </app-panel-lateral>
