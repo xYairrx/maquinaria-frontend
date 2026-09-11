@@ -34,6 +34,7 @@ import { costoDelEquipoPorUnidad } from '../../../nucleo/api/costo-de-equipo';
 import { mensajeDeError } from '../../../nucleo/api/mensaje-error';
 import { ErrorCampo, errorVisible } from '../../../nucleo/formularios/error-campo';
 import { aInstante } from '../../../nucleo/formularios/fecha-hora';
+import { unidadesEntre } from '../../../nucleo/api/periodo-en-unidades';
 import { codigoDesdeNombre, mismoNombre } from '../../../nucleo/formularios/texto';
 import {
   validadorCantidad,
@@ -249,7 +250,28 @@ export class RentaDetalle {
 
   protected readonly puedeConfirmar = computed(() => this.acciones().includes('confirmar'));
   protected readonly puedeActivar = computed(() => this.acciones().includes('activar'));
-  protected readonly puedeDevolver = computed(() => this.acciones().includes('devolver'));
+  /**
+   * SI HAY ALGUNA MÁQUINA FUERA: entregada y sin devolver.
+   *
+   * Existe para **tapar una trampa que abrí yo mismo el 2026-09-11**. El botón global «Marcar
+   * como devuelta» pasa la renta a Devuelta con un `PATCH .../estado`, y `ProcesoDevolverLinea`
+   * exige que la renta esté **Activa**: apretarlo con máquinas fuera dejaría esas máquinas sin
+   * poder devolverse nunca, sin movimiento de vuelta y con el equipo marcado Rentado para
+   * siempre.
+   */
+  protected readonly hayMaquinasFuera = computed(() =>
+    this.lineas().some((l) => l.entregadoEn !== null && l.devueltoEn === null),
+  );
+
+  /**
+   * El botón global **solo cuando no queda nada fuera**. Con máquinas fuera se devuelve una por
+   * una —ahí es donde se escribe el movimiento— y la renta pasa a Devuelta ella sola con la
+   * última. Lo que sigue justificando el botón es la renta cuyas máquinas nunca salieron: esa no
+   * tiene devolución que registrar y necesita una forma de cerrarse.
+   */
+  protected readonly puedeDevolver = computed(
+    () => this.acciones().includes('devolver') && !this.hayMaquinasFuera(),
+  );
   protected readonly puedeExtender = computed(() => this.acciones().includes('extender'));
   protected readonly puedeCerrar = computed(() => this.acciones().includes('cerrar'));
   protected readonly puedeCancelar = computed(() => this.acciones().includes('cancelar'));
@@ -270,6 +292,18 @@ export class RentaDetalle {
   protected readonly lineaDelCargo = signal<RentaLinea | null>(null);
 
   protected readonly panelDestino = signal(false);
+  protected readonly panelMovida = signal(false);
+
+  /**
+   * La máquina que se está entregando o devolviendo, y cuál de las dos.
+   *
+   * **Nulo es «el panel está cerrado»**, así que una sola señal sirve para las dos cosas: qué
+   * línea y qué operación. Dos señales sueltas podrían quedar en desacuerdo.
+   */
+  protected readonly movida = signal<{
+    readonly linea: RentaLinea;
+    readonly tipo: 'entrega' | 'devolucion';
+  } | null>(null);
 
   /** La máquina a la que se le está asignando obra. */
   protected readonly lineaDelDestino = signal<RentaLinea | null>(null);
@@ -307,19 +341,19 @@ export class RentaDetalle {
   protected readonly formularioLinea = this.fb.group({
     equipoId: ['', validadorRequerido],
 
-    // **SIN `tarifaId` desde el 2026-09-09.** La línea es la MÁQUINA; sus cargos se agregan
-    // después, uno por uno, con el botón de su renglón. Mientras estuvo aquí, una máquina con
-    // flete y operador eran tres renglones del mismo equipo.
+    // **SIN `tarifaId`, SIN `cantidad`, SIN `precioUnitario` Y SIN `horasIncluidas`.**
     //
-    // Numéricos: `validadorCantidad` / `validadorImporte`, NUNCA `validadorRequerido` — ver la
-    // trampa en `validadores.ts`.
+    // La tarifa salió el 2026-09-09: la línea es la MÁQUINA y sus cargos van en `cargos`.
     //
-    // LOS DOS ARRANCAN VACÍOS Y ESO ES EL VALOR ÚTIL: en blanco, el servidor pone la cantidad
-    // del periodo de la renta y el costo que el equipo tiene cargado para su unidad. Es la
-    // misma regla que en la cotización.
-    cantidad: [null as number | null, validadorCantidad],
-    precioUnitario: [null as number | null, validadorImporte],
-    horasIncluidas: [null as number | null],
+    // Los otros tres salieron el 2026-09-10, a petición del cliente. La cantidad y el costo
+    // **se calculan** —del periodo con su unidad, y del costo que el equipo tiene cargado— así
+    // que pedirlos era ofrecer que alguien teclee un número que el documento ya sabe. El panel
+    // de la cotización nunca los pidió; este los pedía por herencia de cuando la línea era «una
+    // máquina y una tarifa», y entonces sí se capturaban.
+    //
+    // `horasIncluidas` **no se calcula de nada** —es un dato del contrato, §7— y se fue por otra
+    // razón: hoy nada la usa, porque el cobro por hora excedida es Fase 2. La columna y el
+    // endpoint la siguen aceptando, así que volver a ofrecerla es agregar un campo.
     // Opcional al capturar: una renta en Borrador se arma antes de saber a qué patio va. El
     // destino se puede poner aquí o más tarde, antes de entregar.
     ubicacionDestinoId: [''],
@@ -381,6 +415,22 @@ export class RentaDetalle {
   protected readonly formularioDestino = this.fb.group({
     proyectoId: [''],
     ubicacionDestinoId: [''],
+  });
+
+  /**
+   * LA ENTREGA O LA DEVOLUCIÓN de una máquina. **Un solo formulario para las dos**, porque los
+   * campos son idénticos: quién la movió, con qué horómetro, cuándo y una nota.
+   *
+   * **`trabajadorId` SÍ es obligatorio aquí, y no contradice haber retirado el «responsable»**
+   * de la renta, la cotización y la prórroga: aquel decía quién tecleó —y eso lo guarda la
+   * auditoría—, este dice **quién fue con la máquina**. Es un hecho de la operación que no se
+   * deduce de ningún sitio, y `movimiento.trabajador_id` es NOT NULL.
+   */
+  protected readonly formularioMovida = this.fb.group({
+    trabajadorId: ['', validadorRequerido],
+    horometro: [null as number | null],
+    fecha: [''],
+    observaciones: [''],
   });
 
   /**
@@ -492,9 +542,18 @@ export class RentaDetalle {
 
   protected readonly formularioExtension = this.fb.group({
     finNuevo: ['', validadorRequerido],
-    trabajadorId: ['', validadorRequerido],
+    // **SIN `trabajadorId` desde el 2026-09-11.** Tercera vez que se retira el mismo campo por
+    // el mismo argumento —cotizacion el 08, conversion el 09, prorroga ahora—: lo que
+    // registraba lo guarda la auditoria.
     motivo: [''],
   });
+
+  private readonly valoresExtension = toSignal(this.formularioExtension.valueChanges, {
+    initialValue: this.formularioExtension.getRawValue(),
+  });
+
+  // Detras del formulario que lee, y no con las otras señales: el orden de los campos ES el
+  // orden de ejecucion, y un `toSignal` sobre un campo declarado mas abajo es TS2729.
 
   protected readonly formularioCierre = this.fb.group({
     nota: [''],
@@ -615,9 +674,6 @@ export class RentaDetalle {
 
     this.formularioLinea.patchValue({
       equipoId: '',
-      cantidad: null,
-      precioUnitario: null,
-      horasIncluidas: null,
       ubicacionDestinoId: '',
       obraTexto: '',
       codigoObra: '',
@@ -649,6 +705,44 @@ export class RentaDetalle {
   protected alElegirEquipoEnLinea(valor: string): void {
     this.equipoElegido.set(valor);
   }
+
+  /**
+   * **LO QUE VA A COSTAR ALARGAR, antes de guardarlo.**
+   *
+   * Las unidades del tramo que se agrega —del fin actual al nuevo— por el costo de máquina de
+   * cada línea, sumado. Es exactamente lo que el servidor va a cobrar.
+   *
+   * **Se enseña porque hasta el 2026-09-10 extender no cobraba nada**, y el cambio no se nota
+   * en ningún sitio si no se dice: quien alarga una renta ve las mismas fechas de siempre y un
+   * total que ahora sube. Mejor que lo vea antes.
+   *
+   * Las unidades se cuentan y no vienen del DTO —el DTO trae las del periodo COMPLETO, no las
+   * del tramo, que solo existe mientras se teclea—. Ese conteo vive en `unidadesEntre`, con
+   * pruebas, porque es el espejo de `PeriodoEnUnidades` del servidor.
+   */
+  protected readonly costoDeLaExtension = computed(() => {
+    const renta = this.renta();
+    const nuevo = this.valoresExtension().finNuevo ?? '';
+
+    if (renta === null || renta === undefined || nuevo === '') {
+      return null;
+    }
+
+    const hasta = new Date(nuevo);
+    const desde = new Date(renta.fin);
+
+    if (Number.isNaN(hasta.getTime()) || hasta <= desde) {
+      return null;
+    }
+
+    const unidades = unidadesEntre(desde, hasta, renta.unidad);
+
+    // El costo de máquina de cada línea, con su precio CONGELADO. Los cargos no entran: un
+    // flete es un evento y un operador se capturó con su propia cantidad.
+    const porUnidad = this.lineas().reduce((suma, l) => suma + l.precioUnitario, 0);
+
+    return { unidades, porUnidad, total: unidades * porUnidad };
+  });
 
   /** Sugiere el código de la obra nueva a partir del nombre. NO pisa lo escrito a mano. */
   protected alEscribirObra(): void {
@@ -849,12 +943,13 @@ export class RentaDetalle {
         switchMap((proyectoId) =>
           this.api.agregarLinea(this.id(), {
             equipoId: v.equipoId,
-            // **NULO NO ES CERO AQUÍ.** Nulo es «pon el del documento»: la cantidad sale del
-            // periodo y su unidad, y el costo del que el equipo tiene cargado. Un cero mandado
-            // como cero es una máquina que de verdad se renta sin costo propio.
-            cantidad: v.cantidad,
-            precioUnitario: v.precioUnitario,
-            horasIncluidas: v.horasIncluidas,
+            // **LOS TRES VAN NULOS Y ESO ES EL VALOR ÚTIL**: nulo es «pon el del documento», y
+            // el servidor cuenta las unidades del periodo y toma el costo del equipo para su
+            // unidad. Solo la conversión desde una cotización manda cifras, porque ahí manda el
+            // precio ACORDADO.
+            cantidad: null,
+            precioUnitario: null,
+            horasIncluidas: null,
             // Vacío va NULO, no cadena vacía: el servidor espera un GUID o nada. Y con obra va
             // nulo de todas formas: el sitio sale de ella.
             ubicacionDestinoId: proyectoId === null ? v.ubicacionDestinoId || null : null,
@@ -985,6 +1080,75 @@ export class RentaDetalle {
     );
   }
 
+  // --------------------------------------------------- la entrega y la devolución --
+
+  /**
+   * Si esta máquina se puede entregar: la renta está Confirmada o Activa y no ha salido.
+   *
+   * **El sitio de entrega hace falta** —el CHECK `movimiento_destino` lo exige— así que el
+   * botón se dibuja igual y el servidor explica qué falta. Ofrecerlo y que diga «asígnale su
+   * obra» enseña el camino; esconderlo deja a alguien buscando por qué no puede.
+   */
+  protected sePuedeEntregar(linea: RentaLinea): boolean {
+    const estado = this.renta()?.estado;
+
+    return (estado === CONFIRMADA || estado === ACTIVA) && linea.entregadoEn === null;
+  }
+
+  /** Si se puede devolver: salió y no ha vuelto. */
+  protected sePuedeDevolver(linea: RentaLinea): boolean {
+    return (
+      this.renta()?.estado === ACTIVA && linea.entregadoEn !== null && linea.devueltoEn === null
+    );
+  }
+
+  protected abrirMovida(linea: RentaLinea, tipo: 'entrega' | 'devolucion'): void {
+    this.errorMutacion.set(null);
+    this.movida.set({ linea, tipo });
+    this.formularioMovida.reset({
+      trabajadorId: '',
+      // **EL HORÓMETRO ARRANCA CON EL DE SALIDA en la devolución**, que es el mínimo que
+      // acepta: el servidor rechaza uno menor, y empezar en blanco hace que quien captura
+      // tenga que ir a buscarlo a la tabla.
+      horometro: tipo === 'devolucion' ? linea.horometroSalida : null,
+      fecha: '',
+      observaciones: '',
+    });
+    this.panelMovida.set(true);
+  }
+
+  protected cerrarMovida(): void {
+    this.panelMovida.set(false);
+    this.movida.set(null);
+  }
+
+  protected guardarMovida(): void {
+    const cual = this.movida();
+
+    if (cual === null || !this.formularioMovida.valid || this.enviando()) {
+      this.formularioMovida.markAllAsTouched();
+      return;
+    }
+
+    const v = this.formularioMovida.getRawValue();
+
+    const cuerpo = {
+      trabajadorId: v.trabajadorId,
+      horometro: v.horometro,
+      // A INSTANTE, no el texto del campo — ver `fecha-hora.ts`. Vacío es «ahora», y lo
+      // resuelve el servidor.
+      fecha: v.fecha === '' ? null : aInstante(v.fecha),
+      observaciones: v.observaciones.trim() === '' ? null : v.observaciones.trim(),
+    };
+
+    this.ejecutar(
+      cual.tipo === 'entrega'
+        ? this.api.entregarLinea(this.id(), cual.linea.id, cuerpo)
+        : this.api.devolverLinea(this.id(), cual.linea.id, cuerpo),
+      () => this.cerrarMovida(),
+    );
+  }
+
   /** Quita un cargo DE UNA MÁQUINA. La máquina se queda: su línea vive de su propio costo. */
   protected async quitarTarifa(linea: RentaLinea, cargo: RentaLineaTarifa): Promise<void> {
     const sigue = await this.preguntar(
@@ -1070,7 +1234,7 @@ export class RentaDetalle {
 
   protected abrirExtension(): void {
     this.errorMutacion.set(null);
-    this.formularioExtension.reset({ finNuevo: '', trabajadorId: '', motivo: '' });
+    this.formularioExtension.reset({ finNuevo: '', motivo: '' });
     this.panelExtension.set(true);
   }
 
@@ -1094,7 +1258,8 @@ export class RentaDetalle {
       this.api.extender(this.id(), {
         // Mismo cruce de frontera que en el alta — ver `fecha-hora.ts`.
         finNuevo: aInstante(v.finNuevo) ?? '',
-        trabajadorId: v.trabajadorId,
+        // NULO: dejo de preguntarse el 2026-09-11. Quien alargo la renta lo guarda la auditoria.
+        trabajadorId: null,
         motivo: v.motivo.trim() === '' ? null : v.motivo.trim(),
       }),
       () => this.cerrarExtension(),

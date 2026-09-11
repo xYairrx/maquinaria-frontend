@@ -284,34 +284,16 @@
           />
         </div>
 
-        <div class="flex flex-col gap-1">
-          <label for="trabajadorId" class="text-sm font-medium text-texto-secundario">
-            {{ t().rentas.responsable }}
-            <span class="font-normal text-texto-apagado">{{ t().cotizaciones.opcional }}</span>
-          </label>
-          <!--
-            DEJO DE SER OBLIGATORIO EL 2026-09-09, con la columna. Exigirlo aqui dejaria una
-            renta convertida desde cotizacion —que no lo lleva— imposible de editar sin
-            inventarle uno.
-          -->
-          <select
-            id="trabajadorId"
-            formControlName="trabajadorId"
-            aria-describedby="ayuda-responsable"
-            class="campo-formulario"
-          >
-            <option value="">{{ t().rentas.sinDato }}</option>
-            @for (trabajador of trabajadores(); track trabajador.id) {
-              <option [value]="trabajador.id">
-                {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }}
-                {{ trabajador.apellidos }}
-              </option>
-            }
-          </select>
-          <p id="ayuda-responsable" class="text-xs text-texto-apagado">
-            {{ t().rentas.ayudaResponsable }}
-          </p>
-        </div>
+        <!--
+          SIN RESPONSABLE, retirado el 2026-09-11. **Cuarta y ultima vez que sale el mismo campo
+          por el mismo argumento**, y ya no queda ninguno: salio de la cotizacion el 08, del
+          panel de conversion y del NOT NULL de la columna el 09, de la prorroga esta manana, y
+          ahora del alta directa. Lo que registraba —quien levanto el documento— lo guarda la
+          auditoria, que apunta cada escritura a la cuenta que la hizo.
+
+          La columna sigue en la base y el endpoint la sigue aceptando: las rentas que lo tienen
+          lo conservan y la ficha del detalle lo muestra cuando esta.
+        -->
 
         <!--
           LA UNIDAD, JUSTO ANTES DEL PERIODO, porque es lo que le da sentido: de ella y de las

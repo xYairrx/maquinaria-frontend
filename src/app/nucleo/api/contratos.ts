@@ -753,6 +753,19 @@ export type AltaRentaLineaTarifa = components['schemas']['AltaRentaLineaTarifa']
  */
 export type DestinoDeLinea = components['schemas']['DestinoDeLinea'];
 
+/**
+ * La ENTREGA de una máquina de la renta: la marca entregada, deja el equipo Rentado y **escribe
+ * su movimiento**.
+ *
+ * **`trabajadorId` es obligatorio y no es el «responsable» retirado** de la renta, la cotización
+ * y la prórroga entre el 08 y el 11: aquel decía quién tecleó —y eso lo guarda la auditoría—;
+ * este dice **quién fue con la máquina**, que es un hecho de la operación. `movimiento` lo exige.
+ */
+export type EntregaDeLinea = components['schemas']['EntregaDeLinea'];
+
+/** La DEVOLUCIÓN. El destino no se manda: es la ubicación de la que salió. */
+export type DevolucionDeLinea = components['schemas']['DevolucionDeLinea'];
+
 export type AltaRentaConcepto = components['schemas']['AltaRentaConcepto'];
 
 /** `finNuevo` tiene que ir MÁS ALLÁ del fin actual: el CHECK `extension_avanza` lo exige. */

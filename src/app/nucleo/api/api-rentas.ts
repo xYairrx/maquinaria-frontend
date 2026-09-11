@@ -12,6 +12,8 @@ import type {
   AltaRentaLinea,
   AltaRentaLineaTarifa,
   DestinoDeLinea,
+  DevolucionDeLinea,
+  EntregaDeLinea,
   CierreDeRenta,
   ExtensionRenta,
   Renta,
@@ -224,6 +226,34 @@ export class ApiRentas {
     return this.fabrica.reemplazar<RentaLinea>(
       `rentas/${encodeURIComponent(id)}/lineas/${encodeURIComponent(lineaId)}/destino`,
       destino,
+      { recargar: 'rentas' },
+    );
+  }
+
+  /**
+   * Entrega una máquina. **Por máquina y no por renta**: una renta de tres excavadoras puede
+   * entregar una hoy y dos mañana, y por eso `entregado_en` vive en la línea.
+   *
+   * Devuelve la renta entera porque cambia más de una cosa: la línea, el estado del equipo, y
+   * el de la renta si era la primera entrega.
+   */
+  entregarLinea(id: string, lineaId: string, entrega: EntregaDeLinea): Observable<Renta> {
+    return this.fabrica.publicar<Renta>(
+      `rentas/${encodeURIComponent(id)}/lineas/${encodeURIComponent(lineaId)}/entrega`,
+      entrega,
+      { recargar: 'rentas' },
+    );
+  }
+
+  /** Devuelve una máquina. Vuelve al sitio del que salió, sin preguntarlo. */
+  devolverLinea(
+    id: string,
+    lineaId: string,
+    devolucion: DevolucionDeLinea,
+  ): Observable<Renta> {
+    return this.fabrica.publicar<Renta>(
+      `rentas/${encodeURIComponent(id)}/lineas/${encodeURIComponent(lineaId)}/devolucion`,
+      devolucion,
       { recargar: 'rentas' },
     );
   }

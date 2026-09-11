@@ -1987,6 +1987,40 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/rentas/{id}/lineas/{lineaId}/devolucion": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Devuelve una maquina. Vuelve al sitio del que salio. */
+        readonly post: operations["DevolverLineaDeRenta"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/rentas/{id}/lineas/{lineaId}/entrega": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Entrega una maquina. Escribe su movimiento y la deja Rentada. */
+        readonly post: operations["EntregarLineaDeRenta"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/rentas/{id}/lineas/{lineaId}/tarifas": {
         readonly parameters: {
             readonly query?: never;
@@ -2573,7 +2607,7 @@ export interface components {
             readonly finNuevo?: string;
             readonly motivo?: null | string;
             /** Format: uuid */
-            readonly trabajadorId?: string;
+            readonly trabajadorId?: null | string;
         };
         readonly AltaMantenimiento: {
             readonly descripcion?: null | string;
@@ -3193,6 +3227,15 @@ export interface components {
             /** Format: uuid */
             readonly ubicacionDestinoId?: null | string;
         };
+        readonly DevolucionDeLinea: {
+            /** Format: date-time */
+            readonly fecha?: null | string;
+            /** Format: double */
+            readonly horometro?: null | number;
+            readonly observaciones?: null | string;
+            /** Format: uuid */
+            readonly trabajadorId?: string;
+        };
         readonly DocumentoEquipoDto: {
             /** Format: uuid */
             readonly archivoId: string;
@@ -3243,6 +3286,15 @@ export interface components {
             /** Format: uuid */
             readonly tenantId?: string;
             readonly versionEsquema?: string;
+        };
+        readonly EntregaDeLinea: {
+            /** Format: date-time */
+            readonly fecha?: null | string;
+            /** Format: double */
+            readonly horometro?: null | number;
+            readonly observaciones?: null | string;
+            /** Format: uuid */
+            readonly trabajadorId?: string;
         };
         readonly EquipoDisponibleDto: {
             readonly categoria: string;
@@ -3406,10 +3458,14 @@ export interface components {
             readonly finNuevo: string;
             /** Format: uuid */
             readonly id: string;
+            /** Format: double */
+            readonly importe: number;
             readonly motivo: null | string;
-            readonly trabajador: string;
+            readonly trabajador: null | string;
             /** Format: uuid */
-            readonly trabajadorId: string;
+            readonly trabajadorId: null | string;
+            /** Format: double */
+            readonly unidades: number;
         };
         readonly FijarLimite: {
             /** Format: int32 */
@@ -4199,6 +4255,10 @@ export interface components {
             readonly codigoInterno: string;
             /** Format: double */
             readonly costoDeLaMaquina?: number;
+            /** Format: date-time */
+            readonly devueltoEn: null | string;
+            /** Format: date-time */
+            readonly entregadoEn: null | string;
             /** Format: uuid */
             readonly equipoId: string;
             /** Format: double */
@@ -11745,6 +11805,134 @@ export interface operations {
                     readonly "application/json": components["schemas"]["RentaLineaDto"];
                     readonly "text/json": components["schemas"]["RentaLineaDto"];
                     readonly "text/plain": components["schemas"]["RentaLineaDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly DevolverLineaDeRenta: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+                readonly lineaId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["DevolucionDeLinea"];
+                readonly "application/json": components["schemas"]["DevolucionDeLinea"];
+                readonly "text/json": components["schemas"]["DevolucionDeLinea"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RentaDto"];
+                    readonly "text/json": components["schemas"]["RentaDto"];
+                    readonly "text/plain": components["schemas"]["RentaDto"];
+                };
+            };
+            /** @description Bad Request */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/json": components["schemas"]["ProblemDetails"];
+                    readonly "text/plain": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    readonly EntregarLineaDeRenta: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+                readonly lineaId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/*+json": components["schemas"]["EntregaDeLinea"];
+                readonly "application/json": components["schemas"]["EntregaDeLinea"];
+                readonly "text/json": components["schemas"]["EntregaDeLinea"];
+            };
+        };
+        readonly responses: {
+            /** @description OK */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RentaDto"];
+                    readonly "text/json": components["schemas"]["RentaDto"];
+                    readonly "text/plain": components["schemas"]["RentaDto"];
                 };
             };
             /** @description Bad Request */

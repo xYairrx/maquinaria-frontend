@@ -533,6 +533,40 @@ people to another screen and back: that round trip is what the `datalist` exists
 Regression tests: `paginas/empresa/equipos/equipos.spec.ts`,
 `nucleo/formularios/texto.spec.ts`.
 
+## A comment's CLOSING SEQUENCE, written inside a comment, ends it there
+
+Writing the two characters `-` `-` `>` inside an HTML comment — even as an example of what not
+to do — closes that comment at those characters. **Everything after them renders as text on the
+page.**
+
+It happened on 2026-09-10: a comment in `renta.html` explaining this very rule contained the
+sequence as an illustration, and half a sentence appeared under the rental's extensions, in
+production-shaped output. **Neither `ng build` nor the 339 tests saw it** — a stray text node is
+valid HTML. The client found it in the browser and sent a screenshot.
+
+So: never write that sequence inside a comment. Say "the closing sequence" in words, or put the
+example in a fenced block in a `.md` file where it is inert.
+
+To sweep for it — a comment whose body contains another comment's opening is a comment that
+closed early:
+
+```bash
+python -c "
+import pathlib, re
+for p in pathlib.Path('src/app').rglob('*.html'):
+    s = p.read_text(encoding='utf-8')
+    for m in re.finditer(r'<!--(.*?)-->', s, re.S):
+        if '<!'+'--' in m.group(1):
+            print(p, s[:m.start()].count(chr(10)) + 1)
+"
+```
+
+**And the wider lesson, which is the reusable part:** this is the fourth defect this month that
+compiled clean, passed every test, and was only visible on screen — the others were the prefill
+that silently stopped, the `track $index` that showed stale values, and a panel that offered a
+combination the server rejects. A green suite says the code does what the tests describe. It says
+nothing about what the page shows.
+
 ## An HTML comment between a tag's ATTRIBUTES is not valid HTML
 
 ```html

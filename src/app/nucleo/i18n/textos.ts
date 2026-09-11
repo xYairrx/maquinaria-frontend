@@ -2238,9 +2238,6 @@ const ES_MX = {
     cliente: 'Cliente',
     ayudaCliente: 'A quién se le renta. Solo los activos.',
     sinClientes: 'No hay clientes dados de alta. Crea uno antes de rentar.',
-    responsable: 'Responsable',
-    ayudaResponsable:
-      'Quién levanta la renta. Sale de Trabajadores, y se puede dejar en blanco: quién hizo la operación queda en la auditoría de todas formas.',
     unidad: 'Unidad',
     unidades: {
       1: 'Hora',
@@ -2290,7 +2287,6 @@ const ES_MX = {
     avisoVencida: 'Pasó su fin y el equipo sigue fuera.',
     avisoPorVencer: 'Le quedan menos de tres días.',
     errorCliente: 'Elige el cliente.',
-    errorResponsable: 'Elige quién la levanta.',
     errorInicio: 'Pon la fecha de inicio.',
     errorFin: 'Pon la fecha de fin.',
     errorLugar: 'Di dónde va a trabajar la máquina.',
@@ -2319,7 +2315,10 @@ const ES_MX = {
     seccionConceptos: 'Otros cargos',
     seccionExtensiones: 'Extensiones',
     precioTraido: 'Precio traído del equipo. Puedes cambiarlo.',
-    costoDeLaMaquina: 'Costo de la máquina',
+    calculoDeLaExtension: (unidades: number, unidad: string, porUnidad: string, total: string) =>
+      `Se cobrará: ${unidades} ${unidad} × ${porUnidad} = ${total}. Sale del costo de máquina de cada línea; los cargos no se recalculan.`,
+    extensionSinCosto:
+      'Las máquinas de esta renta no tienen costo propio —viven de sus cargos—, así que alargarla no cobra nada.',
     calculoDelCosto: (unidades: number, unidad: string, porUnidad: string, total: string) =>
       `Se calcula: ${unidades} ${unidad} × ${porUnidad} = ${total}. Escribe una cifra para apartarte.`,
     sinCostoParaLaUnidad: (unidad: string) =>
@@ -2339,10 +2338,6 @@ const ES_MX = {
     errorCodigoObra: 'La obra nueva necesita un código.',
     domicilioObra: 'Domicilio de la obra',
     ayudaDomicilioObra: 'Dónde está. Se guarda en la ubicación que se crea con ella.',
-    ayudaCostoDeLaMaquina:
-      'En blanco toma el que el equipo tiene cargado para la unidad de la renta. Lo que se cobra encima —flete, operador— se agrega como cargo de la máquina.',
-    ayudaCantidadDelPeriodo:
-      'En blanco sale del periodo de la renta y su unidad. Cero es una máquina que solo lleva cargos.',
     agregarCargoALaMaquina: 'Agregar cargo a la máquina',
     agregarCargoA: (codigo: string) => `Agregar un cargo a ${codigo}`,
     agregarCargoApoyo: (codigo: string) =>
@@ -2386,7 +2381,7 @@ const ES_MX = {
     devolver: 'Marcar como devuelta',
     devolverTitulo: 'El equipo ya regresó',
     devolverMensaje: (folio: string) =>
-      `${folio} pasa a Devuelta. El calendario sigue ocupado hasta que la cierres.`,
+      `${folio} pasa a Devuelta SIN registrar ningún movimiento, así que es para la renta cuyas máquinas nunca salieron. El calendario sigue ocupado hasta que la cierres.`,
     extender: 'Extender',
     extenderTitulo: 'Alargar la renta',
     extenderApoyo: 'Mueve el fin de la renta y el de las ocupaciones de sus equipos.',
@@ -2419,8 +2414,6 @@ const ES_MX = {
     sinTarifas: 'No hay conceptos en el catálogo. Crea uno en Tarifas.',
     cantidad: 'Cantidad',
     precioUnitario: 'Precio unitario',
-    horasIncluidas: 'Horas incluidas',
-    ayudaHorasIncluidas: 'Opcional. Las que cubre el precio antes de cobrar extra.',
     ubicacionDestino: 'Ubicación de entrega',
     sinDestino: 'Todavía sin definir',
     ayudaDestino: 'A dónde va ESTA máquina. Cada línea puede ir a un sitio distinto.',
@@ -2435,6 +2428,35 @@ const ES_MX = {
     asignarObraA: (codigo: string) => `Asignar la obra de ${codigo}`,
     asignarObraApoyo:
       'Se puede con la renta ya confirmada: la obra no ocupa calendario. Deja de poderse cuando la máquina ya salió — a partir de ahí moverla es un movimiento.',
+
+    // LA ENTREGA Y LA DEVOLUCIÓN, por máquina. Entraron el 2026-09-11 y son las dos que
+    // ESCRIBEN EL MOVIMIENTO: hasta entonces el historial de un equipo no enseñaba su renta.
+    entregar: 'Entregar',
+    entregarA: (codigo: string) => `Entregar ${codigo}`,
+    entregarTitulo: 'Entregar la máquina',
+    entregarApoyo:
+      'Registra la salida y la mueve a su destino. Queda un movimiento en el historial del equipo, y con la primera entrega la renta pasa a Activa.',
+    devolverMaquina: 'Devolver',
+    devolverMaquinaA: (codigo: string) => `Devolver ${codigo}`,
+    devolverMaquinaTitulo: 'Recibir la máquina',
+    devolverMaquinaApoyo:
+      'La regresa a la ubicación de la que salió y la deja disponible. Con la última máquina de vuelta, la renta pasa a Devuelta.',
+    quienMueve: 'Quién la mueve',
+    ayudaQuienMueve:
+      'Quién va con la máquina, no quién captura: eso lo guarda la auditoría. Es obligatorio porque el movimiento lo pide.',
+    errorQuienMueve: 'Elige quién la mueve.',
+    horometro: 'Horómetro',
+    ayudaHorometroSalida: 'La lectura con la que sale. No todas las máquinas llevan horómetro.',
+    ayudaHorometroVuelta: 'La lectura con la que regresa. No puede ser menor que la de salida.',
+    cuandoMovida: 'Cuándo',
+    ayudaCuandoMovida: 'Vacío es ahora. Sirve para capturar algo que pasó ayer.',
+    observaciones: 'Observaciones',
+    avisoEntrega:
+      'Necesita tener su obra o su ubicación de entrega asignada, y que sea distinta de donde está la máquina ahora.',
+    avisoDevolucionMaquina:
+      'El destino no se pregunta: regresa a la ubicación de la que salió, la que quedó escrita en su entrega.',
+    maquinaFuera: (cuando: string) => `Fuera desde ${cuando}`,
+    maquinaDevuelta: (cuando: string) => `Devuelta el ${cuando}`,
     opcional: '(opcional)',
     soloBorradorLineas:
       'Los equipos solo se tocan en Borrador: a partir de Confirmada tienen calendario detrás.',
@@ -5113,9 +5135,6 @@ const EN_US: Textos = {
     cliente: 'Customer',
     ayudaCliente: 'Who it is rented to. Active ones only.',
     sinClientes: 'There are no customers yet. Create one before renting.',
-    responsable: 'Owner',
-    ayudaResponsable:
-      'Who raises the rental. Comes from Workers, and it can be left blank: who performed the operation is recorded in the audit trail anyway.',
     unidad: 'Unit',
     unidades: {
       1: 'Hour',
@@ -5165,7 +5184,6 @@ const EN_US: Textos = {
     avisoVencida: 'Its end date passed and the equipment is still out.',
     avisoPorVencer: 'Fewer than three days left.',
     errorCliente: 'Pick the customer.',
-    errorResponsable: 'Pick who raises it.',
     errorInicio: 'Enter the start date.',
     errorFin: 'Enter the end date.',
     errorLugar: 'Say where the machine will work.',
@@ -5193,7 +5211,10 @@ const EN_US: Textos = {
     seccionConceptos: 'Other charges',
     seccionExtensiones: 'Extensions',
     precioTraido: 'Price pulled from the equipment. You can change it.',
-    costoDeLaMaquina: 'Machine cost',
+    calculoDeLaExtension: (unidades: number, unidad: string, porUnidad: string, total: string) =>
+      `It will charge: ${unidades} ${unidad} × ${porUnidad} = ${total}. It comes from each line's machine cost; charges are not recalculated.`,
+    extensionSinCosto:
+      'The machines on this rental have no cost of their own —they live off their charges— so extending it charges nothing.',
     calculoDelCosto: (unidades: number, unidad: string, porUnidad: string, total: string) =>
       `Calculated: ${unidades} ${unidad} × ${porUnidad} = ${total}. Type a figure to override it.`,
     sinCostoParaLaUnidad: (unidad: string) =>
@@ -5213,10 +5234,6 @@ const EN_US: Textos = {
     errorCodigoObra: 'A new site needs a code.',
     domicilioObra: 'Site address',
     ayudaDomicilioObra: 'Where it is. It is stored on the location created with it.',
-    ayudaCostoDeLaMaquina:
-      'Left blank, it takes what the equipment has loaded for the rental unit. What is charged on top —freight, operator— is added as a charge on the machine.',
-    ayudaCantidadDelPeriodo:
-      'Left blank, it comes from the rental period and its unit. Zero is a machine that only carries charges.',
     agregarCargoALaMaquina: 'Add charge to the machine',
     agregarCargoA: (codigo: string) => `Add a charge to ${codigo}`,
     agregarCargoApoyo: (codigo: string) =>
@@ -5260,7 +5277,7 @@ const EN_US: Textos = {
     devolver: 'Mark as returned',
     devolverTitulo: 'The equipment is back',
     devolverMensaje: (folio: string) =>
-      `${folio} becomes Returned. The calendar stays booked until you close it.`,
+      `${folio} becomes Returned WITHOUT recording any movement, so it is meant for a rental whose machines never left. The calendar stays booked until you close it.`,
     extender: 'Extend',
     extenderTitulo: 'Extend the rental',
     extenderApoyo: 'It moves the rental end date and its equipment bookings.',
@@ -5293,8 +5310,6 @@ const EN_US: Textos = {
     sinTarifas: 'There are no concepts in the catalog. Create one under Rates.',
     cantidad: 'Quantity',
     precioUnitario: 'Unit price',
-    horasIncluidas: 'Included hours',
-    ayudaHorasIncluidas: 'Optional. The ones the price covers before charging extra.',
     ubicacionDestino: 'Delivery location',
     sinDestino: 'Not set yet',
     ayudaDestino: 'Where THIS machine goes. Each line can go somewhere different.',
@@ -5307,6 +5322,33 @@ const EN_US: Textos = {
     asignarObraA: (codigo: string) => `Assign the site for ${codigo}`,
     asignarObraApoyo:
       'It works with the rental already confirmed: the site books no calendar. It stops working once the machine has left — from then on, moving it is a movement.',
+
+    entregar: 'Check out',
+    entregarA: (codigo: string) => `Check out ${codigo}`,
+    entregarTitulo: 'Check the machine out',
+    entregarApoyo:
+      'It records the departure and moves it to its destination. A movement is left in the machine history, and the first check-out turns the rental Active.',
+    devolverMaquina: 'Check in',
+    devolverMaquinaA: (codigo: string) => `Check in ${codigo}`,
+    devolverMaquinaTitulo: 'Take the machine back',
+    devolverMaquinaApoyo:
+      'It returns to the location it left from and becomes available again. With the last machine back, the rental turns Returned.',
+    quienMueve: 'Who moves it',
+    ayudaQuienMueve:
+      'Who goes with the machine, not who types this in: the audit log keeps that. It is required because the movement needs it.',
+    errorQuienMueve: 'Pick who moves it.',
+    horometro: 'Hour meter',
+    ayudaHorometroSalida: 'The reading it leaves with. Not every machine has an hour meter.',
+    ayudaHorometroVuelta: 'The reading it comes back with. It cannot be lower than at check-out.',
+    cuandoMovida: 'When',
+    ayudaCuandoMovida: 'Empty means now. Use it to record something that happened yesterday.',
+    observaciones: 'Notes',
+    avisoEntrega:
+      'It needs its site or delivery location assigned, and it has to be somewhere other than where the machine is now.',
+    avisoDevolucionMaquina:
+      'The destination is not asked for: it goes back to the location it left from, the one written on its check-out.',
+    maquinaFuera: (cuando: string) => `Out since ${cuando}`,
+    maquinaDevuelta: (cuando: string) => `Back on ${cuando}`,
     proyecto: 'Project',
     sinProyecto: 'No project',
     opcional: '(optional)',

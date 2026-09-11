@@ -406,6 +406,29 @@
                         · {{ linea.proyecto }}
                       }
                     </span>
+
+                    <!--
+                      DONDE ESTA ESTA MAQUINA. Solo cuando ya salio: mientras no lo haya hecho,
+                      no decir nada es la respuesta, y un «todavia no ha salido» en cada fila de
+                      un borrador seria ruido en el 100% de los renglones.
+                    -->
+                    @if (linea.devueltoEn) {
+                      <span class="block text-[11px] font-normal text-texto-apagado">
+                        {{
+                          t().renta.maquinaDevuelta(
+                            (linea.devueltoEn | date: 'short' : undefined : locale()) ?? ''
+                          )
+                        }}
+                      </span>
+                    } @else if (linea.entregadoEn) {
+                      <span class="block text-[11px] font-normal text-texto-apagado">
+                        {{
+                          t().renta.maquinaFuera(
+                            (linea.entregadoEn | date: 'short' : undefined : locale()) ?? ''
+                          )
+                        }}
+                      </span>
+                    }
                   </th>
 
                   <!--
@@ -464,6 +487,66 @@
                           >
                             <path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11" />
                             <circle cx="12" cy="10" r="2.5" />
+                          </svg>
+                        </button>
+                      }
+
+                      <!--
+                        ENTREGAR Y DEVOLVER, UNA MAQUINA A LA VEZ. **Entro el 2026-09-11, y con
+                        esto nacen los movimientos de la renta**: `renta_linea.entregado_en` y
+                        `devuelto_en` existian desde el 09-03 sin que nada las escribiera, y los
+                        tipos `EntregaRenta` y `DevolucionRenta` estaban declarados desde el
+                        09-01 sin que nadie los usara. Por eso el historial de una maquina no
+                        ensenaba su renta: la operacion no existia.
+
+                        POR MAQUINA Y NO POR RENTA porque una renta de tres maquinas sale en tres
+                        viajes, cada uno con su fecha, su horometro y quien fue. Un solo boton
+                        «entregar todo» tendria que inventar esos tres datos iguales.
+                      -->
+                      @if (sePuedeEntregar(linea)) {
+                        <button
+                          type="button"
+                          (click)="abrirMovida(linea, 'entrega')"
+                          [disabled]="enviando()"
+                          [attr.aria-label]="t().renta.entregarA(linea.codigoInterno)"
+                          [title]="t().renta.entregar"
+                          class="boton-icono"
+                        >
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M4 4v16M9 12h11M16 8l4 4-4 4" />
+                          </svg>
+                        </button>
+                      }
+
+                      @if (sePuedeDevolver(linea)) {
+                        <button
+                          type="button"
+                          (click)="abrirMovida(linea, 'devolucion')"
+                          [disabled]="enviando()"
+                          [attr.aria-label]="t().renta.devolverMaquinaA(linea.codigoInterno)"
+                          [title]="t().renta.devolverMaquina"
+                          class="boton-icono"
+                        >
+                          <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.75"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M20 4v16M15 12H4M8 8l-4 4 4 4" />
                           </svg>
                         </button>
                       }
@@ -747,6 +830,12 @@
                   {{ t().renta.colFinAnterior }}
                 </th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colFinNuevo }}</th>
+                <!--
+                  LAS DOS COLUMNAS DEL COBRO, nuevas del 2026-09-10: hasta entonces extender no
+                  cobraba nada y esta tabla era solo un historico de fechas.
+                -->
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colCantidad }}</th>
+                <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colImporte }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colMotivo }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium">{{ t().renta.colQuien }}</th>
                 <th scope="col" class="px-4 py-2.5 font-medium md:px-5">
@@ -766,10 +855,23 @@
                   <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto">
                     {{ extension.finNuevo | date: 'short' : undefined : locale() }}
                   </td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario">
+                    {{ extension.unidades }} {{ t().cotizaciones.unidades[renta()!.unidad] }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 font-semibold tabular-nums text-texto">
+                    {{ extension.importe | currency: moneda : 'symbol' : '1.2-2' : locale() }}
+                  </td>
                   <td class="px-4 py-3 text-texto-secundario">
                     {{ extension.motivo ?? t().renta.sinDato }}
                   </td>
-                  <td class="px-4 py-3 text-texto-secundario">{{ extension.trabajador }}</td>
+                  <!--
+                    CON RESGUARDO: el responsable es opcional desde el 2026-09-11, asi que las
+                    prorrogas nuevas llegan sin el. Sin el `??` la celda quedaria vacia, que se
+                    lee como un fallo y no como un dato que ya no se captura.
+                  -->
+                  <td class="px-4 py-3 text-texto-secundario">
+                    {{ extension.trabajador ?? t().renta.sinDato }}
+                  </td>
                   <td
                     class="whitespace-nowrap px-4 py-3 tabular-nums text-texto-secundario md:px-5"
                   >
@@ -851,109 +953,43 @@
         estuvo aqui, una maquina con flete y operador eran tres renglones del mismo equipo.
       -->
 
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div class="flex flex-col gap-1">
-          <label for="linea-cantidad" class="text-sm font-medium text-texto-secundario">
-            {{ t().renta.cantidad }}
-            <span class="font-normal text-texto-apagado">{{ t().cotizaciones.opcional }}</span>
-          </label>
-          <input
-            id="linea-cantidad"
-            formControlName="cantidad"
-            type="number"
-            min="0.01"
-            step="0.01"
-            inputmode="decimal"
-            autocomplete="off"
-            [attr.aria-invalid]="mal(formularioLinea.controls.cantidad) ? 'true' : null"
-            [attr.aria-describedby]="
-              mal(formularioLinea.controls.cantidad) ? 'error-linea-cantidad' : null
-            "
-            class="campo-formulario"
-          />
-          <app-error-campo
-            id="error-linea-cantidad"
-            [visible]="mal(formularioLinea.controls.cantidad)"
-            [mensaje]="t().renta.errorCantidad"
-          />
-          <p class="text-xs text-texto-apagado">{{ t().renta.ayudaCantidadDelPeriodo }}</p>
-        </div>
+      <!--
+        EL COSTO DE LA MAQUINA, SOLO PARA VERLO. Son las unidades del periodo de la renta por el
+        costo que el equipo tiene cargado para su unidad, que es lo que el servidor va a guardar.
 
-        <div class="flex flex-col gap-1">
-          <label for="linea-precio" class="text-sm font-medium text-texto-secundario">
-            {{ t().renta.costoDeLaMaquina }}
-            <span class="font-normal text-texto-apagado">{{ t().cotizaciones.opcional }}</span>
-          </label>
-          <input
-            id="linea-precio"
-            formControlName="precioUnitario"
-            type="number"
-            min="0"
-            step="0.01"
-            inputmode="decimal"
-            autocomplete="off"
-            [attr.aria-invalid]="mal(formularioLinea.controls.precioUnitario) ? 'true' : null"
-            [attr.aria-describedby]="
-              mal(formularioLinea.controls.precioUnitario) ? 'error-linea-precio' : null
-            "
-            class="campo-formulario"
-          />
-          <app-error-campo
-            id="error-linea-precio"
-            [visible]="mal(formularioLinea.controls.precioUnitario)"
-            [mensaje]="t().renta.errorPrecio"
-          />
+        **AQUI HABIA TRES CAMPOS Y SE FUERON EL 2026-09-10**, a peticion del cliente:
 
-          <!--
-            EL CALCULO, A LA VISTA. Es lo que el servidor va a poner si el campo se deja en
-            blanco: las unidades del periodo por el costo que el equipo tiene cargado para la
-            unidad del documento.
+        - `cantidad` y `costo de la maquina` **se calculan**, asi que pedirlos era ofrecer que
+          alguien tecleara un numero que el documento ya sabe. El panel de la cotizacion nunca
+          los pidio; este los pedia porque venia de cuando la linea era «una maquina y una
+          tarifa», y entonces si eran capturados. El endpoint los sigue aceptando —nulo es «pon
+          el del documento»— para que la conversion pueda mandar el precio COTIZADO.
 
-            **Se ensena porque un numero que aparece solo despues de guardar no se revisa** — y
-            porque cuando sale en cero, la razon se ve aqui y no en el total del contrato.
-          -->
-          @if (costoCalculado(); as calculo) {
-            @if (calculo.porUnidad !== null) {
-              <p class="text-xs text-texto-apagado">
-                {{
-                  t().renta.calculoDelCosto(
-                    calculo.unidades,
-                    t().cotizaciones.unidades[renta()!.unidad],
-                    (calculo.porUnidad | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? '',
-                    (calculo.total | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? ''
-                  )
-                }}
-              </p>
-            } @else {
-              <p class="aviso text-sm text-texto-secundario">
-                {{ t().renta.sinCostoParaLaUnidad(t().cotizaciones.unidades[renta()!.unidad]) }}
-              </p>
-            }
-          } @else {
-            <p class="text-xs text-texto-apagado">{{ t().renta.ayudaCostoDeLaMaquina }}</p>
-          }
-        </div>
-
-        <div class="flex flex-col gap-1 sm:col-span-2">
-          <label for="horasIncluidas" class="text-sm font-medium text-texto-secundario">
-            {{ t().renta.horasIncluidas }}
-          </label>
-          <input
-            id="horasIncluidas"
-            formControlName="horasIncluidas"
-            type="number"
-            min="0"
-            step="0.5"
-            inputmode="decimal"
-            autocomplete="off"
-            aria-describedby="ayuda-horas"
-            class="campo-formulario"
-          />
-          <p id="ayuda-horas" class="text-xs text-texto-apagado">
-            {{ t().renta.ayudaHorasIncluidas }}
+        - `horas incluidas` **no se calcula de nada**: es un dato del contrato (§7), las horas
+          que el precio cubre antes de cobrar excedente. Se retira por otra razon: **hoy nada la
+          usa**, porque el cobro por hora excedida es Fase 2. Cuando llegue, este es el sitio
+          donde vuelve a ofrecerse. La columna sigue en la base y el endpoint la sigue aceptando.
+      -->
+      @if (costoCalculado(); as calculo) {
+        @if (calculo.porUnidad !== null) {
+          <p class="aviso text-sm text-texto-secundario">
+            {{
+              t().renta.calculoDelCosto(
+                calculo.unidades,
+                t().cotizaciones.unidades[renta()!.unidad],
+                (calculo.porUnidad | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? '',
+                (calculo.total | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? ''
+              )
+            }}
           </p>
-        </div>
+        } @else {
+          <p class="aviso text-sm text-texto-secundario">
+            {{ t().renta.sinCostoParaLaUnidad(t().cotizaciones.unidades[renta()!.unidad]) }}
+          </p>
+        }
+      }
 
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <!--
           LA OBRA, **ESCRIBIENDOLA**. Es un `datalist` como el modelo del alta de equipo y el
           concepto del expediente: se teclea, el navegador filtra entre las obras de ESTE
@@ -1271,8 +1307,14 @@
   sin ella, a los cargos de la renta. Es el mismo panel —los campos son identicos— y sin el
   titulo no habria forma de saber cual de las dos cosas se hace.
 
-  El comentario va AQUI Y NO DENTRO DE LA ETIQUETA: un `<!-- -->` entre atributos no es HTML valido
-y Angular lo rechaza con «Opening tag not terminated», que no menciona el comentario. -->
+  Y VA AQUI Y NO DENTRO DE LA ETIQUETA: un comentario entre atributos no es HTML valido, y
+  Angular lo rechaza con «Opening tag not terminated», que no menciona el comentario.
+
+  (Este texto se estuvo PINTANDO EN LA PANTALLA unas horas del 2026-09-10, debajo de las
+  extensiones: la version anterior escribia la secuencia de cierre de un comentario aqui dentro,
+  como ejemplo, y esa secuencia cerro el comentario de verdad. Lo vio el cliente en el
+  navegador; ni el compilador ni las 339 pruebas lo veian.)
+-->
 <app-panel-lateral
   [abierto]="panelConcepto()"
   [titulo]="
@@ -1510,34 +1552,37 @@ y Angular lo rechaza con «Opening tag not terminated», que no menciona el come
           [visible]="mal(formularioExtension.controls.finNuevo)"
           [mensaje]="t().renta.errorFinNuevo"
         />
+
+        <!--
+          LO QUE VA A COSTAR, antes de guardarlo. **Hasta el 2026-09-10 extender no cobraba
+          nada**, y el cambio no se nota si no se dice: las mismas fechas de siempre y un total
+          que ahora sube.
+        -->
+        @if (costoDeLaExtension(); as calculo) {
+          @if (calculo.porUnidad > 0) {
+            <p class="aviso text-sm text-texto-secundario">
+              {{
+                t().renta.calculoDeLaExtension(
+                  calculo.unidades,
+                  t().cotizaciones.unidades[renta()!.unidad],
+                  (calculo.porUnidad | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? '',
+                  (calculo.total | currency: moneda : 'symbol' : '1.2-2' : locale()) ?? ''
+                )
+              }}
+            </p>
+          } @else {
+            <p class="text-xs text-texto-apagado">{{ t().renta.extensionSinCosto }}</p>
+          }
+        }
       </div>
 
-      <div class="flex flex-col gap-1">
-        <label for="ext-trabajadorId" class="text-sm font-medium text-texto-secundario">
-          {{ t().renta.responsable }}
-        </label>
-        <select
-          id="ext-trabajadorId"
-          formControlName="trabajadorId"
-          [attr.aria-invalid]="mal(formularioExtension.controls.trabajadorId) ? 'true' : null"
-          [attr.aria-describedby]="
-            mal(formularioExtension.controls.trabajadorId) ? 'error-ext-responsable' : null
-          "
-          class="campo-formulario"
-        >
-          <option value="">{{ t().renta.sinDato }}</option>
-          @for (trabajador of trabajadores(); track trabajador.id) {
-            <option [value]="trabajador.id">
-              {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }} {{ trabajador.apellidos }}
-            </option>
-          }
-        </select>
-        <app-error-campo
-          id="error-ext-responsable"
-          [visible]="mal(formularioExtension.controls.trabajadorId)"
-          [mensaje]="t().rentas.errorResponsable"
-        />
-      </div>
+      <!--
+        SIN RESPONSABLE, retirado el 2026-09-11. **Es la tercera vez que se quita el mismo campo
+        por el mismo argumento**: salio de la cotizacion el 08, del panel de conversion el 09, y
+        ahora de la prorroga. Lo que registraba —quien hizo la operacion— lo guarda la auditoria.
+
+        La COLUMNA de la tabla de abajo se queda: las prorrogas anteriores lo conservan.
+      -->
 
       <div class="flex flex-col gap-1">
         <label for="motivo" class="text-sm font-medium text-texto-secundario">
@@ -1763,6 +1808,163 @@ y Angular lo rechaza con «Opening tag not terminated», que no menciona el come
     <button
       type="submit"
       form="formulario-destino"
+      [disabled]="enviando()"
+      class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
+    >
+      {{ enviando() ? t().renta.guardando : t().renta.guardar }}
+    </button>
+  </div>
+</app-panel-lateral>
+
+<!--
+  ========================================== la entrega y la devolucion
+
+  UN SOLO PANEL PARA LAS DOS, porque los cuatro campos son identicos: quien la movio, con que
+  horometro, cuando y una nota. Dos paneles gemelos serian dos sitios donde arreglar lo mismo.
+
+  **EL DESTINO NO SE PREGUNTA EN NINGUNA DE LAS DOS.** En la entrega sale de la obra o del sitio
+  que ya lleva la linea —el boton de la chincheta—, y en la devolucion es la ubicacion DE LA QUE
+  SALIO, que el servidor lee del movimiento de entrega. Preguntarlo aqui abriria la puerta a
+  contradecir lo que ya esta escrito.
+-->
+<app-panel-lateral
+  [abierto]="panelMovida()"
+  [titulo]="
+    movida()?.tipo === 'entrega' ? t().renta.entregarTitulo : t().renta.devolverMaquinaTitulo
+  "
+  [apoyo]="movida()?.tipo === 'entrega' ? t().renta.entregarApoyo : t().renta.devolverMaquinaApoyo"
+  (cerrar)="cerrarMovida()"
+>
+  <form [formGroup]="formularioMovida" (ngSubmit)="guardarMovida()" id="formulario-movida">
+    <div class="flex flex-col gap-5 px-4 py-4 sm:px-5">
+      @if (error(); as mensaje) {
+        <p
+          class="rounded-lg border border-amarillo bg-alerta-fondo p-3 text-sm text-alerta-texto"
+          role="alert"
+        >
+          {{ mensaje }}
+        </p>
+      }
+
+      @if (movida(); as cual) {
+        <p class="text-sm text-texto-secundario">
+          {{ t().comun.equipoEnLinea(cual.linea.codigoInterno, cual.linea.nombre) }} —
+          {{ cual.linea.modelo }}
+
+          <!-- A DONDE VA, para que quien entrega vea si es el sitio correcto antes de guardar. -->
+          <span class="block text-xs text-texto-apagado">
+            {{ cual.linea.ubicacionDestino ?? t().renta.sinDestino }}
+            @if (cual.linea.proyecto) {
+              · {{ cual.linea.proyecto }}
+            }
+          </span>
+        </p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="movida-trabajadorId" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.quienMueve }}
+        </label>
+        <select
+          id="movida-trabajadorId"
+          formControlName="trabajadorId"
+          [attr.aria-invalid]="mal(formularioMovida.controls.trabajadorId) ? 'true' : null"
+          [attr.aria-describedby]="
+            mal(formularioMovida.controls.trabajadorId)
+              ? 'ayuda-quien-mueve error-quien-mueve'
+              : 'ayuda-quien-mueve'
+          "
+          class="campo-formulario"
+        >
+          <option value="">{{ t().renta.sinTrabajador }}</option>
+          @for (trabajador of trabajadores(); track trabajador.id) {
+            <option [value]="trabajador.id">
+              {{ trabajador.numeroEmpleado }} — {{ trabajador.nombre }} {{ trabajador.apellidos }}
+            </option>
+          }
+        </select>
+        <p id="ayuda-quien-mueve" class="text-xs text-texto-apagado">
+          {{ t().renta.ayudaQuienMueve }}
+        </p>
+        <app-error-campo
+          id="error-quien-mueve"
+          [visible]="mal(formularioMovida.controls.trabajadorId)"
+          [mensaje]="t().renta.errorQuienMueve"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="movida-horometro" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.horometro }}
+          <span class="font-normal text-texto-apagado">{{ t().renta.opcional }}</span>
+        </label>
+        <input
+          id="movida-horometro"
+          formControlName="horometro"
+          type="number"
+          step="0.01"
+          min="0"
+          aria-describedby="ayuda-horometro-movida"
+          class="campo-formulario"
+        />
+        <p id="ayuda-horometro-movida" class="text-xs text-texto-apagado">
+          {{
+            movida()?.tipo === 'entrega'
+              ? t().renta.ayudaHorometroSalida
+              : t().renta.ayudaHorometroVuelta
+          }}
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="movida-fecha" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.cuandoMovida }}
+          <span class="font-normal text-texto-apagado">{{ t().renta.opcional }}</span>
+        </label>
+        <input
+          id="movida-fecha"
+          formControlName="fecha"
+          type="datetime-local"
+          aria-describedby="ayuda-cuando-movida"
+          class="campo-formulario"
+        />
+        <p id="ayuda-cuando-movida" class="text-xs text-texto-apagado">
+          {{ t().renta.ayudaCuandoMovida }}
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="movida-observaciones" class="text-sm font-medium text-texto-secundario">
+          {{ t().renta.observaciones }}
+        </label>
+        <textarea
+          id="movida-observaciones"
+          formControlName="observaciones"
+          rows="2"
+          class="campo-formulario"
+        ></textarea>
+      </div>
+
+      <p class="aviso text-sm text-texto-secundario">
+        {{
+          movida()?.tipo === 'entrega' ? t().renta.avisoEntrega : t().renta.avisoDevolucionMaquina
+        }}
+      </p>
+    </div>
+  </form>
+
+  <div pie class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+    <button
+      type="button"
+      (click)="cerrarMovida()"
+      class="rounded-lg border border-borde-campo px-4 py-2.5 text-sm text-texto-secundario hover:bg-superficie-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento"
+    >
+      {{ t().renta.cerrar }}
+    </button>
+
+    <button
+      type="submit"
+      form="formulario-movida"
       [disabled]="enviando()"
       class="rounded-lg bg-amarillo px-4 py-2.5 text-sm font-semibold text-sobre-amarillo hover:bg-amarillo-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-negro-acento disabled:cursor-not-allowed disabled:bg-estado-neutro-fondo disabled:text-estado-neutro-texto"
     >

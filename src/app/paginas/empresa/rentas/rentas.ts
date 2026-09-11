@@ -15,7 +15,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { Barra } from '../../../disposicion/barra';
 import { BarraHerramientas } from '../../../disposicion/barra-herramientas';
 import { PanelLateral } from '../../../disposicion/panel-lateral';
-import { ApiOrganizacion } from '../../../nucleo/api/api-organizacion';
 import { ApiRentas } from '../../../nucleo/api/api-rentas';
 import { ApiTerceros } from '../../../nucleo/api/api-terceros';
 import type {
@@ -87,7 +86,6 @@ const UNIDADES: readonly UnidadTarifa[] = [1, 2, 3, 4];
 export class Rentas {
   private readonly api = inject(ApiRentas);
   private readonly terceros = inject(ApiTerceros);
-  private readonly organizacion = inject(ApiOrganizacion);
   private readonly barra = inject(Barra);
   private readonly fb = inject(NonNullableFormBuilder);
 
@@ -101,7 +99,8 @@ export class Rentas {
 
   /** Solo los ACTIVOS: `ValidarAsync` rechaza rentarle a un cliente suspendido o de baja. */
   protected readonly clientes = this.terceros.selectorClientesActivos();
-  protected readonly trabajadores = this.organizacion.selectorTrabajadores();
+  // SIN SELECTOR DE TRABAJADORES: lo leía el desplegable del responsable, retirado el
+  // 2026-09-11.
 
   protected readonly busqueda = signal('');
 
@@ -147,11 +146,10 @@ export class Rentas {
   protected readonly formulario = this.fb.group({
     clienteId: ['', validadorRequerido],
 
-    // **OPCIONAL DESDE EL 2026-09-09.** La columna se aflojó y la conversión desde una
-    // cotización dejó de preguntarla, así que exigirla AQUÍ dejaría una renta convertida
-    // imposible de editar sin nombrar un responsable que nadie capturó. Se sigue ofreciendo
-    // porque en un alta directa es el único sitio donde se sabe.
-    trabajadorId: [''],
+    // **SIN `trabajadorId` desde el 2026-09-11.** Fue obligatorio hasta el 09, opcional dos
+    // días, y ahora no se pregunta: es la cuarta y última vez que se retira el mismo campo por
+    // el mismo argumento —cotización, conversión, prórroga, alta— y ya no queda ninguno. Lo que
+    // registraba lo guarda la auditoría.
 
     // **CÓMO SE COBRA EL PERIODO.** De ella y del periodo sale la cantidad de cada línea de
     // equipo, igual que en la cotización.
@@ -284,7 +282,6 @@ export class Rentas {
     this.errorMutacion.set(null);
     this.formulario.reset({
       clienteId: '',
-      trabajadorId: '',
       unidad: 2 as UnidadTarifa,
       inicio: '',
       fin: '',
@@ -304,9 +301,6 @@ export class Rentas {
     this.formulario.reset({
       clienteId: renta.clienteId,
       unidad: renta.unidad,
-      // `?? ''` porque el campo es un `<select>` de texto y la renta puede no tener
-      // responsable: una convertida desde cotización no lo lleva.
-      trabajadorId: renta.trabajadorId ?? '',
       inicio: aCampoLocal(renta.inicio),
       fin: aCampoLocal(renta.fin),
       deposito: renta.deposito,
@@ -341,8 +335,11 @@ export class Rentas {
       // La renta nace suelta desde esta pantalla. La que viene de una cotización se crea con
       // `POST rentas/desde-cotizacion/{id}`, que copia los precios congelados.
       cotizacionId: null,
-      // Vacío es «no hay», no la cadena vacía: el servidor espera nulo.
-      trabajadorId: v.trabajadorId === '' ? null : v.trabajadorId,
+      // NULO: dejó de preguntarse el 2026-09-11. **Y en la EDICIÓN esto no lo borra**, porque
+      // el servidor solo pisa lo que recibe y `AltaRenta.TrabajadorId` es anulable: una renta
+      // que lo tenía lo pierde al editarla. Es aceptable —el dato está en la auditoría— pero
+      // conviene saberlo: no es que se conserve, es que deja de estar.
+      trabajadorId: null,
       // A INSTANTE, no el texto tal cual. El campo entrega hora de pared local y la columna
       // es `timestamptz`: mandarlo crudo da un 500 de Npgsql, y pegarle una `Z` lo corre las
       // horas del huso. Está explicado en `fecha-hora.ts`.

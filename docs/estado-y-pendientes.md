@@ -1,6 +1,148 @@
 # Estado y pendientes
 
-Última verificación: 2026-09-09 (compilando; **no** en el navegador).
+Última verificación: 2026-09-11 (compilando; **no** en el navegador).
+
+## Entregar y devolver, máquina por máquina — 2026-09-11
+
+Lo pidió el cliente al no ver los movimientos de sus máquinas. La causa estaba en el servidor
+—la operación no existía— y en la pantalla faltaba por dónde hacerla.
+
+**Dos botones en la fila de cada máquina** y **un solo panel para las dos operaciones**, porque
+los cuatro campos son idénticos: quién la mueve, con qué horómetro, cuándo y una nota. Dos
+paneles gemelos serían dos sitios donde arreglar lo mismo.
+
+- **El destino no se pregunta en ninguna de las dos.** En la entrega sale de la obra o del sitio
+  que ya lleva la línea —el botón de la chincheta, que entró el 09—; en la devolución es la
+  ubicación de la que salió, que el servidor lee del movimiento de entrega.
+- **El horómetro arranca con el de salida** en la devolución: es el mínimo que el servidor
+  acepta, y empezar en blanco obliga a ir a buscarlo a la tabla.
+- **La fecha vacía es «ahora»**, y sirve para capturar algo que pasó ayer.
+- **`trabajadorId` sí es obligatorio aquí, y no contradice haber retirado el «responsable»** de
+  la renta, la cotización y la prórroga esta misma mañana: aquel decía **quién tecleó** —y eso lo
+  guarda la auditoría—, este dice **quién fue con la máquina**. Es un hecho de la operación que
+  no se deduce de ningún sitio, y `movimiento.trabajador_id` es `NOT NULL`.
+- La celda del equipo dice **dónde está**: «Fuera desde…» o «Devuelta el…». Solo cuando ya
+  salió: un «todavía no ha salido» en cada fila de un borrador sería ruido en el 100% de los
+  renglones.
+
+**El botón que faltaba apagar.** «Marcar como devuelta» pasa la renta a Devuelta de un tirón, y
+el proceso de devolución por máquina exige que esté Activa: apretarlo con máquinas fuera las
+dejaba sin poder devolverse nunca. Ahora solo aparece cuando no queda ninguna fuera, y su
+confirmación lo dice: pasa a Devuelta **sin registrar ningún movimiento**, así que es para la
+renta cuyas máquinas nunca salieron.
+
+**El botón de entregar se dibuja aunque falte el sitio de entrega.** El servidor lo rechaza con
+«asígnale su obra —o un sitio— antes de entregarlo», y esa frase enseña el camino; esconder el
+botón deja a alguien buscando por qué no puede. Ninguna de las 10 líneas que había en la base
+tenía destino, así que iba a ser lo primero en pasar — **esas 10 líneas ya no existen**: esa
+misma tarde se vaciaron las seis bases de empresa a petición del cliente, y lo que se capture a
+partir de ahora nace con el botón de la chincheta disponible desde el principio.
+
+`ng build` limpio y **339 pruebas** en verde. Los dos avisos `NG8102` que quedan son de
+`reportes` y `roles`, y son anteriores.
+
+## Fuera el responsable del panel de prórroga — 2026-09-11
+
+Tercera vez que se quita el mismo campo por el mismo argumento —cotización el 08, conversión el
+09, prórroga ahora—: lo que registraba lo guarda la auditoría.
+
+**La columna de la tabla se queda**, con `?? sinDato`: las tres prórrogas que existen conservan
+su responsable, y sin el resguardo la celda quedaría vacía en las nuevas — que se lee como un
+fallo y no como un dato que ya no se captura. Es el mismo criterio que en la ficha de la renta.
+
+Con el campo se fue `rentas.errorResponsable`, que era su única consumidora.
+
+`ng build` limpio, **339 pruebas**, i18n simétrica, Prettier limpio.
+
+> **Sin abrir en el navegador con sesión iniciada.**
+
+---
+
+## El panel de equipo pide tres cosas menos, y un comentario se estaba pintando — 2026-09-10
+
+### Lo primero: un defecto mío que solo se veía en el navegador
+
+En la captura que mandó el cliente, debajo de las extensiones, se leía media frase de un
+comentario del código. La causa: un comentario de `renta.html` que explicaba una trampa de HTML
+**contenía la secuencia de cierre de un comentario** como ejemplo, y esa secuencia cerró el
+comentario ahí — el resto quedó como texto en la página.
+
+**Ni `ng build` ni las 339 pruebas lo vieron**: un nodo de texto suelto es HTML válido. Lo
+encontró el cliente mirando la pantalla.
+
+Es el cuarto defecto de este mes que compila limpio, pasa todas las pruebas y solo se ve en
+pantalla — con el prellenado que dejaba de ocurrir, el `track $index` que mostraba valores viejos
+y el panel que ofrecía una combinación que el servidor rechaza. Está anotado en `CLAUDE.md` con
+el barrido que lo busca en todas las plantillas; hoy hay cero.
+
+### Y lo que se pidió: fuera tres campos del panel
+
+- **Cantidad** y **costo de la máquina** se calculan —del periodo con su unidad, y del costo que
+  el equipo tiene cargado—, así que pedirlos era ofrecer que alguien teclee un número que el
+  documento ya sabe. El panel de la cotización nunca los pidió; este los pedía por herencia de
+  cuando la línea era «una máquina y una tarifa». En su lugar queda el cálculo, en un aviso:
+  «Se calcula: 2.54 Día × $2,500.00 = $6,350.00».
+- **Horas incluidas** es distinto y hay que decirlo: **no se calcula de nada**. Es un dato del
+  contrato —§7, las horas que el precio cubre antes de cobrar excedente—. Se retira por otra
+  razón: **hoy nada la usa**, porque el cobro por hora excedida es Fase 2. La columna y el
+  endpoint la siguen aceptando, así que volver a ofrecerla es agregar un campo.
+
+Los tres siguen viajando en `AltaRentaLinea` como nulos, y nulo es «pon el del documento». La
+única vía que manda cifras es la conversión desde una cotización, donde manda el precio ACORDADO.
+
+Con eso se fueron cinco claves de i18n que quedaron sin uso.
+
+### Comprobado
+
+`ng build` limpio, **339 pruebas**, i18n simétrica, Prettier limpio, cero comentarios que se
+cierren antes de tiempo en las plantillas.
+
+> **Sin abrir en el navegador con sesión iniciada** — pero esta vez el cliente sí, y encontró en
+> un minuto algo que la suite no ve.
+
+---
+
+## Lo que va a costar alargar, antes de guardarlo — 2026-09-10
+
+Extender una renta **no cobraba nada** hasta hoy, y ese cambio no se nota en ningún sitio si no
+se dice: quien alarga ve las mismas fechas de siempre y un total que ahora sube. Así que el panel
+lo enseña antes: «Se cobrará: 5 Día × $2,500.00 = $12,500.00. Sale del costo de máquina de cada
+línea; los cargos no se recalculan».
+
+Y cuando las máquinas de la renta no tienen costo propio —viven de sus cargos— sale el otro
+mensaje, que explica por qué el número es cero en lugar de dejarlo en blanco.
+
+La tabla de extensiones gana sus dos columnas: unidades e importe. Era solo un histórico de
+fechas.
+
+### El conteo del tramo, en un sitio con pruebas
+
+`RentaDto.UnidadesDelPeriodo` trae las del periodo **completo**; el tramo de una extensión —del
+fin actual al nuevo— no está en ningún DTO porque solo existe mientras se teclea. Así que hay que
+contarlo aquí.
+
+Vive en `nucleo/api/periodo-en-unidades.ts`, **marcado como espejo de `PeriodoEnUnidades` del
+servidor**, con seis pruebas que fijan sus tres decisiones: diferencia exacta con decimales (36
+horas son 1.5 días), un mes son 30 días, y dos decimales. Probadas al revés: poner el mes en 31
+días o redondear al alza tumba tres.
+
+Es la segunda duplicación consciente con el servidor —la otra es `costo-de-equipo.ts`— y las dos
+están acotadas al mínimo y fijadas por pruebas, porque si se separan la pantalla dice un número y
+se cobra otro.
+
+### Y el tropiezo de siempre, dos veces
+
+**El orden de los campos de una clase ES el orden de ejecución**: puse el `toSignal` del
+formulario de extensión con las demás señales, arriba, y el formulario se declara más abajo →
+TS2729. Es la segunda vez hoy. Movido detrás, con la razón al lado.
+
+### Comprobado
+
+`ng build` limpio, **339 pruebas** (seis más), i18n simétrica, Prettier limpio en lo tocado.
+
+> **Sin abrir en el navegador con sesión iniciada.**
+
+---
 
 ## Agregar equipo a una renta, como en cotizaciones — 2026-09-09
 
