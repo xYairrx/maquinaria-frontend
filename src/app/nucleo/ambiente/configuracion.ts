@@ -44,7 +44,7 @@ export const AMBIENTES = [
     dominioBase: 'localhost',
   },
   {
-    urlApi: 'https://maquinaria-backend-development.up.railway.app',
+    urlApi: 'https://maquinaria-backend-production-9497.up.railway.app',
     dominioBase: 'maqvia.com',
   },
 ] as const;
